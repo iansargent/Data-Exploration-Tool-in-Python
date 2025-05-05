@@ -69,6 +69,7 @@ def get_columns(df):
     columns = df.columns.tolist()
     return columns
 
+
 def clean_column_types(df):
     for col in df.columns:
         # Binary numeric to boolean
@@ -85,9 +86,12 @@ def clean_column_types(df):
             df[col] = pd.to_datetime(df[col], errors='coerce')
         elif "time" in col_lower:
             df[col] = pd.to_datetime(df[col], errors='coerce')
-
+        elif "year" in col_lower:
+            df[col] = pd.to_datetime(df[col], format='%Y', errors='coerce')
+        elif "month" in col_lower:
+            df[col] = pd.to_datetime(df[col], format='%m', errors='coerce')
+            
     return df
-
 
 
 def column_summaries(df, df_columns):
@@ -113,11 +117,12 @@ def column_summaries(df, df_columns):
 
 def single_column_plot(df, selected_column, column_type):
     source = df[[selected_column]].dropna()
+    
     # If the column is categorical (object type)
     if column_type == 'object' or column_type.name == 'category':
         # Set plot title
         st.subheader(f"Bar Chart of {selected_column}")
-        # Create a sorted bar chart using Altair (descending)
+        # Create a sorted BAR CHART using Altair (descending)
         chart = alt.Chart(source).mark_bar().encode(
             x=alt.X(f"{selected_column}:N", sort='-y'),
             y='count()',
@@ -137,7 +142,7 @@ def single_column_plot(df, selected_column, column_type):
     elif column_type in ['int64', 'float64']:
         # Set plot title
         st.subheader(f"Histogram of {selected_column}")
-        # Create a histogram using Altair
+        # Create a HISTOGRAM using Altair
         chart = alt.Chart(source).mark_bar().encode(
             x=alt.X(f"{selected_column}:Q", bin=alt.Bin(), title=selected_column),
             y=alt.Y('count()', title ='Count'),
@@ -182,10 +187,11 @@ def single_column_plot(df, selected_column, column_type):
         
         y_column = st.selectbox("Select a column to plot against time:", numeric_cols)
 
-        # Create the line chart
+        # Create the LINE CHART
         chart = alt.Chart(df).mark_line().encode(
             x=alt.X(f"{selected_column}:T", title="Time"),
-            y=alt.Y(f"{y_column}:Q", title=y_column)
+            y=alt.Y(f"{y_column}:Q", title=y_column),
+            color = alt.value("steelblue"),
         ).properties(
             width=600,
             height=400
@@ -194,7 +200,7 @@ def single_column_plot(df, selected_column, column_type):
         # Create the LOESS line chart with proper data transformation
         time_chart = chart + chart.transform_loess(
             f"{selected_column}", f"{y_column}", bandwidth=0.2
-        ).mark_line()
+        ).mark_line().encode(color = alt.value("tomato"))
         
         # Disply the chart
         st.altair_chart(time_chart, use_container_width=True)
