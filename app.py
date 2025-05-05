@@ -19,16 +19,24 @@ import os
 
 
 def get_file_name(file):
+    """
+    Get the file name without the extension.
+    """
     filename = os.path.splitext(file.name)[0]
     return filename
 
 def get_file_extension(file):
+    """
+    Extract the file extension of the uploaded file.
+    """
     file_extension = os.path.splitext(file.name)[1]
     return file_extension
 
 
 def read_data(file):
-
+    """
+    Read the uploaded file and return a DataFrame.
+    """
     file_extension = get_file_extension(file)
     # Reading the properly formatted file
     if file_extension == '.csv':
@@ -58,19 +66,27 @@ def read_data(file):
         st.error("Unsupported file format. Please upload a CSV, JSON, SAV, or XLSX file.")
 
     return df
-    
-
-def get_file_name(file):
-    filename = os.path.splitext(file.name)[0]
-    return filename
 
 
 def get_columns(df):
+    """
+    Get the columns of the DataFrame as a list.
+    """
     columns = df.columns.tolist()
     return columns
 
+def get_column_type(df, column_name):
+    """
+    Get the data type of a specific column in the DataFrame.
+    """
+    column_type = df[column_name].dtype
+    return column_type
 
 def clean_column_types(df):
+    """
+    Clean the column types of the DataFrame.
+    Convert binary numeric columns to true/false and parse datetime columns.
+    """
     for col in df.columns:
         # Binary numeric to boolean
         if df[col].dropna().nunique() == 2:
@@ -95,6 +111,10 @@ def clean_column_types(df):
 
 
 def column_summaries(df, df_columns):
+    """
+    Display summaries of each column in the DataFrame.
+    Each summary includes the column name, data type, and a description of the column.
+    """
     # Three tables per row
     num_cols = 5
 
@@ -116,6 +136,10 @@ def column_summaries(df, df_columns):
 
 
 def single_column_plot(df, selected_column, column_type):
+    """
+    Create a single column plot based on the data type of the selected column.
+    The plot type is determined by the data type of the column.
+    """
     source = df[[selected_column]].dropna()
     
     # If the column is categorical (object type)
@@ -220,7 +244,6 @@ def single_column_plot(df, selected_column, column_type):
             width=400,
             height=400
         )
-        
         # Display the chart
         st.altair_chart(chart, use_container_width=True)
         
@@ -232,35 +255,44 @@ def single_column_plot(df, selected_column, column_type):
 
 
 def main():
-    # Set page width to wide
+    """
+    Main function to run the Streamlit app.
+    """
+    # Set page width to wide and page title
     st.set_page_config(page_title = "Vermont Livability Data Visualization App", layout="wide")
 
     # Header and body describing the app
     st.title("Vermont Livability Data Visualization")
     st.write("#### Give it a dataset and we will visualize it for you!")
    
-    # Get user's dataset
+    # Get the user's dataset(s)
     user_files = st.file_uploader("**Upload your CSV file below**", type=["csv", "json", "sav", "xlsx"], accept_multiple_files=True)
     
+    # Define a unique key number for each plot to avoid duplicate conflicts
     unique_key = 0
     
+    # If the user has uploaded at least one file
     if user_files:
+        # Attempt to read the files
         try:
+            # Iterate through each uploaded file
             for file in user_files:
+                # Increment the unique plot key number
+                unique_key += 1
                 # Read each data file
                 df = read_data(file)
-                filename = get_file_name(file)
-
-                unique_key += 1
-                st.markdown("---")
-                st.write(f"## {filename.upper()} Summary")
                 # Clean the column types
                 df = clean_column_types(df)
-                    
                 # Define the columns as a list
-                df_columns = df.columns.tolist()
+                df_columns = get_columns(df)
+                # Extract the file name without the extension
+                filename = get_file_name(file)
 
-                # Display a preview of the dataframe
+                # File section header 
+                st.markdown("---")
+                st.write(f"## {filename.upper()} Summary")
+                
+                # Display a table preview of the dataframe
                 with st.expander(f"Table Snapshot"):
                     st.dataframe(df.head(11))            
 
@@ -268,19 +300,19 @@ def main():
                 st.subheader(f"Column Summaries")
                 column_summaries(df, df_columns)
 
-                # Plots for each column (singular)
+                # Single plots section
                 st.subheader(f"Single Variable Plots")
                 # User selects a column to visualize
                 selected_column = st.selectbox("**Select a column to visualize**", df.columns.tolist(), key=unique_key)  
                     
-                # Get the data type of the selected column for a customized plot 
-                column_type = df[selected_column].dtype
-                    
+                # Find the data type of the selected column for the correct plot 
+                column_type = get_column_type(df, selected_column)
+                
                 # Single variable plot
                 single_column_plot(df, selected_column, column_type)
 
-                # Save to a temporary PNG file
-                st.subheader("Next Section")
+                # Two-variable plots section
+                st.subheader(f"Two Variable Plots")
                     
         except Exception as e:  
             st.error("An error occurred while processing your file:", icon="🚨")
