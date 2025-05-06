@@ -25,6 +25,7 @@ def get_file_name(file):
     filename = os.path.splitext(file.name)[0]
     return filename
 
+
 def get_file_extension(file):
     """
     Extract the file extension of the uploaded file.
@@ -75,12 +76,14 @@ def get_columns(df):
     columns = df.columns.tolist()
     return columns
 
+
 def get_column_type(df, column_name):
     """
     Get the data type of a specific column in the DataFrame.
     """
     column_type = df[column_name].dtype
     return column_type
+
 
 def clean_column_types(df):
     """
@@ -254,6 +257,13 @@ def single_column_plot(df, selected_column, column_type):
         st.write(f"Cannot visualize {selected_column}.")
 
 
+
+
+
+
+
+
+
 def main():
     """
     Main function to run the Streamlit app.
@@ -280,7 +290,10 @@ def main():
                 # Increment the unique plot key number
                 unique_key += 1
                 # Read each data file
-                df = read_data(file)
+                with st.spinner(f"Loading {file.name}..."):
+                    df = read_data(file)
+                st.success("Data loaded successfully!")
+                
                 # Clean the column types
                 df = clean_column_types(df)
                 # Define the columns as a list
