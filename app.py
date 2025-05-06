@@ -18,6 +18,7 @@ import numpy as np
 import os
 
 
+
 def get_user_files():
     """
     Get the user's uploaded files. Returns a list of files.
