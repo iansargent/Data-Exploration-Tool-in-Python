@@ -18,6 +18,18 @@ import numpy as np
 import os
 
 
+def get_user_files():
+    """
+    Get the user's uploaded files. Returns a list of files.
+    """
+    user_files = st.sidebar.file_uploader(
+        "**Upload your CSV file below**", 
+        type=["csv", "json", "sav", "xlsx"], 
+        accept_multiple_files=True
+    )
+    return user_files
+
+
 def get_file_name(file):
     """
     Get the file name without the extension.
@@ -119,11 +131,19 @@ def column_summaries(df, df_columns):
     Display summaries of each column in the DataFrame.
     Each summary includes the column name, data type, and a description of the column.
     """
-    # Three tables per row
-    num_cols = 5
+    total_columns = len(df_columns)
+    max_columns = 5
+    num_cols = max([n for n in range(1, max_columns + 1) if total_columns % n == 0], default=1)
 
-    for i in range(0, len(df_columns), num_cols):
-        cols = st.columns(num_cols)
+    # Choose num_cols as a factor of total_columns (e.g., 2, 3, 4, 5, etc.)
+    # Make sure there's no remainder
+    if total_columns % num_cols != 0:
+        # Adjust num_cols so it divides evenly (you can also choose the greatest factor ≤ 5, etc.)
+        num_cols = max([n for n in range(1, total_columns + 1) if total_columns % n == 0 and n <= 5])
+
+    # Create a grid of columns for the summaries
+    for i in range(0, total_columns, num_cols):
+        cols = st.columns(min(num_cols, total_columns - i))
         for j, column_name in enumerate(df_columns[i:i+num_cols]):
             with cols[j]:
                 # Table titles (cleaned)
@@ -134,7 +154,7 @@ def column_summaries(df, df_columns):
                 summary_df = pd.DataFrame(summary).rename(columns={0: "Value"})
                             
                 # Use an expander for each column summary for clean display
-                with st.expander(f"Summary of {column_name.strip()}"):
+                with st.expander(f"**{column_name.strip()}**"):
                     # Turn summary into a st.dataframe for interactive display
                     st.dataframe(summary_df.style.format(precision=2, na_rep="—"))
 
@@ -166,37 +186,46 @@ def single_column_plot(df, selected_column, column_type):
         
         return chart
 
-    # If the column is numerical
+    # If the column is numeric
     elif column_type in ['int64', 'float64']:
-        # Set plot title
-        st.subheader(f"Histogram of {selected_column}")
-        # Create a HISTOGRAM using Altair
-        chart = alt.Chart(source).mark_bar().encode(
-            x=alt.X(f"{selected_column}:Q", bin=alt.Bin(), title=selected_column),
-            y=alt.Y('count()', title ='Count'),
-            tooltip=[alt.Tooltip('count()', title='Count')]
-        ).configure_mark(
-            color = "mediumseagreen"
-        ).properties(
-            width=600,
-            height=400
-        )
-        # Add a slider to change the number of bins
+        st.subheader(f"Histogram and Boxplot of {selected_column}")
+
+        # Slider for bins
         bin_slider = st.slider(
             "Select the Level of Detail", 
             min_value=2, 
-            # Set maximum value to half the number of unique values--cap at 100
-            max_value=min(len(np.unique(source)) // 2, 100), 
+            max_value=min(len(np.unique(source[selected_column])) // 2, 100), 
             value=30,
             help="Controls how many bars appear in the histogram. Higher = more detail."
         )
-        chart = chart.encode(
-            x=alt.X(f"{selected_column}:Q", bin=alt.Bin(maxbins=bin_slider), title=selected_column)
+
+        # Histogram
+        histogram = alt.Chart(source).mark_bar().encode(
+            x=alt.X(f"{selected_column}:Q", bin=alt.Bin(maxbins=bin_slider), title=selected_column),
+            y=alt.Y('count()', title='Count'),
+            tooltip=[alt.Tooltip('count()', title='Count')]
+        ).properties(
+            width=400,
+            height=300
         )
-        # Disply the chart
-        st.altair_chart(chart, use_container_width=True)
-        
-        return chart
+
+        # Boxplot
+        boxplot = alt.Chart(source).mark_boxplot(color='dodgerblue').encode(
+            x=alt.X(f"{selected_column}:Q", title=selected_column)
+        ).configure_mark(
+            color="dodgerblue"
+        ).configure_boxplot(
+            size=160
+        ).properties(
+            width=400,
+            height=300
+        )
+
+        # Display the two charts
+        st.altair_chart(histogram, use_container_width=True)
+        st.altair_chart(boxplot, use_container_width=True)
+
+        return histogram, boxplot
 
     # If the column is datetime
     elif pd.api.types.is_datetime64_any_dtype(column_type):
@@ -259,12 +288,9 @@ def single_column_plot(df, selected_column, column_type):
         st.write(f"Cannot visualize {selected_column}.")
 
 
-
-
-
-
-
-
+#####################################################################################
+##########################        THE MAIN FUNCTION        ##########################
+#####################################################################################
 
 def main():
     """
@@ -278,7 +304,7 @@ def main():
     st.write("#### Give it a dataset and we will visualize it for you!")
    
     # Get the user's dataset(s)
-    user_files = st.file_uploader("**Upload your CSV file below**", type=["csv", "json", "sav", "xlsx"], accept_multiple_files=True)
+    user_files = get_user_files()
     
     # Define a unique key number for each plot to avoid duplicate conflicts
     unique_key = 0
@@ -318,7 +344,7 @@ def main():
                 # Single plots section
                 st.subheader(f"Single Variable Plots")
                 # User selects a column to visualize
-                selected_column = st.selectbox("**Select a column to visualize**", df.columns.tolist(), key=unique_key)  
+                selected_column = st.selectbox("**Select a column to visualize**", df_columns, key=unique_key)  
                     
                 # Find the data type of the selected column for the correct plot 
                 column_type = get_column_type(df, selected_column)
