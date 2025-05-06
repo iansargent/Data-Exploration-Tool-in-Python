@@ -39,6 +39,7 @@ def read_data(file):
     Read the uploaded file and return a DataFrame.
     """
     file_extension = get_file_extension(file)
+    
     # Reading the properly formatted file
     if file_extension == '.csv':
         df = pd.read_csv(file)
@@ -242,7 +243,8 @@ def single_column_plot(df, selected_column, column_type):
         chart = alt.Chart(source).mark_arc().encode(
             theta='count()',
             color=alt.Color(f"{selected_column}:N"),
-            tooltip=['Count']
+            tooltip=[alt.Tooltip(f"{selected_column}:N", title="Category"),
+                     alt.Tooltip(f"count()", title="Count")]
         ).properties(
             width=400,
             height=400

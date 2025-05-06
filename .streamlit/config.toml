@@ -1,6 +1,0 @@
-[theme]
-primaryColor = "#3B82F6"       # Tailwind blue-500
-backgroundColor = "#F8FAFC"    # Tailwind gray-100
-secondaryBackgroundColor = "#E5E7EB"  # Tailwind gray-200
-textColor = "#1F2937"          # Tailwind gray-800
-font = "Avenir"
