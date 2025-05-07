@@ -243,7 +243,7 @@ def single_column_plot(df, selected_column, column_type):
             st.warning("No numeric columns available to plot against time.")
             return
         
-        y_column = st.selectbox("Select a column to plot against time:", numeric_cols)
+        y_column = st.selectbox("Select a column to plot over time:", numeric_cols)
 
         # Create the LINE CHART
         chart = alt.Chart(df).mark_line().encode(
