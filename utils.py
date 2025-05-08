@@ -14,16 +14,13 @@ import hashlib
 
 
 def get_user_files():
-    """
-    Get the user's uploaded files. Returns a list of files.
-    """
-    user_files = st.sidebar.file_uploader(
-        "**Upload your CSV file below**", 
-        type=["csv", "json", "sav", "xlsx"], 
-        accept_multiple_files=True
-    )
-    
-    return user_files
+    if "user_files" not in st.session_state:
+        uploaded_files = st.sidebar.file_uploader(
+            "Upload your dataset(s)", type=["csv", "xlsx", "xls", "json"], accept_multiple_files=True
+        )
+        if uploaded_files:
+            st.session_state["user_files"] = uploaded_files
+    return st.session_state.get("user_files", [])
 
 
 # Helper to get a unique hash of file content (For duplicate file issues)
