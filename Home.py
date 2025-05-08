@@ -21,10 +21,6 @@ def main():
 
     st.title("Vermont Livability Data Visualization")
     st.sidebar.title("Welcome")
-    st.sidebar.image(
-        "https://www.vermont.gov/sites/aoe/files/2022-01/Vermont%20State%20Seal.png",
-        width=200
-    )
     st.sidebar.write("Upload your data files below to visualize them.")
 
     get_user_files()  # Prepares files for use in other pages

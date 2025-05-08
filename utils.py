@@ -14,12 +14,25 @@ import hashlib
 
 
 def get_user_files():
+    # Display file uploader only if files haven't been uploaded yet
     if "user_files" not in st.session_state:
         uploaded_files = st.sidebar.file_uploader(
             "Upload your dataset(s)", type=["csv", "xlsx", "xls", "json"], accept_multiple_files=True
         )
         if uploaded_files:
             st.session_state["user_files"] = uploaded_files
+
+    # Show uploaded file names (if any)
+    if "user_files" in st.session_state and st.session_state["user_files"]:
+        st.sidebar.markdown("### Uploaded Files:")
+        for file in st.session_state["user_files"]:
+            st.sidebar.write(f"📄 {file.name}")
+
+        # Add a reset button
+        if st.sidebar.button("🔁 Reset uploads"):
+            st.session_state.pop("user_files", None)
+            st.experimental_rerun()
+
     return st.session_state.get("user_files", [])
 
 
