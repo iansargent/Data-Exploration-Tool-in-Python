@@ -342,7 +342,7 @@ def main():
         # Attempt to read the files
         try:
             # Iterate through each uploaded file
-            for file in user_files:
+            for file in unique_files:
                 # Increment the unique plot key number
                 unique_key += 1
                 # Read each data file
