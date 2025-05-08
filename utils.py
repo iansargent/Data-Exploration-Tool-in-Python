@@ -29,9 +29,10 @@ def get_user_files():
             st.sidebar.write(f"📄 {file.name}")
 
         # Add a reset button
-        if st.sidebar.button("🔁 Reset uploads"):
+        if st.sidebar.button("🔁 Clear Data Uploads"):
             st.session_state.pop("user_files", None)
-            st.experimental_rerun()
+            st.session_state["page"] = "Home"
+            st.rerun()
 
     return st.session_state.get("user_files", [])
 
