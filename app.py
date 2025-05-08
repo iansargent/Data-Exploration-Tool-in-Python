@@ -12,10 +12,12 @@ streamlit run app.py
 
 # Necessary Packages
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder, AgGridTheme
 import pandas as pd
 import altair as alt
 import numpy as np
 import os
+import hashlib
 
 
 
@@ -28,7 +30,17 @@ def get_user_files():
         type=["csv", "json", "sav", "xlsx"], 
         accept_multiple_files=True
     )
+    
     return user_files
+
+
+# Helper to get a unique hash of file content (For duplicate file issues)
+def file_hash(file):
+    file.seek(0)
+    content = file.read()
+    file.seek(0)
+    return hashlib.md5(content).hexdigest()
+
 
 
 def get_file_name(file):
@@ -312,6 +324,21 @@ def main():
     
     # If the user has uploaded at least one file
     if user_files:
+        # Set of seen hashes to avoid duplicate files
+        seen_hashes = set()
+        # List to store unique files
+        unique_files = []
+        
+        for file in user_files:
+            file_id = file_hash(file)
+            
+            if file_id not in seen_hashes:
+                seen_hashes.add(file_id)
+                unique_files.append(file)
+            
+            else:
+                st.warning(f"Duplicate file ignored: {file.name}")
+
         # Attempt to read the files
         try:
             # Iterate through each uploaded file
@@ -336,7 +363,8 @@ def main():
                 
                 # Display a table preview of the dataframe
                 with st.expander(f"Table Snapshot"):
-                    st.dataframe(df.head(11))            
+                    #st.dataframe(df.head(11))
+                    AgGrid(df, theme="material", fit_columns_on_grid_load=True)        
 
                 # Calculate and display column summaries
                 st.subheader(f"Column Summaries")
