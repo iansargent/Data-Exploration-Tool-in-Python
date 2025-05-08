@@ -9,7 +9,6 @@ streamlit run home.py
 """
 
 
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -77,7 +76,7 @@ def main():
         if datasets:
             st.session_state["datasets"] = datasets
             st.success("Files uploaded successfully. Redirecting...")
-            st.switch_page("app.py")
+            st.switch_page("app")
 
 if __name__ == "__main__":
     main()
