@@ -50,7 +50,8 @@ def get_file_extension(file):
     file_extension = os.path.splitext(file.name)[1]
     return file_extension
 
-
+# Saving time when loading data
+@st.cache_data
 def read_data(file):
     """
     Read the uploaded file and return a DataFrame.

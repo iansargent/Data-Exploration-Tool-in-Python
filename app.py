@@ -29,7 +29,13 @@ def main():
     Main function to run the Streamlit app.
     """
     # Set page width to wide and page title
-    st.set_page_config(page_title = "Vermont Livability Data Visualization App", layout="wide")
+    st.set_page_config(page_title = "Vermont Livability Data Visualization App", 
+                       layout="wide",
+                       page_icon="🍁",
+                       menu_items={
+                           "GitHub Repositorty": "https://github.com/iansargent/Data-Exploration-Tool-in-Python",
+                           "About": "Write the about text here!!!"
+                       })
 
     # Header and body describing the app
     st.title("Vermont Livability Data Visualization")
