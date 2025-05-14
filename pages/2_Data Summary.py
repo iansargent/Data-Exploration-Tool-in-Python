@@ -10,12 +10,12 @@ Data Summary Page
 import streamlit as st
 from utils import get_user_files, file_hash, read_data, clean_column_types, get_columns, column_summaries
 import ydata_profiling
-
+from streamlit_pandas_profiling import st_profile_report
 
 
 
 def render_data_summary():
-    st.title("📊 Data Summary")
+    st.title("Columns Summaries")
     user_files = get_user_files()
     seen_hashes = set()
 
@@ -42,9 +42,16 @@ def render_data_summary():
         st.subheader(f"Summary for {file.name}")
         column_summaries(df, columns)
 
-        # Display the ydata-profiling report
-        st.title("📊 Data Report")
-        profile = ydata_profiling.ProfileReport(df)
-        st.write(profile)
+        # Create the ydata-profiling report
+        st.title("Data Report")
+        profile = df.profile_report()
+        
+        # Add a download button for the report
+        report_export = profile.to_html()
+        st.download_button(label="View Full Report", data=report_export, file_name='data_report.html')
+        
+        # Display the report
+        st_profile_report(profile)
+
 
 render_data_summary()
