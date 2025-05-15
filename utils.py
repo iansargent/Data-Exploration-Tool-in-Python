@@ -206,9 +206,8 @@ def single_column_plot(df, selected_column, column_type):
 
     # If the column is numeric
     elif column_type in ['int64', 'float64']:
-        st.subheader(f"Histogram and Boxplot of {selected_column}")
 
-        # Slider for bins
+        # Slider for number of bins in the histogram
         bin_slider = st.slider(
             "Select the Level of Detail", 
             min_value=2, 
@@ -227,11 +226,21 @@ def single_column_plot(df, selected_column, column_type):
             height=300
         )
 
+        # Density Plot
+        density = alt.Chart(source).transform_density(
+            f"{selected_column}",
+            as_=[f"{selected_column}", "density"],
+            extent=[source[selected_column].min(), source[selected_column].max()]
+        ).mark_area(color='tomato').encode(
+            x=alt.X(f"{selected_column}:Q", title=selected_column),
+            y=alt.Y('density:Q', title='Density')
+        )
+
         # Boxplot
         boxplot = alt.Chart(source).mark_boxplot(color='dodgerblue').encode(
             x=alt.X(f"{selected_column}:Q", title=selected_column)
         ).configure_mark(
-            color="dodgerblue"
+            color="mediumseagreen"
         ).configure_boxplot(
             size=160
         ).properties(
@@ -241,9 +250,14 @@ def single_column_plot(df, selected_column, column_type):
 
         # Display the two charts
         st.altair_chart(histogram, use_container_width=True)
-        st.altair_chart(boxplot, use_container_width=True)
+        # Create two columns for boxplot and density plot
+        col1, col2 = st.columns(2)
+        with col1:
+            st.altair_chart(boxplot, use_container_width=True)
+        with col2:
+            st.altair_chart(density, use_container_width=True)
 
-        return histogram, boxplot
+        return histogram, boxplot, density
 
     # If the column is datetime
     elif pd.api.types.is_datetime64_any_dtype(column_type):
@@ -266,7 +280,7 @@ def single_column_plot(df, selected_column, column_type):
         chart = alt.Chart(df).mark_line().encode(
             x=alt.X(f"{selected_column}:T", title="Time"),
             y=alt.Y(f"{y_column}:Q", title=y_column),
-            color = alt.value("steelblue"),
+            color = alt.value("dodgerblue"),
         ).properties(
             width=600,
             height=400
