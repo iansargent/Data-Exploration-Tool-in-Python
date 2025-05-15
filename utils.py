@@ -268,8 +268,8 @@ def single_column_plot(df, selected_column, column_type):
                 st.subheader(f"95% Confidence Interval")
             st.markdown(f"{ci_low:,.1f} to {ci_high:,.1f}")
 
-            st.write(
-                f"We are 95% confident that the true population ***{selected_column}*** lies between "
+            st.markdown(
+                f"We are 95% confident that the true population ***{selected_column}*** lies between\n "
                 f"{ci_low:.1f} and {ci_high:.1f} based on this sample."
             )
         
@@ -311,7 +311,7 @@ def single_column_plot(df, selected_column, column_type):
             f"{selected_column}", f"{y_column}", bandwidth=0.2
         ).mark_line().encode(color = alt.value("tomato"))
         
-        # Disply the chart
+        # Display the chart
         st.altair_chart(time_chart, use_container_width=True)
         
         return time_chart
