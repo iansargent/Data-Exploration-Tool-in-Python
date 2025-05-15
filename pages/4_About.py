@@ -13,14 +13,14 @@ import streamlit as st
 def render_about():
     st.title("About the App")
     st.markdown("""
-    This interactive app is designed to help users explore and visualize their datasets
-    for the Vermont Livability Project. Upload your CSV, Excel, or JSON data to generate:
+    This interactive app is designed to help users and planners explore and visualize their municipal datasets
+    for the Vermont Livability Project. Upload your data files to get started!:
     
-    - Cleaned previews
-    - Column-level summaries
+    - Table previews
+    - Column and Dataset Summary Reports
     - Interactive plots
 
-    Built with ❤️ using Streamlit, Altair, and AgGrid.
+    Built with ❤️\n\n- Ian.
     """)
     
     st.markdown("[GitHub Repository](https://github.com/iansargent/Data-Exploration-Tool-in-Python)")
