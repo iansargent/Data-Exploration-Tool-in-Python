@@ -8,8 +8,9 @@ Table Preview Page
 
 
 import streamlit as st
-from st_aggrid import AgGrid
+from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
 from utils import get_user_files, file_hash, read_data, clean_column_types
+
 
 def render_table_preview():
     st.title("📋 Table Preview")
@@ -30,6 +31,6 @@ def render_table_preview():
         df = read_data(file)
         df = clean_column_types(df)
         st.subheader(f"Preview of {file.name}")
-        AgGrid(df, theme="material", fit_columns_on_grid_load=True)
+        AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
 render_table_preview()

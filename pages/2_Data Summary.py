@@ -13,9 +13,8 @@ import ydata_profiling
 from streamlit_pandas_profiling import st_profile_report
 
 
-
 def render_data_summary():
-    st.title("Columns Summaries")
+    st.title("Data Summary")
     user_files = get_user_files()
     seen_hashes = set()
 
@@ -39,19 +38,25 @@ def render_data_summary():
         columns = get_columns(df)
 
         # Display column summaries
-        st.subheader(f"Summary for {file.name}")
+        st.subheader(f"Column Summaries for {file.name}")
         column_summaries(df, columns)
+        st.markdown("---")
 
-        # Create the ydata-profiling report
+        # The ydata-profiling report
         st.title("Data Report")
-        profile = df.profile_report()
         
-        # Add a download button for the report
-        report_export = profile.to_html()
-        st.download_button(label="View Full Report", data=report_export, file_name='data_report.html')
+        # Add a loading spinner icon to ensure the user knows the report is being generated
+        with st.spinner(text = "Generating report..."):
+            # Create the ydata-profiling report
+            profile = df.profile_report()
+            report_export = profile.to_html()
+            
+            # Add a download button for the HTML report
+            st.download_button(label="View Full Report", data=report_export, file_name='data_report.html')
+            # Display the report
+            st_profile_report(profile)
         
-        # Display the report
-        st_profile_report(profile)
+        st.markdown("---")
 
-
+# Run the data summary page
 render_data_summary()

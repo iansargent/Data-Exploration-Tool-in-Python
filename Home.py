@@ -12,6 +12,7 @@ streamlit run Home.py
 import streamlit as st
 from utils import get_user_files
 
+
 def main():
     st.set_page_config(
         page_title="Vermont Livability Data Visualization App",
