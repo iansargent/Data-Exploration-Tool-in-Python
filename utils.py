@@ -12,6 +12,8 @@ import altair as alt
 import numpy as np
 import os
 import hashlib
+from statsmodels.stats.weightstats import DescrStatsW
+
 
 
 def get_user_files():
@@ -236,6 +238,11 @@ def single_column_plot(df, selected_column, column_type):
             y=alt.Y('density:Q', title='Density')
         )
 
+        # Confidence Interval
+        d = DescrStatsW(source[selected_column])
+        ci_low, ci_high = d.tconfint_mean()
+        CI = (ci_low, ci_high)
+
         # Boxplot
         boxplot = alt.Chart(source).mark_boxplot(color='dodgerblue').encode(
             x=alt.X(f"{selected_column}:Q", title=selected_column)
@@ -248,16 +255,29 @@ def single_column_plot(df, selected_column, column_type):
             height=300
         )
 
-        # Display the two charts
+        # Display the histogram
         st.altair_chart(histogram, use_container_width=True)
-        # Create two columns for boxplot and density plot
+        
+        # Create two columns for density plot and confidence interval
         col1, col2 = st.columns(2)
         with col1:
-            st.altair_chart(boxplot, use_container_width=True)
-        with col2:
+            st.subheader(f"Density Plot")
             st.altair_chart(density, use_container_width=True)
+        with col2:
+            with st.container():
+                st.subheader(f"95% Confidence Interval")
+            st.markdown(f"{ci_low:,.1f} to {ci_high:,.1f}")
 
-        return histogram, boxplot, density
+            st.write(
+                f"We are 95% confident that the true population ***{selected_column}*** lies between "
+                f"{ci_low:.1f} and {ci_high:.1f} based on this sample."
+            )
+        
+        # Display the box plot
+        st.subheader(f"Box Plot")
+        st.altair_chart(boxplot, use_container_width=True)
+
+        return histogram, boxplot, CI, density
 
     # If the column is datetime
     elif pd.api.types.is_datetime64_any_dtype(column_type):
