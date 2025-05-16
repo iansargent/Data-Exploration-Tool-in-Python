@@ -338,3 +338,42 @@ def single_column_plot(df, selected_column, column_type):
     # If the column data type is not recognized (int, float, object, datetime, bool)
     else:
         st.write(f"Cannot visualize {selected_column}.")
+
+
+    def two_column_plot(df, col1, col2):
+        
+        col1_type = get_column_type(df[col1])
+        col2_type = get_column_type(df[col2])
+
+
+        # Two Numeric Variables
+        if col1_type in ['int64', 'float64'] and col2_type in ['int64', 'float64']:
+            
+            # Scatterplot
+            st.write("Scatterplot")
+            # Hexbin Chart
+            st.write("Hexbin")
+
+
+        # Numeric + Categorical Variables
+        elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or column_type.name == 'category')) 
+              or (col1_type == 'object' or column_type.name == 'category') and col2_type in ['int64', 'float64']):
+            
+            # Multi boxplot
+            st.write("Boxplots")
+            # Cleveland plot
+            st.write("Cleveland")
+
+
+        # Two Categorical Variables
+        elif (col1_type == 'object' or column_type.name == 'category') and (col2_type == 'object' or column_type.name == 'category'):
+            
+            # Heatmap / Table
+            st.write("Heatmap")
+            # Stacked bar chart
+            st.write("Stacked Bar")
+        
+
+        # If combination of datatypes are not recognized
+        else:
+            st.write(f"Cannot visualize {col1} and {col2} together.")
