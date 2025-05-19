@@ -401,10 +401,11 @@ def single_column_plot(df, selected_column, column_type):
                 )
                 # Display the correlation coefficient
                 st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
-    
 
             # Hexbin Chart
             st.write("Hexbin")
+            
+            return scatterplot, regression_line, correlation
 
 
         # Numeric + Categorical Variables
@@ -416,6 +417,8 @@ def single_column_plot(df, selected_column, column_type):
             # Cleveland plot
             st.write("Cleveland")
 
+            return "hi"
+
 
         # Two Categorical Variables
         elif (col1_type == 'object' or column_type.name == 'category') and (col2_type == 'object' or column_type.name == 'category'):
@@ -424,8 +427,11 @@ def single_column_plot(df, selected_column, column_type):
             st.write("Heatmap")
             # Stacked bar chart
             st.write("Stacked Bar")
+
+            return "hi"
         
 
         # If combination of datatypes are not recognized
         else:
             st.write(f"Cannot visualize {col1} and {col2} together.")
+            return None
