@@ -7,28 +7,27 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 
 ## Installation & Setup
 
-
-1. **Clone this repository**:
+1. **Clone** this repository:
 
    ```sh
    git clone https://github.com/your-username/vermont-livability.git
    cd vermont-livability
    ```
 
-3. **Install the package dependencies**:
+3. **Install** the package dependencies:
 
    ```sh
    pip install -r requirements.txt
    ```
 
-4. **Run the Streamlit app** from the terminal:
+4. **Run** the Streamlit app** from the terminal with **this command**:
 
    ```sh
    streamlit run Home.py
    ```
 
-
 ---
+
 
 ## How to Use
 
