@@ -50,15 +50,15 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 ## Some Features
 
 
-✅ **Upload** and **preview** CSV, Excel, JSON, or SPSS datasets
+- ✅ **Upload** and **preview** CSV, Excel, JSON, or SPSS datasets
 
-✅ Interactive data **table display**
+- ✅ Interactive data **table display**
 
-✅ Automated **data profiling** and **summary statistics**
+- ✅ Automated **data profiling** and **summary statistics**
 
-✅ **Visualization** for single variables and variable pairs
+- ✅ **Visualization** for single variables and variable pairs
 
-✅ An **About Page** to learn more about this project
+- ✅ An **About Page** to learn more about this project
 
 ---
 
@@ -82,32 +82,26 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 
 ---
 
-## Future Improvements
+## Planned Improvements
 
-```
-- Add data comparison support features
+- Add data comparison support features (for VT jurisdictions)
 - Include interactive geospatial mapping
 - Include filtering 
-- Improved UX design
-```
+- Improved UX and overall app design
 
 ---
 
 ## License
 
-```
 This project is open-source under the **MIT License**.
-```
 
 ---
 
 ## Credits
 
-```
 - Created by Ian Sargent  
 - Developed under the Open Research Community Accelerator  
 - Built with Streamlit and Python
-```
 
 ---
 
