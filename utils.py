@@ -18,7 +18,10 @@ from statsmodels.stats.weightstats import DescrStatsW
 
 def get_user_files():
     uploaded_files = st.sidebar.file_uploader(
-        "Upload your dataset(s)", type=["csv", "xlsx", "xls", "json"], accept_multiple_files=True
+        "Upload your dataset(s)", 
+        type=["csv", "xlsx", "xls", "json"], 
+        accept_multiple_files=True,
+        key = "data_upload"
     )
 
     if uploaded_files:
@@ -102,7 +105,7 @@ def read_data(file):
 
 def get_columns(df):
     """
-    Get the columns of the DataFrame as a list.
+    Get the column names from the DataFrame as a list.
     """
     columns = df.columns.tolist()
     return columns
@@ -177,13 +180,15 @@ def column_summaries(df, df_columns):
                     st.dataframe(summary_df.style.format(precision=2, na_rep="—"))
 
 
-def single_column_plot(df, selected_column, column_type):
+def single_column_plot(df, selected_column):
     """
     Create a single column plot based on the data type of the selected column.
     The plot type is determined by the data type of the column.
     """
     source = df[[selected_column]].dropna()
     
+
+    column_type = get_column_type(df, selected_column)
     # If the column is categorical (object type)
     if column_type == 'object' or column_type.name == 'category':
         # Set plot title
@@ -340,26 +345,26 @@ def single_column_plot(df, selected_column, column_type):
 
 def two_column_plot(df, col1, col2):
         
-    col1_type = get_column_type(df[col1])
-    col2_type = get_column_type(df[col2])
+    col1_type = get_column_type(df, col1)
+    col2_type = get_column_type(df, col2)
 
     source = df[[col1, col2]].dropna()
 
+    if col1 == col2:
+        st.warning("Please select two different columns to visualize.")
+        return None
 
     # Two Numeric Variables
     if col1_type in ['int64', 'float64'] and col2_type in ['int64', 'float64']:
             
         # Scatterplot
-        scatterplot = alt.Chart(source).mark_square().encode(
-            x = alt.X(f"{col1}:Q", title=col1),
-            y = alt.Y(f"{col2}:Q", title=col2),
-            tooltip=[f"{col1}:Q", f"{col2}:Q"]
-        ).configure_square(
-            color = 'mediumseagreen',
+        scatterplot = alt.Chart(source).mark_square(
+            color = "mediumseagreen",
             opacity = 0.7
-        ).properties(
-        width=400,
-        height=400
+        ).encode(
+            x = alt.X(f"{col1}:Q", title=col1).scale(zero=False),
+            y = alt.Y(f"{col2}:Q", title=col2).scale(zero=False),
+            tooltip=[f"{col1}:Q", f"{col2}:Q"]
         )
 
         # Regression Line
@@ -371,7 +376,8 @@ def two_column_plot(df, col1, col2):
         )
             
         # Finding the Correlation Coefficient
-        correlation = source.corr(min_periods=20, numeric_only=True)
+        corr_df = source[[col1, col2]].corr(min_periods=10, numeric_only=True)
+        correlation = corr_df.loc[col1, col2]
             
 
         # Formatting plot output with two columns
@@ -392,9 +398,9 @@ def two_column_plot(df, col1, col2):
             st.subheader(f"Correlation Coefficient")
             # Backround of what a correlation coefficient is
             st.markdown(f"""
-                A *correlation coefficient* of **1** indicates a perfect positive relationship, 
-                while a coefficient of **-1** indicates a perfect negative relationship. A 
-                coefficient of **0** indicates no relationship."
+                ***Note:*** A *correlation coefficient* of 1 indicates a perfect positive relationship, 
+                while a coefficient of -1 indicates a perfect negative relationship. A coefficient of 
+                0 indicates no relationship."
                 """
             )
             # Display the correlation coefficient

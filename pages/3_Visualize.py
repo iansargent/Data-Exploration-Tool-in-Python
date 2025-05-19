@@ -13,11 +13,9 @@ from utils import (
     get_columns, get_column_type, single_column_plot, two_column_plot
 )
 
-def render_visualization(mode = "single"):
+def render_visualization(mode = "single", user_files = None):
     title = "Single Variable" if mode == "single" else "Two Variables"
     st.title(f"\U0001F4C8 Visualize Your Data ({title})")
-
-    user_files = get_user_files()
     
     if not user_files:
         st.warning("No files uploaded.")
@@ -42,8 +40,7 @@ def render_visualization(mode = "single"):
 
         if mode == "single":
             col = st.selectbox(f"Select a column to plot ({file.name})", columns, key=f"{file.name}-single-{key_offset}")
-            ctype = get_column_type(df, col)
-            single_column_plot(df, col, ctype)
+            single_column_plot(df, col)
         else:
             col1 = st.selectbox(f"Select a column to plot ({file.name})", columns, key=f"{file.name}-col1-{key_offset}")
             col2 = st.selectbox(f"Select a second column to plot ({file.name})", columns, key=f"{file.name}-col2-{key_offset+1}")
@@ -52,12 +49,14 @@ def render_visualization(mode = "single"):
         key_offset += 2
 
 def main():
+    user_files = get_user_files()
+    
     tab1, tab2 = st.tabs(["Single Variable", "Two Variables"])
 
     with tab1:
-        render_visualization("single")
+        render_visualization("single", user_files)
     with tab2:
-        render_visualization("double")
+        render_visualization("double", user_files)
 
 
 if __name__ == "__main__":
