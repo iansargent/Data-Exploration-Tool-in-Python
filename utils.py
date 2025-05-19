@@ -393,6 +393,26 @@ def two_column_plot(df, col1, col2):
             st.subheader(f"Scatterplot with Regression Trend Line")
             st.altair_chart(scatterplot + regression_line, use_container_width=True)
             
+        
+        # Heatmap Chart
+
+        heatmap = alt.Chart(source).mark_rect().encode(
+            x=alt.X(f'{col1}:Q', bin=alt.Bin(maxbins=40), title=col1, axis=alt.Axis(grid=False)),
+            y=alt.Y(f'{col2}:Q', bin=alt.Bin(maxbins=40), title=col2, axis=alt.Axis(grid=False)),
+            color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange'), legend=alt.Legend(title='Count')),
+            tooltip=[f'{col1}:Q', f'{col2}:Q', 'count():Q']
+            ).properties(
+                width=500,
+                height=400
+            ).configure_view(
+                strokeWidth=0
+            )
+                
+        with st.container():
+            st.subheader(f"Heatmap of {col1} and {col2}")
+            st.altair_chart(heatmap, use_container_width=True)
+
+
         # Below the plots, show the correlation coefficient
         with st.container():
             st.subheader(f"Correlation Coefficient")
@@ -406,10 +426,8 @@ def two_column_plot(df, col1, col2):
             # Display the correlation coefficient
             st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
 
-        # Hexbin Chart
-        st.write("Hexbin")
-            
-        return scatterplot, regression_line, correlation
+         
+        return scatterplot, regression_line, heatmap, correlation
 
 
     # Numeric + Categorical Variables
