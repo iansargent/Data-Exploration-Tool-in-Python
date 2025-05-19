@@ -340,98 +340,98 @@ def single_column_plot(df, selected_column, column_type):
         st.write(f"Cannot visualize {selected_column}.")
 
 
-    def two_column_plot(df, col1, col2):
+def two_column_plot(df, col1, col2):
         
-        col1_type = get_column_type(df[col1])
-        col2_type = get_column_type(df[col2])
+    col1_type = get_column_type(df[col1])
+    col2_type = get_column_type(df[col2])
 
-        source = df[[col1, col2]].dropna()
+    source = df[[col1, col2]].dropna()
 
 
-        # Two Numeric Variables
-        if col1_type in ['int64', 'float64'] and col2_type in ['int64', 'float64']:
+    # Two Numeric Variables
+    if col1_type in ['int64', 'float64'] and col2_type in ['int64', 'float64']:
             
-            # Scatterplot
-            scatterplot = alt.Chart(source).mark_square().encode(
-                x = alt.X(f"{col1}:Q", title=col1),
-                y = alt.Y(f"{col2}:Q", title=col2),
-                tooltip=[f"{col1}:Q", f"{col2}:Q"]
-            ).configure_square(
-                color = 'mediumseagreen',
-                opacity = 0.7
-            ).properties(
-            width=400,
-            height=400
+        # Scatterplot
+        scatterplot = alt.Chart(source).mark_square().encode(
+            x = alt.X(f"{col1}:Q", title=col1),
+            y = alt.Y(f"{col2}:Q", title=col2),
+            tooltip=[f"{col1}:Q", f"{col2}:Q"]
+        ).configure_square(
+            color = 'mediumseagreen',
+            opacity = 0.7
+        ).properties(
+        width=400,
+        height=400
+        )
+
+        # Regression Line
+        regression_line = scatterplot.transform_regression(
+            f"{col1}", f"{col2}"
+        ).mark_line().encode(
+            color=alt.value("red"),
+            size=alt.value(3)
+        )
+            
+        # Finding the Correlation Coefficient
+        correlation = source.corr().loc[col1, col2]
+            
+
+        # Formatting plot output with two columns
+        column_one, column_two = st.columns(2)
+            
+        # First, show the scatterplot
+        with column_one:
+            st.subheader(f"Scatterplot of {col1} and {col2}")
+            st.altair_chart(scatterplot, use_container_width=True)
+            
+        # Next to it, show the regression line on top of the scatterplot
+        with column_two:
+            st.subheader(f"Scatterplot with Regression Trend Line")
+            st.altair_chart(scatterplot + regression_line, use_container_width=True)
+            
+        # Below the plots, show the correlation coefficient
+        with st.container():
+            st.subheader(f"Correlation Coefficient")
+            # Backround of what a correlation coefficient is
+            st.markdown(f"""
+                A *correlation coefficient* of **1** indicates a perfect positive relationship, 
+                while a coefficient of **-1** indicates a perfect negative relationship. A 
+                coefficient of **0** indicates no relationship."
+                """
             )
+            # Display the correlation coefficient
+            st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
 
-            # Regression Line
-            regression_line = scatterplot.transform_regression(
-                f"{col1}", f"{col2}"
-            ).mark_line().encode(
-                color=alt.value("red"),
-                size=alt.value(3)
-            )
+        # Hexbin Chart
+        st.write("Hexbin")
             
-            # Finding the Correlation Coefficient
-            correlation = source.corr().loc[col1, col2]
+        return scatterplot, regression_line, correlation
+
+
+    # Numeric + Categorical Variables
+    elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or column_type.name == 'category')) 
+            or (col1_type == 'object' or column_type.name == 'category') and col2_type in ['int64', 'float64']):
             
+        # Multi boxplot
+        st.write("Boxplots")
+        # Cleveland plot
+        st.write("Cleveland")
 
-            # Formatting plot output with two columns
-            column_one, column_two = st.columns(2)
+        return "hi"
+
+
+    # Two Categorical Variables
+    elif (col1_type == 'object' or column_type.name == 'category') and (col2_type == 'object' or column_type.name == 'category'):
             
-            # First, show the scatterplot
-            with column_one:
-                st.subheader(f"Scatterplot of {col1} and {col2}")
-                st.altair_chart(scatterplot, use_container_width=True)
-            
-            # Next to it, show the regression line on top of the scatterplot
-            with column_two:
-                st.subheader(f"Scatterplot with Regression Trend Line")
-                st.altair_chart(scatterplot + regression_line, use_container_width=True)
-            
-            # Below the plots, show the correlation coefficient
-            with st.container():
-                st.subheader(f"Correlation Coefficient")
-                # Backround of what a correlation coefficient is
-                st.markdown(f"""
-                    A *correlation coefficient* of **1** indicates a perfect positive relationship, 
-                    while a coefficient of **-1** indicates a perfect negative relationship. A 
-                    coefficient of **0** indicates no relationship."
-                    """
-                )
-                # Display the correlation coefficient
-                st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
+        # Heatmap / Table
+        st.write("Heatmap")
+        # Stacked bar chart
+        st.write("Stacked Bar")
 
-            # Hexbin Chart
-            st.write("Hexbin")
-            
-            return scatterplot, regression_line, correlation
-
-
-        # Numeric + Categorical Variables
-        elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or column_type.name == 'category')) 
-              or (col1_type == 'object' or column_type.name == 'category') and col2_type in ['int64', 'float64']):
-            
-            # Multi boxplot
-            st.write("Boxplots")
-            # Cleveland plot
-            st.write("Cleveland")
-
-            return "hi"
-
-
-        # Two Categorical Variables
-        elif (col1_type == 'object' or column_type.name == 'category') and (col2_type == 'object' or column_type.name == 'category'):
-            
-            # Heatmap / Table
-            st.write("Heatmap")
-            # Stacked bar chart
-            st.write("Stacked Bar")
-
-            return "hi"
+        return "hi"
         
 
-        # If combination of datatypes are not recognized
-        else:
-            st.write(f"Cannot visualize {col1} and {col2} together.")
-            return None
+    # If combination of datatypes are not recognized
+    else:
+        st.write(f"Cannot visualize {col1} and {col2} together.")
+        return None
