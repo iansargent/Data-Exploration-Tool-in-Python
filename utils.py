@@ -6,7 +6,7 @@ Streamlit Data Visualization Utility Functions
 
 
 import streamlit as st
-from st_aggrid import AgGrid
+from st_aggrid import AgGrid, ColumnsAutoSizeMode
 import pandas as pd
 import altair as alt
 import numpy as np
@@ -218,7 +218,8 @@ def single_column_plot(df, selected_column):
             min_value=2, 
             max_value=min(len(np.unique(source[selected_column])) // 2, 100), 
             value=30,
-            help="Controls how many bars appear in the histogram. Higher = more detail."
+            help="Controls how many bars appear in the histogram. Higher = more detail.",
+            key=f"bin_slider_{selected_column}"
         )
 
         # Histogram
@@ -348,8 +349,10 @@ def two_column_plot(df, col1, col2):
     col1_type = get_column_type(df, col1)
     col2_type = get_column_type(df, col2)
 
+    
     source = df[[col1, col2]].dropna()
 
+    # If the two selected columns are the same
     if col1 == col2:
         st.warning("Please select two different columns to visualize.")
         return None
@@ -357,7 +360,7 @@ def two_column_plot(df, col1, col2):
     # Two Numeric Variables
     if col1_type in ['int64', 'float64'] and col2_type in ['int64', 'float64']:
             
-        # Scatterplot
+        # SCATTERPLOT
         scatterplot = alt.Chart(source).mark_square(
             color = "mediumseagreen",
             opacity = 0.7
@@ -367,7 +370,7 @@ def two_column_plot(df, col1, col2):
             tooltip=[f"{col1}:Q", f"{col2}:Q"]
         )
 
-        # Regression Line
+        # REGRESSION LINE
         regression_line = scatterplot.transform_regression(
             f"{col1}", f"{col2}"
         ).mark_line().encode(
@@ -375,7 +378,21 @@ def two_column_plot(df, col1, col2):
             size=alt.value(3)
         )
             
-        # Finding the Correlation Coefficient
+        # HEATMAP CHART
+        heatmap = alt.Chart(source).mark_rect().encode(
+            x=alt.X(f'{col1}:Q', bin=alt.Bin(maxbins=40), title=col1, axis=alt.Axis(grid=False)),
+            y=alt.Y(f'{col2}:Q', bin=alt.Bin(maxbins=40), title=col2, axis=alt.Axis(grid=False)),
+            color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange'), legend=alt.Legend(title='Count')),
+            tooltip=[f'{col1}:Q', f'{col2}:Q', 'count():Q']
+            ).properties(
+                width=500,
+                height=400
+            ).configure_view(
+                strokeWidth=0
+            )
+        
+        
+        # CORRELATION COEFFICIENT
         corr_df = source[[col1, col2]].corr(min_periods=10, numeric_only=True)
         correlation = corr_df.loc[col1, col2]
             
@@ -392,28 +409,14 @@ def two_column_plot(df, col1, col2):
         with column_two:
             st.subheader(f"Scatterplot with Regression Trend Line")
             st.altair_chart(scatterplot + regression_line, use_container_width=True)
-            
         
-        # Heatmap Chart
-
-        heatmap = alt.Chart(source).mark_rect().encode(
-            x=alt.X(f'{col1}:Q', bin=alt.Bin(maxbins=40), title=col1, axis=alt.Axis(grid=False)),
-            y=alt.Y(f'{col2}:Q', bin=alt.Bin(maxbins=40), title=col2, axis=alt.Axis(grid=False)),
-            color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange'), legend=alt.Legend(title='Count')),
-            tooltip=[f'{col1}:Q', f'{col2}:Q', 'count():Q']
-            ).properties(
-                width=500,
-                height=400
-            ).configure_view(
-                strokeWidth=0
-            )
-                
+        # Below the scatterplots, show the heatmap   
         with st.container():
             st.subheader(f"Heatmap of {col1} and {col2}")
             st.altair_chart(heatmap, use_container_width=True)
 
 
-        # Below the plots, show the correlation coefficient
+        # Below the heatmap, show the correlation coefficient
         with st.container():
             st.subheader(f"Correlation Coefficient")
             # Backround of what a correlation coefficient is
@@ -426,7 +429,11 @@ def two_column_plot(df, col1, col2):
             # Display the correlation coefficient
             st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
 
+        # Show Aggrid table display of the two columns
+        st.subheader(f"Data Table of {col1} and {col2}")
+        st.dataframe(data=source.style.format("{:.2f}"), hide_index=True, column_order=(col1, col2))
          
+        
         return scatterplot, regression_line, heatmap, correlation
 
 

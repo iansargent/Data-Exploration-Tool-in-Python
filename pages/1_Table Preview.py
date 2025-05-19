@@ -8,7 +8,7 @@ Table Preview Page
 
 
 import streamlit as st
-from st_aggrid import AgGrid, GridOptionsBuilder, ColumnsAutoSizeMode
+from st_aggrid import AgGrid, ColumnsAutoSizeMode
 from utils import get_user_files, file_hash, read_data, clean_column_types
 
 

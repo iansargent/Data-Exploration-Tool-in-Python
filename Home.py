@@ -24,7 +24,7 @@ def main():
     st.sidebar.title("Welcome")
     st.sidebar.write("Upload your data files below to visualize them.")
 
-    get_user_files()  # Prepares files for use in other pages
+    get_user_files()
 
 if __name__ == "__main__":
     main()

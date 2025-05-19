@@ -12,6 +12,8 @@ from utils import (
     get_user_files, file_hash, read_data, clean_column_types,
     get_columns, get_column_type, single_column_plot, two_column_plot
 )
+from st_aggrid import AgGrid
+
 
 def render_visualization(mode = "single", user_files = None):
     title = "Single Variable" if mode == "single" else "Two Variables"
