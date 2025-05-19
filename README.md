@@ -1,6 +1,6 @@
 # Vermont Livability Data Visualization App
 
-A **Streamlit web app** for exploring, visualizing, and interpreting Vermont data. Users can upload one or more datasets and view interactive tables, data summary reports, and custom plots through an intuitive interface.
+A **Streamlit web app** for exploring, visualizing, and interpreting Vermont data. Users can upload one or more datasets and view tables, data summary reports, and custom plots through an interactive interface.
 
 ---
 
