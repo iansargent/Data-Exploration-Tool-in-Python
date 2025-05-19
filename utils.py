@@ -191,7 +191,7 @@ def single_column_plot(df, selected_column, column_type):
         # Set plot title
         st.subheader(f"Bar Chart of {selected_column}")
         # Create a sorted BAR CHART using Altair (descending)
-        chart = alt.Chart(source).mark_bar().encode(
+        bar_chart = alt.Chart(source).mark_bar().encode(
             x=alt.X(f"{selected_column}:N", sort='-y'),
             y='count()',
             tooltip=['count()']
@@ -202,9 +202,9 @@ def single_column_plot(df, selected_column, column_type):
             height=400
         )
         # Disply the chart
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(bar_chart, use_container_width=True)
         
-        return chart
+        return bar_chart
 
     # If the column is numeric
     elif column_type in ['int64', 'float64']:
@@ -321,7 +321,7 @@ def single_column_plot(df, selected_column, column_type):
         # Set plot title
         st.subheader(f"Pie Chart of {selected_column}")
         # Create a pie chart using Altair
-        chart = alt.Chart(source).mark_arc().encode(
+        pie_chart = alt.Chart(source).mark_arc().encode(
             theta='count()',
             color=alt.Color(f"{selected_column}:N"),
             tooltip=[alt.Tooltip(f"{selected_column}:N", title="Category"),
@@ -331,9 +331,9 @@ def single_column_plot(df, selected_column, column_type):
             height=400
         )
         # Display the chart
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(pie_chart, use_container_width=True)
         
-        return chart
+        return pie_chart
 
     # If the column data type is not recognized (int, float, object, datetime, bool)
     else:
@@ -345,12 +345,63 @@ def single_column_plot(df, selected_column, column_type):
         col1_type = get_column_type(df[col1])
         col2_type = get_column_type(df[col2])
 
+        source = df[[col1, col2]].dropna()
+
 
         # Two Numeric Variables
         if col1_type in ['int64', 'float64'] and col2_type in ['int64', 'float64']:
             
             # Scatterplot
-            st.write("Scatterplot")
+            scatterplot = alt.Chart(source).mark_square().encode(
+                x = alt.X(f"{col1}:Q", title=col1),
+                y = alt.Y(f"{col2}:Q", title=col2),
+                tooltip=[f"{col1}:Q", f"{col2}:Q"]
+            ).configure_square(
+                color = 'mediumseagreen',
+                opacity = 0.7
+            ).properties(
+            width=400,
+            height=400
+            )
+
+            # Regression Line
+            regression_line = scatterplot.transform_regression(
+                f"{col1}", f"{col2}"
+            ).mark_line().encode(
+                color=alt.value("red"),
+                size=alt.value(3)
+            )
+            
+            # Finding the Correlation Coefficient
+            correlation = source.corr().loc[col1, col2]
+            
+
+            # Formatting plot output with two columns
+            column_one, column_two = st.columns(2)
+            
+            # First, show the scatterplot
+            with column_one:
+                st.subheader(f"Scatterplot of {col1} and {col2}")
+                st.altair_chart(scatterplot, use_container_width=True)
+            
+            # Next to it, show the regression line on top of the scatterplot
+            with column_two:
+                st.subheader(f"Scatterplot with Regression Trend Line")
+                st.altair_chart(scatterplot + regression_line, use_container_width=True)
+            
+            # Below the plots, show the correlation coefficient
+            with st.container():
+                st.subheader(f"Correlation Coefficient")
+                st.markdown(f"""
+                    A *correlation coefficient* of **1** indicates a perfect positive relationship, 
+                    while a coefficient of **-1** indicates a perfect negative relationship. A 
+                    coefficient of **0** indicates no relationship."
+                    """
+                )
+                
+                st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
+    
+
             # Hexbin Chart
             st.write("Hexbin")
 
