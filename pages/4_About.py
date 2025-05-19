@@ -14,11 +14,7 @@ def render_about():
     st.title("About the App")
     st.markdown("""
     This interactive app is designed to help users and planners explore and visualize their municipal datasets
-    for the Vermont Livability Project. Upload your data files to get started!:
-    
-    - Table previews
-    - Column and Dataset Summary Reports
-    - Interactive plots
+    for the Vermont Livability Project. Upload your data files to get started!
 
     Built with ❤️\n\n- Ian.
     """)

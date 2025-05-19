@@ -382,8 +382,27 @@ def two_column_plot(df, col1, col2):
         col1_bins = np.linspace(df[col1].min(), df[col1].max(), 21).round().astype(int)
         col2_bins = np.linspace(df[col2].min(), df[col2].max(), 21).round().astype(int)
 
-        df['x_bin'] = pd.cut(df[col1], bins=col1_bins, labels=range(1, 21), include_lowest=True)
-        df['y_bin'] = pd.cut(df[col2], bins=col2_bins, labels=range(1, 21), include_lowest=True)
+        col1_bins_unique = np.unique(col1_bins)
+        col2_bins_unique = np.unique(col2_bins)
+
+        col1_intervals = len(col1_bins_unique) - 1
+        col2_intervals = len(col2_bins_unique) - 1
+
+        col1_labels = range(1, col1_intervals + 1)
+        col2_labels = range(1, col2_intervals + 1)
+
+        df['x_bin'] = pd.cut(
+            df[col1], 
+            bins=col1_bins_unique, 
+            labels=col1_labels, 
+            include_lowest=True
+        )
+        df['y_bin'] = pd.cut(
+            df[col2], 
+            bins=col2_bins_unique, 
+            labels=col2_labels, 
+            include_lowest=True
+        )
 
         # Save for changing the bin order
         x_order = df['x_bin'].cat.categories
@@ -410,12 +429,13 @@ def two_column_plot(df, col1, col2):
         # CORRELATION COEFFICIENT
         corr_df = source[[col1, col2]].corr(min_periods=10, numeric_only=True)
         correlation = corr_df.loc[col1, col2]
-            
 
+
+        st.subheader(f"Scatterplot of {col1} and {col2}")
+        
         # Formatting plot output with two columns
         column_one, column_two = st.columns(2)
             
-        st.subheader(f"Scatterplot of {col1} and {col2}")
         # First, show the scatterplot
         with column_one:
             st.altair_chart(scatterplot, use_container_width=True)
@@ -476,5 +496,5 @@ def two_column_plot(df, col1, col2):
 
     # If combination of datatypes are not recognized
     else:
-        st.write(f"Cannot visualize {col1} and {col2} together.")
+        st.write(f"Cannot visualize {col1} and {col2} together YET!")
         return None
