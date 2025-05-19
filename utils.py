@@ -374,22 +374,37 @@ def two_column_plot(df, col1, col2):
         regression_line = scatterplot.transform_regression(
             f"{col1}", f"{col2}"
         ).mark_line().encode(
-            color=alt.value("red"),
-            size=alt.value(3)
+            color=alt.value("tomato"),
+            size=alt.value(1.5)
         )
-            
-        # HEATMAP CHART
-        heatmap = alt.Chart(source).mark_rect().encode(
-            x=alt.X(f'{col1}:Q', bin=alt.Bin(maxbins=40), title=col1, axis=alt.Axis(grid=False)),
-            y=alt.Y(f'{col2}:Q', bin=alt.Bin(maxbins=40), title=col2, axis=alt.Axis(grid=False)),
-            color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange'), legend=alt.Legend(title='Count')),
-            tooltip=[f'{col1}:Q', f'{col2}:Q', 'count():Q']
-            ).properties(
-                width=500,
-                height=400
-            ).configure_view(
-                strokeWidth=0
-            )
+
+        # Create bins for the x and y axes
+        col1_bins = np.linspace(df[col1].min(), df[col1].max(), 21).round().astype(int)
+        col2_bins = np.linspace(df[col2].min(), df[col2].max(), 21).round().astype(int)
+
+        df['x_bin'] = pd.cut(df[col1], bins=col1_bins, labels=range(1, 21), include_lowest=True)
+        df['y_bin'] = pd.cut(df[col2], bins=col2_bins, labels=range(1, 21), include_lowest=True)
+
+        # Save for changing the bin order
+        x_order = df['x_bin'].cat.categories
+        y_order = df['y_bin'].cat.categories
+
+        # Convert bins to strings
+        df['x_bin'] = df['x_bin'].astype(str)
+        df['y_bin'] = df['y_bin'].astype(str)
+
+        # Altair heatmap
+        heatmap = alt.Chart(df).mark_rect().encode(
+            x=alt.X('x_bin:O', sort=[str(c) for c in x_order], title=col1),
+            y=alt.Y('y_bin:O', sort=[str(c) for c in reversed(y_order)], title=col2),
+            color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange')),
+            tooltip=['count():Q']
+        ).properties(
+            width=500,
+            height=400
+        ).configure_view(
+            strokeWidth=0
+        )
         
         
         # CORRELATION COEFFICIENT
@@ -400,14 +415,13 @@ def two_column_plot(df, col1, col2):
         # Formatting plot output with two columns
         column_one, column_two = st.columns(2)
             
+        st.subheader(f"Scatterplot of {col1} and {col2}")
         # First, show the scatterplot
         with column_one:
-            st.subheader(f"Scatterplot of {col1} and {col2}")
             st.altair_chart(scatterplot, use_container_width=True)
             
         # Next to it, show the regression line on top of the scatterplot
         with column_two:
-            st.subheader(f"Scatterplot with Regression Trend Line")
             st.altair_chart(scatterplot + regression_line, use_container_width=True)
         
         # Below the scatterplots, show the heatmap   
