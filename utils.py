@@ -17,27 +17,25 @@ from statsmodels.stats.weightstats import DescrStatsW
 
 
 def get_user_files():
-    # Display file uploader only if files haven't been uploaded yet
-    if "user_files" not in st.session_state:
-        uploaded_files = st.sidebar.file_uploader(
-            "Upload your dataset(s)", type=["csv", "xlsx", "xls", "json"], accept_multiple_files=True
-        )
-        if uploaded_files:
-            st.session_state["user_files"] = uploaded_files
+    uploaded_files = st.sidebar.file_uploader(
+        "Upload your dataset(s)", type=["csv", "xlsx", "xls", "json"], accept_multiple_files=True
+    )
 
-    # Show uploaded file names (if any)
-    if "user_files" in st.session_state and st.session_state["user_files"]:
+    if uploaded_files:
+        st.session_state["user_files"] = uploaded_files
+
+    # Show uploaded file names
+    user_files = st.session_state.get("user_files", [])
+    if user_files:
         st.sidebar.markdown("### Uploaded Files:")
-        for file in st.session_state["user_files"]:
+        for file in user_files:
             st.sidebar.write(f"📄 {file.name}")
 
-        # Add a reset button
         if st.sidebar.button("🔁 Clear Data Uploads"):
             st.session_state.pop("user_files", None)
-            st.session_state["page"] = "Home"
             st.rerun()
 
-    return st.session_state.get("user_files", [])
+    return user_files
 
 
 # Helper to get a unique hash of file content (For duplicate file issues)
@@ -373,7 +371,7 @@ def two_column_plot(df, col1, col2):
         )
             
         # Finding the Correlation Coefficient
-        correlation = source.corr().loc[col1, col2]
+        correlation = source.corr(min_periods=20, numeric_only=True)
             
 
         # Formatting plot output with two columns
@@ -409,8 +407,8 @@ def two_column_plot(df, col1, col2):
 
 
     # Numeric + Categorical Variables
-    elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or column_type.name == 'category')) 
-            or (col1_type == 'object' or column_type.name == 'category') and col2_type in ['int64', 'float64']):
+    elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or col2_type.name == 'category')) 
+            or (col1_type == 'object' or col1_type.name == 'category') and col2_type in ['int64', 'float64']):
             
         # Multi boxplot
         st.write("Boxplots")
@@ -421,7 +419,7 @@ def two_column_plot(df, col1, col2):
 
 
     # Two Categorical Variables
-    elif (col1_type == 'object' or column_type.name == 'category') and (col2_type == 'object' or column_type.name == 'category'):
+    elif (col1_type == 'object' or col1_type.name == 'category') and (col2_type == 'object' or col2_type.name == 'category'):
             
         # Heatmap / Table
         st.write("Heatmap")

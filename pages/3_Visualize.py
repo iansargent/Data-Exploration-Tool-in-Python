@@ -13,11 +13,12 @@ from utils import (
     get_columns, get_column_type, single_column_plot, two_column_plot
 )
 
-def render_visualization(mode="single"):
+def render_visualization(mode = "single"):
     title = "Single Variable" if mode == "single" else "Two Variables"
     st.title(f"\U0001F4C8 Visualize Your Data ({title})")
 
     user_files = get_user_files()
+    
     if not user_files:
         st.warning("No files uploaded.")
         return
@@ -25,13 +26,15 @@ def render_visualization(mode="single"):
     seen_hashes = set()
     key_offset = 0
 
+    unique_files = []
     for file in user_files:
         fid = file_hash(file)
-        if fid in seen_hashes:
-            st.info(f"Duplicate skipped: {file.name}")
-            continue
-        seen_hashes.add(fid)
-
+        
+        if fid not in seen_hashes:
+            seen_hashes.add(fid)
+            unique_files.append(file)
+    
+    for file in unique_files:
         df = clean_column_types(read_data(file))
         columns = get_columns(df)
 
