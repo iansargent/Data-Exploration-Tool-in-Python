@@ -10,11 +10,11 @@ Visualize Page
 import streamlit as st
 from utils import (
     get_user_files, file_hash, read_data, clean_column_types,
-    get_columns, get_column_type, single_column_plot
+    get_columns, get_column_type, single_column_plot, two_column_plot
 )
 
-def render_visualization():
-    st.title("📈 Visualize Your Data")
+def render_single_visualization():
+    st.title("📈 Visualize Your Data (Single Variable)")
     user_files = get_user_files()
     seen_hashes = set()
     unique_key = 0
@@ -41,4 +41,45 @@ def render_visualization():
 
         single_column_plot(df, col, ctype)
 
-render_visualization()
+
+def render_double_visualization():
+    st.title("📈 Visualize Your Data (Two Variables)")
+    user_files = get_user_files()
+    seen_hashes = set()
+    unique_key = 0
+
+    if not user_files:
+        st.warning("No files uploaded.")
+        return
+
+    for file in user_files:
+        fid = file_hash(file)
+        if fid in seen_hashes:
+            st.info(f"Duplicate skipped: {file.name}")
+            continue
+        seen_hashes.add(fid)
+        unique_key += 1
+
+
+        df = read_data(file)
+        df = clean_column_types(df)
+        columns = get_columns(df)
+
+        st.subheader(f"Plots for {file.name}")
+        col1 = st.selectbox(f"Select a column to plot ({file.name})", columns, key=unique_key)
+        col2 = st.selectbox(f"Select a second column to plot ({file.name})", columns, key=unique_key + 1)
+
+        two_column_plot(df, col1, col2)
+
+
+
+def main():
+
+    with st.tabs(["Single Variable", "Two Variables"]):
+        with st.tab("Single Variable"):
+            render_single_visualization()
+        with st.tab("Two Variables"):
+            render_double_visualization()
+    
+
+

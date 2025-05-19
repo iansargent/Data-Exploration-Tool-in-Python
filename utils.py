@@ -392,13 +392,14 @@ def single_column_plot(df, selected_column, column_type):
             # Below the plots, show the correlation coefficient
             with st.container():
                 st.subheader(f"Correlation Coefficient")
+                # Backround of what a correlation coefficient is
                 st.markdown(f"""
                     A *correlation coefficient* of **1** indicates a perfect positive relationship, 
                     while a coefficient of **-1** indicates a perfect negative relationship. A 
                     coefficient of **0** indicates no relationship."
                     """
                 )
-                
+                # Display the correlation coefficient
                 st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
     
 
