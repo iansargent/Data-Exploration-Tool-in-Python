@@ -1,1 +1,8 @@
-Add package dependencies here
+streamlit
+st-aggrid
+pandas
+altair
+numpy
+statsmodels
+ydata-profiling
+streamlit-pandas-profiling
