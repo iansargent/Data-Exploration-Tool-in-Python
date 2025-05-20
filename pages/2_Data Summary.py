@@ -8,7 +8,7 @@ Data Summary Page
 
 
 import streamlit as st
-from utils import get_user_files, file_hash, read_data, clean_column_types, get_columns, column_summaries
+from utils import get_user_files, file_hash, read_data, clean_data, get_columns, column_summaries
 import ydata_profiling
 from streamlit_pandas_profiling import st_profile_report
 
@@ -34,7 +34,7 @@ def render_data_summary():
 
         # Read, clean, and summarize the data
         df = read_data(file)
-        df = clean_column_types(df)
+        df = clean_data(df)
         columns = get_columns(df)
 
         # Display column summaries

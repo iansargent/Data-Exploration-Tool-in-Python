@@ -13,6 +13,7 @@ import numpy as np
 import os
 import hashlib
 from statsmodels.stats.weightstats import DescrStatsW
+import calendar
 
 
 
@@ -49,7 +50,6 @@ def file_hash(file):
     return hashlib.md5(content).hexdigest()
 
 
-
 def get_file_name(file):
     """
     Get the file name without the extension.
@@ -65,7 +65,7 @@ def get_file_extension(file):
     file_extension = os.path.splitext(file.name)[1]
     return file_extension
 
-# Saving time when loading data
+
 @st.cache_data
 def read_data(file):
     """
@@ -119,31 +119,59 @@ def get_column_type(df, column_name):
     return column_type
 
 
-def clean_column_types(df):
+def month_name_to_num(month_name):
+    # Try to convert month string (like "May", "5", "05") to number 1-12
+    if pd.isna(month_name):
+        return None
+    month_name = str(month_name).strip().lower()
+    # Check if numeric string
+    if month_name.isdigit():
+        month_num = int(month_name)
+        if 1 <= month_num <= 12:
+            return month_num
+        else:
+            return None
+    # Check if month name (short or full)
+    month_abbrs = {m.lower(): i for i, m in enumerate(calendar.month_abbr) if m}
+    month_names = {m.lower(): i for i, m in enumerate(calendar.month_name) if m}
+    if month_name in month_abbrs:
+        return month_abbrs[month_name]
+    if month_name in month_names:
+        return month_names[month_name]
+    return None
+
+
+def clean_data(df):
     """
     Clean the column types of the DataFrame.
-    Convert binary numeric columns to true/false and parse datetime columns.
+    Convert binary numeric columns to boolean and parse datetime columns based on column name.
     """
     for col in df.columns:
-        # Binary numeric to boolean
+        # Convert binary numeric columns with values [0,1] to boolean
         if df[col].dropna().nunique() == 2:
             unique_vals = sorted(df[col].dropna().unique())
             if unique_vals == [0, 1]:
                 df[col] = df[col].astype(bool)
 
         # Handle datetime-like columns based on column name
-        col_lower = col.lower()
-        if "datetime" in col_lower:
+        col_name = col.lower()
+        if any(x in col_name for x in ["datetime", "date", "time"]):
             df[col] = pd.to_datetime(df[col], errors='coerce')
-        elif "date" in col_lower:
-            df[col] = pd.to_datetime(df[col], errors='coerce')
-        elif "time" in col_lower:
-            df[col] = pd.to_datetime(df[col], errors='coerce')
-        elif "year" in col_lower:
-            df[col] = pd.to_datetime(df[col], format='%Y', errors='coerce')
-        elif "month" in col_lower:
-            df[col] = pd.to_datetime(df[col], format='%m', errors='coerce')
-            
+
+        elif "year" in col_name:
+            # Convert year to datetime (Jan 1 of that year)
+            df[col] = pd.to_datetime(df[col].astype(str) + "-01-01", errors='coerce')
+
+        elif "month" in col_name:
+            # Convert string month to month number
+            df[col] = df[col].apply(month_name_to_num)
+            # Then to datetime with fixed year
+            df[col] = pd.to_datetime(
+                "2000-" + df[col].astype(int).astype(str).str.zfill(2) + "-01",
+                format="%Y-%m-%d",
+                errors='coerce'
+            )
+
     return df
 
 
@@ -358,7 +386,7 @@ def two_column_plot(df, col1, col2):
         return None
 
     # Two Numeric Variables
-    if col1_type in ['int64', 'float64'] and col2_type in ['int64', 'float64']:
+    if pd.api.types.is_numeric_dtype(col1_type) and pd.api.types.is_numeric_dtype(col2_type):
             
         # SCATTERPLOT
         scatterplot = alt.Chart(source).mark_square(
@@ -473,8 +501,8 @@ def two_column_plot(df, col1, col2):
 
     # Numeric + Categorical Variables
     elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or col2_type.name == 'category')) 
-            or (col1_type == 'object' or col1_type.name == 'category') and col2_type in ['int64', 'float64']):
-            
+      or ((col1_type == 'object' or col1_type.name == 'category') and col2_type in ['int64', 'float64'])):
+
         # Multi boxplot
         st.write("Boxplots")
         # Cleveland plot
@@ -484,7 +512,8 @@ def two_column_plot(df, col1, col2):
 
 
     # Two Categorical Variables
-    elif (col1_type == 'object' or col1_type.name == 'category') and (col2_type == 'object' or col2_type.name == 'category'):
+    elif ((col1_type == 'object' or col1_type.name == 'category') and 
+      (col2_type == 'object' or col2_type.name == 'category')):
             
         # Heatmap / Table
         st.write("Heatmap")
@@ -496,5 +525,5 @@ def two_column_plot(df, col1, col2):
 
     # If combination of datatypes are not recognized
     else:
-        st.write(f"Cannot visualize {col1} and {col2} together YET!")
+        st.write(f"Cannot visualize {col1} and {col2} together YET")
         return None

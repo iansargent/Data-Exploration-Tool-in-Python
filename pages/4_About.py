@@ -19,6 +19,6 @@ def render_about():
     Built with ❤️\n\n- Ian.
     """)
     
-    st.markdown("[GitHub Repository](https://github.com/iansargent/Data-Exploration-Tool-in-Python)")
+    st.markdown("[GitHub Repository Link](https://github.com/iansargent/Data-Exploration-Tool-in-Python)")
 
 render_about()

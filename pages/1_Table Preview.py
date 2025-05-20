@@ -9,7 +9,7 @@ Table Preview Page
 
 import streamlit as st
 from st_aggrid import AgGrid, ColumnsAutoSizeMode
-from utils import get_user_files, file_hash, read_data, clean_column_types
+from utils import get_user_files, file_hash, read_data, clean_data
 
 
 def render_table_preview():
@@ -29,7 +29,7 @@ def render_table_preview():
         seen_hashes.add(fid)
 
         df = read_data(file)
-        df = clean_column_types(df)
+        # df = clean_data(df) Gets messy with date type columns
         st.subheader(f"Preview of {file.name}")
         AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
