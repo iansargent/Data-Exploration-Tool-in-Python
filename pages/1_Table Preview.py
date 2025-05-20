@@ -9,7 +9,7 @@ Table Preview Page
 
 import streamlit as st
 from st_aggrid import AgGrid, ColumnsAutoSizeMode
-from utils import get_user_files, file_hash, read_data, clean_data
+from app_utils import get_user_files, file_hash, read_data, clean_data
 
 
 def render_table_preview():

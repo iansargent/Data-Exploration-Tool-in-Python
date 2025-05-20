@@ -8,7 +8,7 @@ Visualize Page
 
 
 import streamlit as st
-from utils import (
+from app_utils import (
     get_user_files, file_hash, read_data, clean_data,
     get_columns, get_column_type, single_column_plot, two_column_plot
 )
@@ -41,12 +41,25 @@ def render_visualization(mode = "single", user_files = None):
         st.subheader(f"Plots for {file.name}")
 
         if mode == "single":
-            col = st.selectbox(f"Select a column to plot ({file.name})", columns, key=f"{file.name}-single-{key_offset}")
+            col = st.selectbox(f"Select a column to plot ({file.name})", 
+                               columns, 
+                               index=1,
+                               key=f"{file.name}-single-{key_offset}")
             single_column_plot(df, col)
         
         elif mode == "double":         
-            col1 = st.selectbox(f"Select a column to plot ({file.name})", columns, key=f"{file.name}-col1-{key_offset}")
-            col2 = st.selectbox(f"Select a second column to plot ({file.name})", columns, key=f"{file.name}-col2-{key_offset+1}")
+            col1 = st.selectbox(
+                f"Select a column to plot ({file.name})", 
+                columns, 
+                index=1,
+                key=f"{file.name}-col1-{key_offset}"
+                )
+            col2 = st.selectbox(
+                f"Select a second column to plot ({file.name})", 
+                columns, 
+                index=2,
+                key=f"{file.name}-col2-{key_offset+1}"
+                )
             
             two_column_plot(df, col1, col2)
 

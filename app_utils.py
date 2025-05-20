@@ -501,26 +501,146 @@ def two_column_plot(df, col1, col2):
 
     # Numeric + Categorical Variables
     elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or col2_type.name == 'category')) 
-      or ((col1_type == 'object' or col1_type.name == 'category') and col2_type in ['int64', 'float64'])):
+    or ((col1_type == 'object' or col1_type.name == 'category') and col2_type in ['int64', 'float64'])):
 
-        # Multi boxplot
-        st.write("Boxplots")
-        # Cleveland plot
-        st.write("Cleveland")
+        # If the first column is numeric and the second is categorical
+        if col1_type in ['int64', 'float64']:
+            # Set plot title
+            st.subheader(f"Boxplot of {col1} by {col2}")
+            
+            # MULTI BOXPLOT
+            multi_box = alt.Chart(source).mark_boxplot().encode(
+                x = alt.X(f"{col2}:O", sort='-y', title=col2),
+                y = alt.Y(f"{col1}:Q", title=col1),
+                color = alt.Color(f"{col2}:O", title=col2),
+                tooltip=[f"{col2}:O", f"{col1}:Q"]
+            )
 
-        return "hi"
+            # CONFIDENCE INTERVALS WITH MEANS
+            error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
+                alt.X(f"{col1}").scale(zero=False),
+                alt.Y(f"{col2}", sort='-x', title=col2)
+            )
+
+            observed_points = alt.Chart(source).mark_point().encode(
+                x = alt.X('mean(col1)'),
+                y = alt.Y(f"{col2}", sort='-x', title=col2)
+
+            )
+
+            confint_plot = error_bars + observed_points
+
+            # Display the boxplot and confidence interval plot
+            st.altair_chart(multi_box, use_container_width=True)
+            st.altair_chart(confint_plot, use_container_width=True)
+
+        
+        # If the first column is categorical and the second is numeric
+        else:
+
+            st.subheader(f"Boxplot of {col2} by {col1}")
+            # MULTI BOXPLOT
+            multi_box = alt.Chart(source).mark_boxplot().encode(
+                x = alt.X(f"{col1}:O", sort='-y', title=col1),
+                y = alt.Y(f"{col2}:Q", title=col2),
+                color = alt.Color(f"{col1}:O", title=col1),
+                tooltip=[f"{col1}:O", f"{col2}:Q"]
+            )
+
+            # CONFIDENCE INTERVALS WITH MEANS
+            error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
+                alt.X(f"{col2}").scale(zero=False),
+                alt.Y(f"{col1}:O", sort='-x', title=col1)
+            )
+
+            observed_points = alt.Chart(source).mark_point().encode(
+                x = alt.X(f'mean({col2})'),
+                y = alt.Y(f"{col1}:O", sort='-x', title=col1)
+
+            )
+
+            confint_plot = error_bars + observed_points
+
+            # Display the boxplot and confidence interval plot
+            st.altair_chart(multi_box, use_container_width=True)
+            st.altair_chart(confint_plot, use_container_width=True)
+
+        return multi_box, confint_plot
 
 
     # Two Categorical Variables
-    elif ((col1_type == 'object' or col1_type.name == 'category') and 
-      (col2_type == 'object' or col2_type.name == 'category')):
-            
-        # Heatmap / Table
-        st.write("Heatmap")
-        # Stacked bar chart
-        st.write("Stacked Bar")
+    elif ((col1_type in ['object', 'bool'] or col1_type.name == 'category') and 
+      (col2_type in ['object', 'bool'] or col2_type.name == 'category')):
+        
+        # Crosstab with raw counts
+        freq_table = pd.crosstab(source[col1], source[col2])
 
-        return "hi"
+        # Turn to percentages aggregated by col1
+        freq_table = freq_table.div(freq_table.sum(axis=1), axis=0) * 100
+
+        # Table formatting
+        freq_table.index.name = col1
+        freq_table.columns.name = col2
+        freq_table = freq_table.reset_index()
+        freq_table = freq_table.rename_axis(None, axis=1)
+
+        # Format percentage columns to only one decimal place
+        format_dict = {col: "{:.1f}%" for col in freq_table.columns if pd.api.types.is_numeric_dtype(freq_table[col])}
+
+        # HEATMAP
+        heatmap = alt.Chart(source).mark_rect().encode(
+            x=f'{col2}:O',
+            y=f'{col1}:O',
+            color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange')),
+            tooltip=[f'{col1}:O', f'{col2}:O', 'count():Q']
+        )
+        
+        # STACKED BAR CHARTS
+        stacked_bar1 = alt.Chart(source).mark_bar().encode(
+            y=alt.Y(f"{col1}:O", title=col1),
+            x=alt.X('count():Q', title='Count'),
+            color=alt.Color(f"{col2}:O", title=col2),
+            tooltip=[f"{col1}:O", f"{col2}:O", 'count():Q']
+        )
+        
+        stacked_df = freq_table.melt(id_vars=col1, var_name='Category', value_name='Percentage')
+
+        # Altair 100% horizontal stacked bar chart
+        stacked_bar_100_pct = alt.Chart(stacked_df).mark_bar().encode(
+            y=alt.Y(f'{col1}:O', title=None),
+            x=alt.X('Percentage:Q', stack='normalize', title=f'{col2} Distribution'),
+            color=alt.Color('Category:N'),
+            tooltip=[alt.Tooltip(col1), alt.Tooltip('Category'), alt.Tooltip('Percentage:Q')]
+)
+        
+        
+        # Display the charts in formatted columns
+        column1, column2 = st.columns(2)
+        
+        with column1:
+            st.subheader(f"Frequency Table  of {col1} and {col2}")
+            st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
+
+       
+        with column2:
+            if ((df[col1].nunique() > 2 and df[col2].nunique() > 2) and 
+            (df[col1].nunique() <= 12 and df[col2].nunique() <= 12)):
+                st.subheader(f"Heatmap of {col1} and {col2}")
+                st.altair_chart(heatmap, use_container_width=True)
+                
+        
+        # Next set of columns for stacked bar charts
+        column3, column4 = st.columns(2)
+        
+        with column3:
+            st.subheader(f"Stacked Bar Chart of {col2} by {col1}")
+            st.altair_chart(stacked_bar1, use_container_width=True)
+        
+        with column4:
+            st.subheader(f"100% Stacked Bar Chart of {col1} by {col2}")
+            st.altair_chart(stacked_bar_100_pct, use_container_width=True)
+
+        return freq_table, heatmap, stacked_bar1, stacked_bar_100_pct
         
 
     # If combination of datatypes are not recognized

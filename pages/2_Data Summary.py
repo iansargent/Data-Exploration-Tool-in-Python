@@ -8,7 +8,7 @@ Data Summary Page
 
 
 import streamlit as st
-from utils import get_user_files, file_hash, read_data, clean_data, get_columns, column_summaries
+from app_utils import get_user_files, file_hash, read_data, clean_data, get_columns, column_summaries
 import ydata_profiling
 from streamlit_pandas_profiling import st_profile_report
 
