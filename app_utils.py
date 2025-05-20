@@ -531,14 +531,16 @@ def two_column_plot(df, col1, col2):
             confint_plot = error_bars + observed_points
 
             # Display the boxplot and confidence interval plot
+            st.subheader(f"Distribution of {col2} by {col1}")
             st.altair_chart(multi_box, use_container_width=True)
+            
+            st.subheader(f"95% Confidence Interval of {col2} by {col1}")
             st.altair_chart(confint_plot, use_container_width=True)
 
         
         # If the first column is categorical and the second is numeric
         else:
 
-            st.subheader(f"Boxplot of {col2} by {col1}")
             # MULTI BOXPLOT
             multi_box = alt.Chart(source).mark_boxplot().encode(
                 x = alt.X(f"{col1}:O", sort='-y', title=col1),
@@ -562,7 +564,10 @@ def two_column_plot(df, col1, col2):
             confint_plot = error_bars + observed_points
 
             # Display the boxplot and confidence interval plot
+            st.subheader(f"Distribution of {col2} by {col1}")
             st.altair_chart(multi_box, use_container_width=True)
+            
+            st.subheader(f"95% Confidence Interval of {col2} by {col1}")
             st.altair_chart(confint_plot, use_container_width=True)
 
         return multi_box, confint_plot
