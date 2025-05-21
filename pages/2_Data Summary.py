@@ -38,8 +38,7 @@ def render_data_summary():
         columns = get_columns(df)
 
         # Display column summaries
-        st.subheader(f"Column Summaries for {file.name}")
-        column_summaries(df, columns)
+        column_summaries(df, columns, file.name)
         st.markdown("---")
 
         # The ydata-profiling report

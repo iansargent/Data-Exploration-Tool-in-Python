@@ -191,45 +191,40 @@ def clean_data(df):
 ###   Exploring and Analyzing Data   ###
 #--------------------------------------#
 
-def column_summaries(df, df_columns):
+def column_summaries(df, df_columns, filename):
     """
     Display summaries of each column in the DataFrame.
     Each summary includes the column name, data type, and a description of the column.
     """
-    # The number of columns in the DataFrame
     total_columns = len(df_columns)
-    # Set the maximum number of columns to display in a row
     max_columns = 5
-    
-    # Choose the largest number less than or equal to max_columns (5) that divides total_columns evenly
-    num_cols = max(
-        [n for n in range(1, max_columns + 1) if total_columns % n == 0], 
-        default=1
-    )
 
-    # If there are more than 30 columns in the DataFrame, default to 5 variables per row
+    # Set number of columns per row
     if total_columns > 30:
-        num_cols = max_columns
-
-    # Choose num_cols as a factor of total_columns (e.g., 2, 3, 4, 5, etc.)
-    if total_columns % num_cols != 0:
-        # Adjust num_cols so it divides evenly (you can also choose the greatest factor ≤ 5, etc.)
-        num_cols = max([n for n in range(1, total_columns + 1) if total_columns % n == 0 and n <= 5])
-
-    # Create a grid of columns for the summaries
+        return
+    else:
+        num_cols = max(
+            [n for n in range(1, max_columns + 1) if total_columns % n == 0],
+            default=1
+        )
+        if total_columns % num_cols != 0:
+            num_cols = max(
+                [n for n in range(1, total_columns + 1) if total_columns % n == 0 and n <= max_columns],
+                default=1
+            )
+    
+    st.subheader(f"Column Summaries for {filename}")
+    # Render summaries
     for i in range(0, total_columns, num_cols):
         cols = st.columns(min(num_cols, total_columns - i))
-        for j, column_name in enumerate(df_columns[i:i+num_cols]):
+        for j, column_name in enumerate(df_columns[i:i + num_cols]):
             with cols[j]:
-                # Basic summary of the column using the describe function
                 summary = df[column_name].describe(include='all')
-                # Summary displayed as a table
                 summary_df = pd.DataFrame(summary).rename(columns={0: "Value"})
-                            
-                # Use an expander for each column summary for clean display
+
                 with st.expander(f"**{column_name.strip()}**"):
-                    # Turn summary into a st.dataframe for interactive display
                     st.dataframe(summary_df.style.format(precision=2, na_rep="—"))
+
 
 
 def generate_profile_report(df):
