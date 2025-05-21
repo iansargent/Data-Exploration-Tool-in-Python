@@ -16,7 +16,9 @@ from statsmodels.stats.weightstats import DescrStatsW
 import calendar
 
 
-
+#--------------------------------------#
+#######      File Handling      ########
+#--------------------------------------#
 def get_user_files():
     uploaded_files = st.sidebar.file_uploader(
         "Upload your dataset(s)", 
@@ -42,8 +44,10 @@ def get_user_files():
     return user_files
 
 
-# Helper to get a unique hash of file content (For duplicate file issues)
 def file_hash(file):
+    """
+    Generate a unique hash for the file content to check for duplicates.
+    """
     file.seek(0)
     content = file.read()
     file.seek(0)
@@ -65,6 +69,10 @@ def get_file_extension(file):
     file_extension = os.path.splitext(file.name)[1]
     return file_extension
 
+
+#--------------------------------------#
+# Reading, Handling, and Cleaning Data #
+#--------------------------------------#
 
 @st.cache_data
 def read_data(file):
@@ -175,6 +183,10 @@ def clean_data(df):
     return df
 
 
+#--------------------------------------#
+###   Exploring and Analyzing Data   ###
+#--------------------------------------#
+
 def column_summaries(df, df_columns):
     """
     Display summaries of each column in the DataFrame.
@@ -207,6 +219,10 @@ def column_summaries(df, df_columns):
                     # Turn summary into a st.dataframe for interactive display
                     st.dataframe(summary_df.style.format(precision=2, na_rep="—"))
 
+
+#--------------------------------------#
+###   Plotting and Displaying Data   ###
+#--------------------------------------#
 
 def single_column_plot(df, selected_column):
     """
