@@ -633,7 +633,8 @@ def categorical_categorical_plots(df, col1, col2):
         tooltip=[alt.Tooltip(col1), alt.Tooltip('Category'), alt.Tooltip('Percentage:Q')]
     )
 
-    return format_dict, heatmap, stacked_bar1, stacked_bar_100_pct
+    # Return all tables and plots
+    return freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct
 
 
 def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct):
@@ -642,6 +643,7 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
     if two categorical variables are selected.
     """
     
+    # Set two columns for formatted output
     column1, column2 = st.columns(2)
 
     with column1:
@@ -666,7 +668,7 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
         st.altair_chart(stacked_bar1, use_container_width=True)
     
     with column4:
-        # Display the 100% stacked bar chart
+        # Display the 100% stacked bar chart next to the other chart
         st.subheader(f"100% Stacked Bar Chart of {col1} by {col2}")
         st.altair_chart(stacked_bar_100_pct, use_container_width=True)
 
@@ -711,13 +713,13 @@ def two_column_plot(df, col1, col2):
       (col2_type in ['object', 'bool'] or col2_type.name == 'category')):
         
         # Create the crosstab and heatmap
-        format_dict, heatmap, stacked_bar1, stacked_bar_100_pct = categorical_categorical_plots(df, col1, col2)
+        freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct = categorical_categorical_plots(df, col1, col2)
         # Display the plots
-        display_categorical_categorical_plots(df, col1, col2, freq_table=None, format_dict=format_dict, 
+        display_categorical_categorical_plots(df, col1, col2, freq_table=freq_table, format_dict=format_dict, 
                                                heatmap=heatmap, stacked_bar1=stacked_bar1, 
                                                stacked_bar_100_pct=stacked_bar_100_pct)
         # Return the plots
-        return format_dict, heatmap, stacked_bar1, stacked_bar_100_pct
+        return freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct
 
     # If combination of datatypes are not recognized
     else:
