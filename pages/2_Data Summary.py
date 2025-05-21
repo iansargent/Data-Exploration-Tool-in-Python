@@ -55,7 +55,6 @@ def render_data_summary():
             st.download_button(label="View Full Report", data=report_export, file_name='data_report.html')
             # Display the report
             st_profile_report(profile)
-        
         st.markdown("---")
 
 # Run the data summary page

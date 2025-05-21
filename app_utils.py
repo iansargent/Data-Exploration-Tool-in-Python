@@ -196,12 +196,22 @@ def column_summaries(df, df_columns):
     Display summaries of each column in the DataFrame.
     Each summary includes the column name, data type, and a description of the column.
     """
+    # The number of columns in the DataFrame
     total_columns = len(df_columns)
+    # Set the maximum number of columns to display in a row
     max_columns = 5
-    num_cols = max([n for n in range(1, max_columns + 1) if total_columns % n == 0], default=1)
+    
+    # Choose the largest number less than or equal to max_columns (5) that divides total_columns evenly
+    num_cols = max(
+        [n for n in range(1, max_columns + 1) if total_columns % n == 0], 
+        default=1
+    )
+
+    # If there are more than 30 columns in the DataFrame, default to 5 variables per row
+    if total_columns > 30:
+        num_cols = max_columns
 
     # Choose num_cols as a factor of total_columns (e.g., 2, 3, 4, 5, etc.)
-    # Make sure there's no remainder
     if total_columns % num_cols != 0:
         # Adjust num_cols so it divides evenly (you can also choose the greatest factor ≤ 5, etc.)
         num_cols = max([n for n in range(1, total_columns + 1) if total_columns % n == 0 and n <= 5])
@@ -211,9 +221,7 @@ def column_summaries(df, df_columns):
         cols = st.columns(min(num_cols, total_columns - i))
         for j, column_name in enumerate(df_columns[i:i+num_cols]):
             with cols[j]:
-                # Table titles (cleaned)
-                # st.markdown(f"**{column_name.strip()}**")
-                # Pandas summary of the column (describe function)
+                # Basic summary of the column using the describe function
                 summary = df[column_name].describe(include='all')
                 # Summary displayed as a table
                 summary_df = pd.DataFrame(summary).rename(columns={0: "Value"})
@@ -233,30 +241,25 @@ def generate_profile_report(df):
     df_columns = get_columns(df)
     num_columns = len(df_columns)
 
-    custom_config = Settings()
-    custom_config.title = "Customized Data Report"
-    custom_config.theme.primary_color = "#2E86AB"
-    custom_config.theme.accent_color = "#F18F01"
-    custom_config.theme.font = "Arial"
-    custom_config.theme.logo = "/Users/iansargent/Desktop/ORCA/logo-png.png"
-
     if num_columns > 30:
-        report = df.ProfileReport(
+        report = ProfileReport(
+            df,
             title="Data Report",
-            config=custom_config,
+            explorative=True,
             samples=None,
             correlations=None,
             interactions=None
         )
     else:
-        report = df.ProfileReport(
+        report = ProfileReport(
+            df,
+            explorative=True,
             title="Data Report",
-            config=custom_config,
             missing_diagrams={
                 "matrix": False,
             }
         )
-    
+
     return report
 
 
