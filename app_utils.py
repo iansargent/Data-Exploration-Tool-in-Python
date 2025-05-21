@@ -17,6 +17,8 @@ import calendar
 from ydata_profiling.config import Settings
 from streamlit_pandas_profiling import st_profile_report
 from ydata_profiling import ProfileReport
+import geopandas as gpd
+import leafmap as lfm
 
 
 
@@ -26,7 +28,7 @@ from ydata_profiling import ProfileReport
 def get_user_files():
     uploaded_files = st.sidebar.file_uploader(
         "Upload your dataset(s)", 
-        type=["csv", "xlsx", "xls", "json"], 
+        type=["csv", "xlsx", "xls", "json", 'geojson', 'sav'],
         accept_multiple_files=True,
         key = "data_upload"
     )
@@ -108,12 +110,15 @@ def read_data(file):
                 
     elif file_extension == '.xls':
         df = pd.read_excel(file, engine='xlrd')
-        
+    
+    elif file_extension == '.geojson':
+        df = gpd.read_file(file)
+        st.write("**Note:** This is a GeoDataFrame. You can visualize it on a map.")
+    
     else:
-        st.error("Unsupported file format. Please upload a CSV, JSON, SAV, or XLSX file.")
+        st.error("Unsupported file format. Please upload a CSV, JSON, GEOJSON, SAV, XLS, or XLSX file.")
 
     return df
-
 
 def get_columns(df):
     """
