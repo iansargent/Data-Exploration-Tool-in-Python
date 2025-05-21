@@ -113,7 +113,6 @@ def read_data(file):
     
     elif file_extension == '.geojson':
         df = gpd.read_file(file)
-        st.write("**Note:** This is a GeoDataFrame. You can visualize it on a map.")
     
     else:
         st.error("Unsupported file format. Please upload a CSV, JSON, GEOJSON, SAV, XLS, or XLSX file.")

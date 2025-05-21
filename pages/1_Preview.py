@@ -23,6 +23,9 @@ def render_preview():
         st.warning("No files uploaded.")
         return
 
+    map = leafmap.Map(zoom=10)
+    table_previews = []
+
     for file in user_files:
         fid = file_hash(file)
         if fid in seen_hashes:
@@ -31,51 +34,44 @@ def render_preview():
         seen_hashes.add(fid)
 
         df = read_data(file)
-        
-        if isinstance(df, gpd.GeoDataFrame):
-     
-            st.subheader(f"Map of {file.name}")
 
-            map = leafmap.Map(zoom=10)
-            
-            if "border" in file.name.lower():
-                style={"fillOpacity": 0.2, "color": "dodgerblue", "weight": 2}
-            
-            elif "linearfeatures" in file.name.lower():
-                style={"color": "navy", "weight": 2}
-            
-            elif "pointfeatures" in file.name.lower():
-                style={"color": "darkorange", "weight": 2}
-            
-            elif "servicearea" in file.name.lower():
-                style={"color": "darkred", "weight": 2}
-            
-            elif "wwtf" in file.name.lower():
-                style={"color": "darkgreen", "weight": 2}
-            
+        if isinstance(df, gpd.GeoDataFrame):
+            fname = file.name.lower()
+
+            # Style logic
+            if "border" in fname:
+                style = {"fillOpacity": 0.2, "color": "dodgerblue", "weight": 2}
+            elif "linearfeatures" in fname:
+                style = {"color": "navy", "weight": 2}
+            elif "pointfeatures" in fname:
+                style = {"color": "darkorange", "weight": 2}
+            elif "servicearea" in fname:
+                style = {"color": "darkred", "weight": 2}
+            elif "wwtf" in fname:
+                style = {"color": "darkgreen", "weight": 2}
             else:
                 style = None
-                 
-            # Add the GeoDataFrame to the map
-            map.add_gdf(
-                df, 
-                layer_name=file.name,
-                style=style
-            )
 
-            # Display the map in Streamlit
-            map.to_streamlit(use_container_width=True)
-            
-            st.write("Table Preview:")
-            # If the file is a GeoDataFrame, convert it to a DataFrame
-            df_geo_aggrid = df.drop(columns=["geometry"])
-            df_geo_aggrid = df.reset_index(drop=True)
-            
-            AgGrid(df_geo_aggrid, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
-        
+            # Add to map
+            map.add_gdf(df, layer_name=file.name, style=style)
+
+            # Save table (without geometry)
+            df_preview = df.drop(columns=["geometry"], errors="ignore").reset_index(drop=True)
+            table_previews.append((file.name, df_preview))
+
         else:
             st.subheader(f"Preview of {file.name}")
             AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
-    
+
+    # Show map once
+    if table_previews:
+        st.subheader("🗺️ Combined Map of Uploaded Spatial Data")
+        map.to_streamlit(use_container_width=True)
+
+        # Show all GeoDF tables
+        st.subheader("📊 Table Previews for Spatial Data")
+        for name, df_preview in table_previews:
+            st.markdown(f"**{name}**")
+            AgGrid(df_preview, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
 render_preview()
