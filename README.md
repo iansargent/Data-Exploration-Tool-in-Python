@@ -20,7 +20,7 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
    pip install -r requirements.txt
    ```
 
-4. **Run** the Streamlit app** from the terminal with **this command**:
+4. **Run** the Streamlit app from the terminal with **this command**:
 
    ```sh
    streamlit run Home.py
