@@ -616,17 +616,18 @@ def categorical_categorical_plots(df, col1, col2):
     )
         
     # STACKED BAR CHARTS
-    stacked_bar1 = alt.Chart(source).mark_bar().encode(
+    stacked_bar = alt.Chart(source).mark_bar().encode(
         y=alt.Y(f"{col1}:O", title=col1),
         x=alt.X('count():Q', title='Count'),
         color=alt.Color(f"{col2}:O", title=col2),
         tooltip=[f"{col1}:O", f"{col2}:O", 'count():Q']
     )
     
-    stacked_df = freq_table.melt(id_vars=col1, var_name='Category', value_name='Percentage')
+    # Putting the frequecy table into a long format for plotting in the 100% stacked bar chart
+    stacked_df_100 = freq_table.melt(id_vars=col1, var_name='Category', value_name='Percentage')
 
     # Altair 100% horizontal stacked bar chart
-    stacked_bar_100_pct = alt.Chart(stacked_df).mark_bar().encode(
+    stacked_bar_100_pct = alt.Chart(stacked_df_100).mark_bar().encode(
         y=alt.Y(f'{col1}:O', title=None),
         x=alt.X('Percentage:Q', stack='normalize', title=f'{col2} Distribution'),
         color=alt.Color('Category:N'),
@@ -634,10 +635,10 @@ def categorical_categorical_plots(df, col1, col2):
     )
 
     # Return all tables and plots
-    return freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct
+    return freq_table, format_dict, heatmap, stacked_bar, stacked_bar_100_pct
 
 
-def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct):
+def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dict, heatmap, stacked_bar, stacked_bar_100_pct):
     """
     Display the crosstab, heatmap, and stacked bar charts 
     if two categorical variables are selected.
@@ -665,7 +666,7 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
     with column3:
         # Display the stacked bar chart
         st.subheader(f"Stacked Bar Chart of {col2} by {col1}")
-        st.altair_chart(stacked_bar1, use_container_width=True)
+        st.altair_chart(stacked_bar, use_container_width=True)
     
     with column4:
         # Display the 100% stacked bar chart next to the other chart
@@ -713,13 +714,13 @@ def two_column_plot(df, col1, col2):
       (col2_type in ['object', 'bool'] or col2_type.name == 'category')):
         
         # Create the crosstab and heatmap
-        freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct = categorical_categorical_plots(df, col1, col2)
+        freq_table, format_dict, heatmap, stacked_bar, stacked_bar_100_pct = categorical_categorical_plots(df, col1, col2)
         # Display the plots
         display_categorical_categorical_plots(df, col1, col2, freq_table=freq_table, format_dict=format_dict, 
-                                               heatmap=heatmap, stacked_bar1=stacked_bar1, 
+                                               heatmap=heatmap, stacked_bar=stacked_bar, 
                                                stacked_bar_100_pct=stacked_bar_100_pct)
         # Return the plots
-        return freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct
+        return freq_table, format_dict, heatmap, stacked_bar, stacked_bar_100_pct
 
     # If combination of datatypes are not recognized
     else:
