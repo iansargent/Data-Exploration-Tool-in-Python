@@ -53,7 +53,7 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 
 - ✅ Interactive data **table display**
 
-- ✅ Layered mapping with **geojson** files
+- ✅ Layered **mapping** with geojson files
 
 - ✅ Automated **data profiling** and **summary statistics**
 
