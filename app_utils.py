@@ -14,6 +14,10 @@ import os
 import hashlib
 from statsmodels.stats.weightstats import DescrStatsW
 import calendar
+from ydata_profiling.config import Settings
+from streamlit_pandas_profiling import st_profile_report
+from ydata_profiling import ProfileReport
+
 
 
 #--------------------------------------#
@@ -218,6 +222,44 @@ def column_summaries(df, df_columns):
                 with st.expander(f"**{column_name.strip()}**"):
                     # Turn summary into a st.dataframe for interactive display
                     st.dataframe(summary_df.style.format(precision=2, na_rep="—"))
+
+
+def generate_profile_report(df):
+    """
+    Generate a tailored profile report 
+    given a DataFrame using the ydata-profiling package.
+    """
+    
+    df_columns = get_columns(df)
+    num_columns = len(df_columns)
+
+    custom_config = Settings()
+    custom_config.title = "Customized Data Report"
+    custom_config.theme.primary_color = "#2E86AB"
+    custom_config.theme.accent_color = "#F18F01"
+    custom_config.theme.font = "Arial"
+    custom_config.theme.logo = "/Users/iansargent/Desktop/ORCA/logo-png.png"
+
+    if num_columns > 30:
+        report = df.ProfileReport(
+            title="Data Report",
+            config=custom_config,
+            samples=None,
+            correlations=None,
+            interactions=None
+        )
+    else:
+        report = df.ProfileReport(
+            title="Data Report",
+            config=custom_config,
+            missing_diagrams={
+                "matrix": False,
+            }
+        )
+    
+    return report
+
+
 
 
 #--------------------------------------#

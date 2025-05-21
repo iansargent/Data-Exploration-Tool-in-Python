@@ -8,7 +8,7 @@ Data Summary Page
 
 
 import streamlit as st
-from app_utils import get_user_files, file_hash, read_data, clean_data, get_columns, column_summaries
+from app_utils import get_user_files, file_hash, read_data, clean_data, get_columns, column_summaries, generate_profile_report
 import ydata_profiling
 from streamlit_pandas_profiling import st_profile_report
 
@@ -48,7 +48,7 @@ def render_data_summary():
         # Add a loading spinner icon to ensure the user knows the report is being generated
         with st.spinner(text = "Generating report..."):
             # Create the ydata-profiling report
-            profile = df.profile_report()
+            profile = generate_profile_report(df)
             report_export = profile.to_html()
             
             # Add a download button for the HTML report
