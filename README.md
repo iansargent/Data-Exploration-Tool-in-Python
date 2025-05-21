@@ -31,17 +31,17 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 
 ## How to Use
 
-1. **Launch the app using this command in the terminal:**
+1. **Launch** the app using this command in the terminal:
 
    ```sh
    streamlit run Home.py
    ```
 
-2. **Upload your data files via the sidebar. Many file formats are supported.**
+2. **Upload** your data files via the sidebar. Many file formats are supported.
 
    * Insert Screenshot
    
-3. **Navigate through the pages to preview, summarize, and visualize your data.**
+3. **Navigate** through the pages to preview, summarize, and visualize your data.
 
 ---
 
