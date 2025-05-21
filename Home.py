@@ -6,6 +6,7 @@ Streamlit Data Visualization App
 Run this in the terminal to launch the app:
 -------------------------------------------
 streamlit run Home.py
+-------------------------------------------
 
 """
 

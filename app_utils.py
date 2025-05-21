@@ -119,6 +119,7 @@ def read_data(file):
 
     return df
 
+
 def get_columns(df):
     """
     Get the column names from the DataFrame as a list.
@@ -133,6 +134,21 @@ def get_column_type(df, column_name):
     """
     column_type = df[column_name].dtype
     return column_type
+
+
+def is_latitude_longitude(df):
+    """
+    Check if the DataFrame contains latitude and longitude columns.
+    """
+    df_columns = get_columns(df)
+
+    lat_col = [col for col in df_columns if "latitude" in col.lower()]
+    lon_col = [col for col in df_columns if "longitude" in col.lower()]
+
+    if lat_col and lon_col:
+        return True
+    else:
+        return False
 
 
 def month_name_to_num(month_name):
