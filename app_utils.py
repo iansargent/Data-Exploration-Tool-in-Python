@@ -401,21 +401,24 @@ def numeric_numeric_plots(df, col1, col2):
     col1_bins = np.linspace(df[col1].min(), df[col1].max(), 21).round().astype(int)
     col2_bins = np.linspace(df[col2].min(), df[col2].max(), 21).round().astype(int)
 
+    # Ensure bins are unique and do not overlap
     col1_bins_unique = np.unique(col1_bins)
     col2_bins_unique = np.unique(col2_bins)
-
     col1_intervals = len(col1_bins_unique) - 1
     col2_intervals = len(col2_bins_unique) - 1
 
+    # Create evenly-spaced labels for the bins
     col1_labels = range(1, col1_intervals + 1)
     col2_labels = range(1, col2_intervals + 1)
 
+    # Create bins for the x axis
     df['x_bin'] = pd.cut(
         df[col1], 
         bins=col1_bins_unique, 
         labels=col1_labels, 
         include_lowest=True
     )
+    # Create bins for the y axis
     df['y_bin'] = pd.cut(
         df[col2], 
         bins=col2_bins_unique, 
@@ -448,7 +451,7 @@ def numeric_numeric_plots(df, col1, col2):
     corr_df = source[[col1, col2]].corr(min_periods=10, numeric_only=True)
     correlation = corr_df.loc[col1, col2]
 
-
+    # Return all computed metrics and plots
     return scatterplot, regression_line, heatmap, correlation
 
 
@@ -503,10 +506,11 @@ def numeric_categorical_plots(df, col1, col2):
     Create a boxplot and confidence interval plot 
     if both a numeric and categorical variable are selected.
     """
+    # Get the needed columns from the DataFrame and drop missing values
     source = df[[col1, col2]].dropna()
 
+    # Define the data types of the first selected column
     col1_type = get_column_type(df, col1)
-    col2_type = get_column_type(df, col2)
 
     # If the first column is numeric and the second is categorical
     if col1_type in ['int64', 'float64']:
