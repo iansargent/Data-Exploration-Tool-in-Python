@@ -49,7 +49,7 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 ## Some Features
 
 
-- ✅ **Upload** and **preview** CSV, Excel, JSON, or SPSS datasets
+- ✅ **Upload** and **preview** CSV, XLSX, XLS, JSON, GEOJSON, or SAV datasets
 
 - ✅ Interactive data **table display**
 
