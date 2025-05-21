@@ -349,9 +349,6 @@ def single_column_plot(df, selected_column):
             x=alt.X(f"{selected_column}:T", title="Time"),
             y=alt.Y(f"{y_column}:Q", title=y_column),
             color = alt.value("dodgerblue"),
-        ).properties(
-            width=600,
-            height=400
         )
 
         # Create the LOESS line chart with proper data transformation
@@ -374,9 +371,6 @@ def single_column_plot(df, selected_column):
             color=alt.Color(f"{selected_column}:N"),
             tooltip=[alt.Tooltip(f"{selected_column}:N", title="Category"),
                      alt.Tooltip(f"count()", title="Count")]
-        ).properties(
-            width=400,
-            height=400
         )
         # Display the chart
         st.altair_chart(pie_chart, use_container_width=True)
