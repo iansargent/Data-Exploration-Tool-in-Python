@@ -86,8 +86,8 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 ## Planned Improvements
 
 - Add data comparison support features (for VT jurisdictions)
-- Include interactive geospatial mapping
-- Include filtering 
+- Include geospatial analytics
+- Include data filtering options
 - Improved UX and overall app design
 
 ---
@@ -101,8 +101,8 @@ This project is open-source under the **MIT License**.
 ## Credits
 
 - Created by Ian Sargent  
-- Developed under the Open Research Community Accelerator  
-- Built with Streamlit and Python
+- Developed under the Open Research Community Accelerator (ORCA) 
+- Built using Streamlit and Python
 
 ---
 
