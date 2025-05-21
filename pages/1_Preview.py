@@ -65,13 +65,14 @@ def render_preview():
 
     # Show map once
     if table_previews:
-        st.subheader("🗺️ Combined Map of Uploaded Spatial Data")
+        st.subheader("Map of Uploaded Layers")
         map.to_streamlit(use_container_width=True)
 
         # Show all GeoDF tables
-        st.subheader("📊 Table Previews for Spatial Data")
-        for name, df_preview in table_previews:
-            st.markdown(f"**{name}**")
-            AgGrid(df_preview, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+        st.subheader("Table Previews for Each Layer")
+        for name, df_preview in table_previews:            
+            with st.expander(f"**{name}**"):
+                st.write("This is a preview of the data without geometry.")
+                st.dataframe(df_preview, use_container_width=True)
 
 render_preview()
