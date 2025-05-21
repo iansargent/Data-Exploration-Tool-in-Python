@@ -372,281 +372,352 @@ def single_column_plot(df, selected_column):
         st.write(f"Cannot visualize {selected_column}.")
 
 
-def two_column_plot(df, col1, col2):
+def numeric_numeric_plots(df, col1, col2):
+    """
+    Create a scatterplot with regression line and heatmap 
+    if two numeric variables are selected.
+    """
+    source = df[[col1, col2]].dropna()
+
+    # SCATTERPLOT
+    scatterplot = alt.Chart(source).mark_square(
+        color = "mediumseagreen",
+        opacity = 0.7
+    ).encode(
+        x = alt.X(f"{col1}:Q", title=col1).scale(zero=False),
+        y = alt.Y(f"{col2}:Q", title=col2).scale(zero=False),
+        tooltip=[f"{col1}:Q", f"{col2}:Q"]
+    )
+
+    # REGRESSION LINE
+    regression_line = scatterplot.transform_regression(
+        f"{col1}", f"{col2}"
+    ).mark_line().encode(
+        color=alt.value("tomato"),
+        size=alt.value(1.5)
+    )
+
+    # Create bins for the x and y axes
+    col1_bins = np.linspace(df[col1].min(), df[col1].max(), 21).round().astype(int)
+    col2_bins = np.linspace(df[col2].min(), df[col2].max(), 21).round().astype(int)
+
+    col1_bins_unique = np.unique(col1_bins)
+    col2_bins_unique = np.unique(col2_bins)
+
+    col1_intervals = len(col1_bins_unique) - 1
+    col2_intervals = len(col2_bins_unique) - 1
+
+    col1_labels = range(1, col1_intervals + 1)
+    col2_labels = range(1, col2_intervals + 1)
+
+    df['x_bin'] = pd.cut(
+        df[col1], 
+        bins=col1_bins_unique, 
+        labels=col1_labels, 
+        include_lowest=True
+    )
+    df['y_bin'] = pd.cut(
+        df[col2], 
+        bins=col2_bins_unique, 
+        labels=col2_labels, 
+        include_lowest=True
+    )
+
+    # Save for changing the bin order
+    x_order = df['x_bin'].cat.categories
+    y_order = df['y_bin'].cat.categories
+
+    # Convert bins to strings
+    df['x_bin'] = df['x_bin'].astype(str)
+    df['y_bin'] = df['y_bin'].astype(str)
+
+    # Altair heatmap
+    heatmap = alt.Chart(df).mark_rect().encode(
+        x=alt.X('x_bin:O', sort=[str(c) for c in x_order], title=col1),
+        y=alt.Y('y_bin:O', sort=[str(c) for c in reversed(y_order)], title=col2),
+        color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange')),
+        tooltip=['count():Q']
+    ).properties(
+        width=500,
+        height=400
+    ).configure_view(
+        strokeWidth=0
+    )
+
+    # CORRELATION COEFFICIENT
+    corr_df = source[[col1, col2]].corr(min_periods=10, numeric_only=True)
+    correlation = corr_df.loc[col1, col2]
+
+
+    return scatterplot, regression_line, heatmap, correlation
+
+
+def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, heatmap, correlation):
+    """
+    Display a scatterplot, regression line, heatmap, and correlation coefficient
+    if two numeric variables are selected.
+    """
+    
+    source = df[[col1, col2]].dropna()
+    
+    # Set title for scatterplots
+    st.subheader(f"Scatterplot of {col1} and {col2}")
+    
+    # Formatting plot output with two columns
+    column_one, column_two = st.columns(2)
         
+    # First, show the scatterplot
+    with column_one:
+        st.altair_chart(scatterplot, use_container_width=True)
+        
+    # Next to it, show the regression line on top of the scatterplot
+    with column_two:
+        st.altair_chart(scatterplot + regression_line, use_container_width=True)
+    
+    # Below the scatterplots, show the heatmap   
+    with st.container():
+        st.subheader(f"Heatmap of {col1} and {col2}")
+        st.altair_chart(heatmap, use_container_width=True)
+
+
+    # Below the heatmap, show the correlation coefficient
+    with st.container():
+        st.subheader(f"Correlation Coefficient")
+        # Backround of what a correlation coefficient actually is
+        st.markdown(f"""
+            ***Note:*** A *correlation coefficient* of 1 indicates a perfect positive relationship, 
+            while a coefficient of -1 indicates a perfect negative relationship. A coefficient of 
+            0 indicates no relationship."
+            """
+        )
+        # Display the correlation coefficient
+        st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
+
+    # Show Aggrid table display of the two plotted columns
+    st.subheader(f"Data Table of {col1} and {col2}")
+    st.dataframe(data=source.style.format("{:.2f}"), hide_index=True, column_order=(col1, col2))
+
+
+def numeric_categorical_plots(df, col1, col2):
+    """
+    Create a boxplot and confidence interval plot 
+    if both a numeric and categorical variable are selected.
+    """
+    source = df[[col1, col2]].dropna()
+
     col1_type = get_column_type(df, col1)
     col2_type = get_column_type(df, col2)
 
+    # If the first column is numeric and the second is categorical
+    if col1_type in ['int64', 'float64']:
+        # Set plot title
+        st.subheader(f"Boxplot of {col1} by {col2}")
+            
+        # MULTI BOXPLOT
+        multi_box = alt.Chart(source).mark_boxplot().encode(
+            x = alt.X(f"{col2}:O", sort='-y', title=col2),
+            y = alt.Y(f"{col1}:Q", title=col1),
+            color = alt.Color(f"{col2}:O", title=col2),
+            tooltip=[f"{col2}:O", f"{col1}:Q"]
+        )
+
+        # CONFIDENCE INTERVALS WITH MEANS
+        error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
+            alt.X(f"{col1}").scale(zero=False),
+            alt.Y(f"{col2}", sort='-x', title=col2)
+        )
+
+        # Calculate the mean of col1 for each category in col2
+        observed_points = alt.Chart(source).mark_point().encode(
+            x = alt.X('mean(col1)'),
+            y = alt.Y(f"{col2}", sort='-x', title=col2)
+
+        )
+
+        # Combine the error bars and observed points into one plot
+        confint_plot = error_bars + observed_points
+
+        # Return both plots
+        return multi_box, confint_plot
+
+    # If the first column is categorical and the second is numeric
+    else:
+        # MULTI BOXPLOT
+        multi_box = alt.Chart(source).mark_boxplot().encode(
+            x = alt.X(f"{col1}:O", sort='-y', title=col1),
+            y = alt.Y(f"{col2}:Q", title=col2),
+            color = alt.Color(f"{col1}:O", title=col1),
+            tooltip=[f"{col1}:O", f"{col2}:Q"]
+        )
+
+        # CONFIDENCE INTERVALS WITH MEANS
+        error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
+            alt.X(f"{col2}").scale(zero=False),
+            alt.Y(f"{col1}:O", sort='-x', title=col1)
+        )
+
+        # Calculate the mean of col2 for each category in col1
+        observed_points = alt.Chart(source).mark_point().encode(
+            x = alt.X('mean(col2)'),
+            y = alt.Y(f"{col1}:O", sort='-x', title=col1)
+
+        )
+        
+        # Combine the error bars and observed points into one plot
+        confint_plot = error_bars + observed_points
+        
+        # Return both plots
+        return multi_box, confint_plot
+
+
+def display_numeric_categorical_plots(df, col1, col2, multi_box, confint_plot):
+    """
+    Display the boxplot and confidence interval plot 
+    if both a numeric and categorical variable are selected.
+    """
     
+    # Display the boxplot
+    st.subheader(f"Distribution of {col2} by {col1}")
+    st.altair_chart(multi_box, use_container_width=True)
+    
+    # Display the confidence interval plot
+    st.subheader(f"95% Confidence Interval of {col2} by {col1}")
+    st.altair_chart(confint_plot, use_container_width=True)
+
+
+def categorical_categorical_plots(df, col1, col2):
+    """
+    Create a crosstab with raw counts and percentages for two categorical variables 
+    if two categorical variables are selected.
+    """
     source = df[[col1, col2]].dropna()
 
-    # If the two selected columns are the same
+    # Crosstab with raw counts
+    freq_table = pd.crosstab(source[col1], source[col2])
+
+    # Turn to percentages aggregated by col1
+    freq_table = freq_table.div(freq_table.sum(axis=1), axis=0) * 100
+
+    # Table formatting
+    freq_table.index.name = col1
+    freq_table.columns.name = col2
+    freq_table = freq_table.reset_index()
+    freq_table = freq_table.rename_axis(None, axis=1)
+
+    # Format percentage columns to only one decimal place
+    format_dict = {col: "{:.1f}%" for col in freq_table.columns if pd.api.types.is_numeric_dtype(freq_table[col])}
+
+    # HEATMAP
+    heatmap = alt.Chart(source).mark_rect().encode(
+        x=f'{col2}:O',
+        y=f'{col1}:O',
+        color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange')),
+        tooltip=[f'{col1}:O', f'{col2}:O', 'count():Q']
+    )
+        
+    # STACKED BAR CHARTS
+    stacked_bar1 = alt.Chart(source).mark_bar().encode(
+        y=alt.Y(f"{col1}:O", title=col1),
+        x=alt.X('count():Q', title='Count'),
+        color=alt.Color(f"{col2}:O", title=col2),
+        tooltip=[f"{col1}:O", f"{col2}:O", 'count():Q']
+    )
+    
+    stacked_df = freq_table.melt(id_vars=col1, var_name='Category', value_name='Percentage')
+
+    # Altair 100% horizontal stacked bar chart
+    stacked_bar_100_pct = alt.Chart(stacked_df).mark_bar().encode(
+        y=alt.Y(f'{col1}:O', title=None),
+        x=alt.X('Percentage:Q', stack='normalize', title=f'{col2} Distribution'),
+        color=alt.Color('Category:N'),
+        tooltip=[alt.Tooltip(col1), alt.Tooltip('Category'), alt.Tooltip('Percentage:Q')]
+    )
+
+    return format_dict, heatmap, stacked_bar1, stacked_bar_100_pct
+
+
+def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dict, heatmap, stacked_bar1, stacked_bar_100_pct):
+    """
+    Display the crosstab, heatmap, and stacked bar charts 
+    if two categorical variables are selected.
+    """
+    
+    column1, column2 = st.columns(2)
+
+    with column1:
+        # Display the frequency table
+        st.subheader(f"Frequency Table of {col1} and {col2}")
+        st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
+    
+    with column2:
+        # The the unique values of the two columns are reasonable for plotting
+        if ((df[col1].nunique() > 2 and df[col2].nunique() > 2) and 
+        (df[col1].nunique() <= 12 and df[col2].nunique() <= 12)):
+            # Display the heatmap
+            st.subheader(f"Heatmap of {col1} and {col2}")
+            st.altair_chart(heatmap, use_container_width=True)
+
+    # Display the stacked bar charts
+    column3, column4 = st.columns(2)
+    
+    with column3:
+        # Display the stacked bar chart
+        st.subheader(f"Stacked Bar Chart of {col2} by {col1}")
+        st.altair_chart(stacked_bar1, use_container_width=True)
+    
+    with column4:
+        # Display the 100% stacked bar chart
+        st.subheader(f"100% Stacked Bar Chart of {col1} by {col2}")
+        st.altair_chart(stacked_bar_100_pct, use_container_width=True)
+
+
+def two_column_plot(df, col1, col2):
+    """
+    Create a series of two-variable plots based on the data types of each selected column.
+    """
+    # Define the data types of both selected columns
+    col1_type = get_column_type(df, col1)
+    col2_type = get_column_type(df, col2)
+
+    # If the selected columns are the same, no plots will be generated
     if col1 == col2:
         st.warning("Please select two different columns to visualize.")
         return None
 
-    # Two Numeric Variables
-    if pd.api.types.is_numeric_dtype(col1_type) and pd.api.types.is_numeric_dtype(col2_type):
-            
-        # SCATTERPLOT
-        scatterplot = alt.Chart(source).mark_square(
-            color = "mediumseagreen",
-            opacity = 0.7
-        ).encode(
-            x = alt.X(f"{col1}:Q", title=col1).scale(zero=False),
-            y = alt.Y(f"{col2}:Q", title=col2).scale(zero=False),
-            tooltip=[f"{col1}:Q", f"{col2}:Q"]
-        )
-
-        # REGRESSION LINE
-        regression_line = scatterplot.transform_regression(
-            f"{col1}", f"{col2}"
-        ).mark_line().encode(
-            color=alt.value("tomato"),
-            size=alt.value(1.5)
-        )
-
-        # Create bins for the x and y axes
-        col1_bins = np.linspace(df[col1].min(), df[col1].max(), 21).round().astype(int)
-        col2_bins = np.linspace(df[col2].min(), df[col2].max(), 21).round().astype(int)
-
-        col1_bins_unique = np.unique(col1_bins)
-        col2_bins_unique = np.unique(col2_bins)
-
-        col1_intervals = len(col1_bins_unique) - 1
-        col2_intervals = len(col2_bins_unique) - 1
-
-        col1_labels = range(1, col1_intervals + 1)
-        col2_labels = range(1, col2_intervals + 1)
-
-        df['x_bin'] = pd.cut(
-            df[col1], 
-            bins=col1_bins_unique, 
-            labels=col1_labels, 
-            include_lowest=True
-        )
-        df['y_bin'] = pd.cut(
-            df[col2], 
-            bins=col2_bins_unique, 
-            labels=col2_labels, 
-            include_lowest=True
-        )
-
-        # Save for changing the bin order
-        x_order = df['x_bin'].cat.categories
-        y_order = df['y_bin'].cat.categories
-
-        # Convert bins to strings
-        df['x_bin'] = df['x_bin'].astype(str)
-        df['y_bin'] = df['y_bin'].astype(str)
-
-        # Altair heatmap
-        heatmap = alt.Chart(df).mark_rect().encode(
-            x=alt.X('x_bin:O', sort=[str(c) for c in x_order], title=col1),
-            y=alt.Y('y_bin:O', sort=[str(c) for c in reversed(y_order)], title=col2),
-            color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange')),
-            tooltip=['count():Q']
-        ).properties(
-            width=500,
-            height=400
-        ).configure_view(
-            strokeWidth=0
-        )
-        
-        
-        # CORRELATION COEFFICIENT
-        corr_df = source[[col1, col2]].corr(min_periods=10, numeric_only=True)
-        correlation = corr_df.loc[col1, col2]
-
-
-        st.subheader(f"Scatterplot of {col1} and {col2}")
-        
-        # Formatting plot output with two columns
-        column_one, column_two = st.columns(2)
-            
-        # First, show the scatterplot
-        with column_one:
-            st.altair_chart(scatterplot, use_container_width=True)
-            
-        # Next to it, show the regression line on top of the scatterplot
-        with column_two:
-            st.altair_chart(scatterplot + regression_line, use_container_width=True)
-        
-        # Below the scatterplots, show the heatmap   
-        with st.container():
-            st.subheader(f"Heatmap of {col1} and {col2}")
-            st.altair_chart(heatmap, use_container_width=True)
-
-
-        # Below the heatmap, show the correlation coefficient
-        with st.container():
-            st.subheader(f"Correlation Coefficient")
-            # Backround of what a correlation coefficient is
-            st.markdown(f"""
-                ***Note:*** A *correlation coefficient* of 1 indicates a perfect positive relationship, 
-                while a coefficient of -1 indicates a perfect negative relationship. A coefficient of 
-                0 indicates no relationship."
-                """
-            )
-            # Display the correlation coefficient
-            st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
-
-        # Show Aggrid table display of the two columns
-        st.subheader(f"Data Table of {col1} and {col2}")
-        st.dataframe(data=source.style.format("{:.2f}"), hide_index=True, column_order=(col1, col2))
-         
-        
+    # If two NUMERIC variables are selected
+    if pd.api.types.is_numeric_dtype(col1_type) and pd.api.types.is_numeric_dtype(col2_type): 
+        # Define all the needed plots
+        scatterplot, regression_line, heatmap, correlation = numeric_numeric_plots(df, col1, col2)
+        # Display all plots
+        display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, heatmap, correlation)
+        # Return all plots
         return scatterplot, regression_line, heatmap, correlation
 
 
-    # Numeric + Categorical Variables
+    # If NUMERIC and CATEGORICAL variables are selected
     elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or col2_type.name == 'category')) 
     or ((col1_type == 'object' or col1_type.name == 'category') and col2_type in ['int64', 'float64'])):
 
-        # If the first column is numeric and the second is categorical
-        if col1_type in ['int64', 'float64']:
-            # Set plot title
-            st.subheader(f"Boxplot of {col1} by {col2}")
-            
-            # MULTI BOXPLOT
-            multi_box = alt.Chart(source).mark_boxplot().encode(
-                x = alt.X(f"{col2}:O", sort='-y', title=col2),
-                y = alt.Y(f"{col1}:Q", title=col1),
-                color = alt.Color(f"{col2}:O", title=col2),
-                tooltip=[f"{col2}:O", f"{col1}:Q"]
-            )
-
-            # CONFIDENCE INTERVALS WITH MEANS
-            error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
-                alt.X(f"{col1}").scale(zero=False),
-                alt.Y(f"{col2}", sort='-x', title=col2)
-            )
-
-            observed_points = alt.Chart(source).mark_point().encode(
-                x = alt.X('mean(col1)'),
-                y = alt.Y(f"{col2}", sort='-x', title=col2)
-
-            )
-
-            confint_plot = error_bars + observed_points
-
-            # Display the boxplot and confidence interval plot
-            st.subheader(f"Distribution of {col2} by {col1}")
-            st.altair_chart(multi_box, use_container_width=True)
-            
-            st.subheader(f"95% Confidence Interval of {col2} by {col1}")
-            st.altair_chart(confint_plot, use_container_width=True)
-
-        
-        # If the first column is categorical and the second is numeric
-        else:
-
-            # MULTI BOXPLOT
-            multi_box = alt.Chart(source).mark_boxplot().encode(
-                x = alt.X(f"{col1}:O", sort='-y', title=col1),
-                y = alt.Y(f"{col2}:Q", title=col2),
-                color = alt.Color(f"{col1}:O", title=col1),
-                tooltip=[f"{col1}:O", f"{col2}:Q"]
-            )
-
-            # CONFIDENCE INTERVALS WITH MEANS
-            error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
-                alt.X(f"{col2}").scale(zero=False),
-                alt.Y(f"{col1}:O", sort='-x', title=col1)
-            )
-
-            observed_points = alt.Chart(source).mark_point().encode(
-                x = alt.X(f'mean({col2})'),
-                y = alt.Y(f"{col1}:O", sort='-x', title=col1)
-
-            )
-
-            confint_plot = error_bars + observed_points
-
-            # Display the boxplot and confidence interval plot
-            st.subheader(f"Distribution of {col2} by {col1}")
-            st.altair_chart(multi_box, use_container_width=True)
-            
-            st.subheader(f"95% Confidence Interval of {col2} by {col1}")
-            st.altair_chart(confint_plot, use_container_width=True)
-
+        # Create the boxplot and confidence interval plots
+        multi_box, confint_plot = numeric_categorical_plots(df, col1, col2)
+        # Display the plots
+        display_numeric_categorical_plots(df, col1, col2, multi_box, confint_plot)
+        # Return the plots
         return multi_box, confint_plot
+        
 
-
-    # Two Categorical Variables
+    # If two CATEGORICAL variables are selected
     elif ((col1_type in ['object', 'bool'] or col1_type.name == 'category') and 
       (col2_type in ['object', 'bool'] or col2_type.name == 'category')):
         
-        # Crosstab with raw counts
-        freq_table = pd.crosstab(source[col1], source[col2])
-
-        # Turn to percentages aggregated by col1
-        freq_table = freq_table.div(freq_table.sum(axis=1), axis=0) * 100
-
-        # Table formatting
-        freq_table.index.name = col1
-        freq_table.columns.name = col2
-        freq_table = freq_table.reset_index()
-        freq_table = freq_table.rename_axis(None, axis=1)
-
-        # Format percentage columns to only one decimal place
-        format_dict = {col: "{:.1f}%" for col in freq_table.columns if pd.api.types.is_numeric_dtype(freq_table[col])}
-
-        # HEATMAP
-        heatmap = alt.Chart(source).mark_rect().encode(
-            x=f'{col2}:O',
-            y=f'{col1}:O',
-            color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange')),
-            tooltip=[f'{col1}:O', f'{col2}:O', 'count():Q']
-        )
-        
-        # STACKED BAR CHARTS
-        stacked_bar1 = alt.Chart(source).mark_bar().encode(
-            y=alt.Y(f"{col1}:O", title=col1),
-            x=alt.X('count():Q', title='Count'),
-            color=alt.Color(f"{col2}:O", title=col2),
-            tooltip=[f"{col1}:O", f"{col2}:O", 'count():Q']
-        )
-        
-        stacked_df = freq_table.melt(id_vars=col1, var_name='Category', value_name='Percentage')
-
-        # Altair 100% horizontal stacked bar chart
-        stacked_bar_100_pct = alt.Chart(stacked_df).mark_bar().encode(
-            y=alt.Y(f'{col1}:O', title=None),
-            x=alt.X('Percentage:Q', stack='normalize', title=f'{col2} Distribution'),
-            color=alt.Color('Category:N'),
-            tooltip=[alt.Tooltip(col1), alt.Tooltip('Category'), alt.Tooltip('Percentage:Q')]
-)
-        
-        
-        # Display the charts in formatted columns
-        column1, column2 = st.columns(2)
-        
-        with column1:
-            st.subheader(f"Frequency Table  of {col1} and {col2}")
-            st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
-
-       
-        with column2:
-            if ((df[col1].nunique() > 2 and df[col2].nunique() > 2) and 
-            (df[col1].nunique() <= 12 and df[col2].nunique() <= 12)):
-                st.subheader(f"Heatmap of {col1} and {col2}")
-                st.altair_chart(heatmap, use_container_width=True)
-                
-        
-        # Next set of columns for stacked bar charts
-        column3, column4 = st.columns(2)
-        
-        with column3:
-            st.subheader(f"Stacked Bar Chart of {col2} by {col1}")
-            st.altair_chart(stacked_bar1, use_container_width=True)
-        
-        with column4:
-            st.subheader(f"100% Stacked Bar Chart of {col1} by {col2}")
-            st.altair_chart(stacked_bar_100_pct, use_container_width=True)
-
-        return freq_table, heatmap, stacked_bar1, stacked_bar_100_pct
-        
+        # Create the crosstab and heatmap
+        format_dict, heatmap, stacked_bar1, stacked_bar_100_pct = categorical_categorical_plots(df, col1, col2)
+        # Display the plots
+        display_categorical_categorical_plots(df, col1, col2, freq_table=None, format_dict=format_dict, 
+                                               heatmap=heatmap, stacked_bar1=stacked_bar1, 
+                                               stacked_bar_100_pct=stacked_bar_100_pct)
+        # Return the plots
+        return format_dict, heatmap, stacked_bar1, stacked_bar_100_pct
 
     # If combination of datatypes are not recognized
     else:
