@@ -263,7 +263,6 @@ def column_summaries(df, df_columns, filename):
                     st.dataframe(summary_df.style.format(precision=2, na_rep="—"))
 
 
-
 def generate_profile_report(df):
     """
     Generate a tailored profile report 
@@ -293,8 +292,6 @@ def generate_profile_report(df):
         )
 
     return report
-
-
 
 
 #--------------------------------------#
