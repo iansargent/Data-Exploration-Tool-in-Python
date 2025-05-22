@@ -111,7 +111,7 @@ def read_data(file):
     elif file_extension == '.xls':
         df = pd.read_excel(file, engine='xlrd')
     
-    elif file_extension == '.geojson':
+    elif file_extension in [".geojson", ".fgb"]:
         df = gpd.read_file(file)
     
     else:
