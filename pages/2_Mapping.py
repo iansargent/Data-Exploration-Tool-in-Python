@@ -32,10 +32,9 @@ def render_mapping():
         seen_hashes.add(fid)
 
         df = read_data(file)
-        if not isinstance(df, gpd.GeoDataFrame):
-            continue
-
-        has_geodata = True
+        
+        if isinstance(df, gpd.GeoDataFrame):
+            has_geodata = True
         
         filename = get_file_name(file)
 
@@ -57,51 +56,90 @@ def render_mapping():
 
         df_columns = get_columns(df)
 
-    if has_geodata == True:
-        district_selection = st.selectbox(
-            label="Select a district to view", 
-            options=["All Districts"] + df['Full_District_Name'].unique().tolist(),
-            index=0,
+    if has_geodata == True and "zoning" in filename:
+        
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            county_selection = st.selectbox(
+                "Select a county to view",
+                ["All Counties"] + sorted(df["County"].unique()),
+                index=0,
+            )
+
+        df_filtered_county = df if county_selection == "All Counties" else df[df["County"] == county_selection]
+
+        with col2:
+            jurisdiction_selection = st.selectbox(
+                "Select a jurisdiction to view",
+                ["All Jurisdictions"] + sorted(df_filtered_county["Jurisdiction"].unique()),
+                index=0,
+            )
+
+        df_filtered_jurisdiction = (
+            df_filtered_county if jurisdiction_selection == "All Jurisdictions"
+            else df_filtered_county[df_filtered_county["Jurisdiction"] == jurisdiction_selection]
         )
 
+        with col3:   
+            district_selection = st.selectbox(
+                "Select a district to view",
+                ["All Districts"] + sorted(df_filtered_jurisdiction["Full_District_Name"].unique()),
+                index=0,
+            )
+
         if district_selection == "All Districts":
-            selected_district = df
-            zoom = 6
+            selected_district = df_filtered_jurisdiction
+            zoom = 7
+        else:
+            selected_district = df_filtered_jurisdiction[df_filtered_jurisdiction["Full_District_Name"] == district_selection]
+            zoom = 15
+
+        if not selected_district.empty:
             bounds = selected_district.total_bounds
             minx, miny, maxx, maxy = bounds
             center_long = (minx + maxx) / 2
             center_lat = (miny + maxy) / 2
-
-            map.set_center(center_long, center_lat, zoom=zoom)
-
-        else:
-            selected_district = df[df['Full_District_Name'] == district_selection]
-            zoom = 15
-
-
-        if not selected_district.empty:
-            geom = selected_district.geometry.iloc[0]
-            centroid = geom.centroid
-            long, lat = centroid.x, centroid.y
-
-            map.set_center(long, lat, zoom=zoom)
+            map.set_center(center_long, center_lat)
 
             map.add_gdf(
-                selected_district,  # only the selected district, not full df
-                layer_name=f"{district_selection} Geometry",
+                selected_district,
+                layer_name=f"{district_selection} Geometry" if district_selection != "All Districts" else "Selected Area",
                 style=style,
                 info_mode='on_click',
-                zoom_to_layer=False
+                zoom_to_layer=True
             )
 
-        with st.spinner(text="Loading map..."):
-            # Add a layer control to the map
+        with st.spinner("Loading map..."):
             map.add_layer_control()
-            # Display the map in Streamlit
+            map.to_streamlit(use_container_width=True)
+    
+    
+    elif has_geodata == True and "zoning" not in filename:
+        # Add the GeoDataFrame to the map
+        map.add_gdf(
+            df,
+            layer_name=filename,
+            style=style,
+            info_mode='on_click',
+            zoom_to_layer=True
+        )
+        # Set the map center and zoom level
+        bounds = df.total_bounds
+        minx, miny, maxx, maxy = bounds
+        center_long = (minx + maxx) / 2
+        center_lat = (miny + maxy) / 2
+        map.set_center(center_long, center_lat)
+        map.set_zoom(zoom)
+        # Display the map
+        with st.spinner("Loading map..."):
+            map.add_layer_control()
             map.to_streamlit(use_container_width=True)
     
     else:
+        # No GeoDataFrame object found
         st.info("No GeoJSON or FGB files detected. Mapping not available for uploaded files.")
+
 
 def main():
     render_mapping()

@@ -11,6 +11,7 @@ import streamlit as st
 from app_utils import get_user_files, file_hash, read_data, clean_data, get_columns, column_summaries, generate_profile_report
 import ydata_profiling
 from streamlit_pandas_profiling import st_profile_report
+import geopandas as gpd
 
 
 def render_data_summary():
@@ -34,20 +35,24 @@ def render_data_summary():
 
         # Read, clean, and summarize the data
         df = read_data(file)
-        df = clean_data(df)
-        columns = get_columns(df)
+        df_clean = clean_data(df)
+
+        if isinstance(df_clean, gpd.GeoDataFrame):
+            df_clean = df_clean.drop(columns=["geometry"]).reset_index(drop=True)
+        
+        columns = get_columns(df_clean)
 
         # Display column summaries
-        column_summaries(df, columns, file.name)
+        column_summaries(df_clean, columns, file.name)
         st.markdown("---")
 
         # The ydata-profiling report
-        st.title("Data Report")
+        st.subheader("Data Report")
         
         # Add a loading spinner icon to ensure the user knows the report is being generated
         with st.spinner(text = "Generating report..."):
             # Create the ydata-profiling report
-            profile = generate_profile_report(df)
+            profile = generate_profile_report(df_clean)
             report_export = profile.to_html()
             
             # Add a download button for the HTML report

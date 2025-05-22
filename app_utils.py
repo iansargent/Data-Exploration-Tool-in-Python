@@ -89,10 +89,15 @@ def read_data(file):
     
     # Reading the properly formatted file
     if file_extension == '.csv':
-        df = pd.read_csv(file)
         
-    elif file_extension == '.json':
-        df = pd.read_json(file)
+        if is_latitude_longitude(file):
+            df = gpd.GeoDataFrame(
+                df,
+                geometry=gpd.points_from_xy(df["longitude"], df["latitude"]),
+                crs="EPSG:4326"
+            )
+        else:
+            df = pd.read_csv(file)
                 
     elif file_extension == '.sav':
         import pyreadstat as prs
@@ -111,7 +116,7 @@ def read_data(file):
     elif file_extension == '.xls':
         df = pd.read_excel(file, engine='xlrd')
     
-    elif file_extension in [".geojson", ".fgb"]:
+    elif file_extension in [".geojson",".json", ".fgb", ".shp"]:
         import pyogrio
         df = gpd.read_file(file, engine="pyogrio")
     
@@ -597,11 +602,11 @@ def numeric_categorical_plots(df, col1, col2):
         st.subheader(f"Boxplot of {col1} by {col2}")
             
         # MULTI BOXPLOT
-        multi_box = alt.Chart(source).mark_boxplot().encode(
-            x = alt.X(f"{col2}:O", sort='-y', title=col2),
+        multi_box = alt.Chart(source).mark_boxplot(size=40).encode(
+            x = alt.X(f"{col2}:N", sort='-y', title=col2),
             y = alt.Y(f"{col1}:Q", title=col1),
-            color = alt.Color(f"{col2}:O", title=col2),
-            tooltip=[f"{col2}:O", f"{col1}:Q"]
+            color = alt.Color(f"{col2}:N", title=col2, legend=None, scale=alt.Scale(scheme='category20')),
+            tooltip=[f"{col2}:N", f"{col1}:Q"]
         )
 
         # CONFIDENCE INTERVALS WITH MEANS
@@ -626,11 +631,11 @@ def numeric_categorical_plots(df, col1, col2):
     # If the first column is categorical and the second is numeric
     else:
         # MULTI BOXPLOT
-        multi_box = alt.Chart(source).mark_boxplot().encode(
-            x = alt.X(f"{col1}:O", sort='-y', title=col1),
+        multi_box = alt.Chart(source).mark_boxplot(size=40).encode(
+            x = alt.X(f"{col1}:N", sort='-y', title=col1),
             y = alt.Y(f"{col2}:Q", title=col2),
-            color = alt.Color(f"{col1}:O", title=col1),
-            tooltip=[f"{col1}:O", f"{col2}:Q"]
+            color = alt.Color(f"{col1}:N", title=col1, legend=None, scale=alt.Scale(scheme='category20')),
+            tooltip=[f"{col1}:N", f"{col2}:Q"]
         )
 
         # CONFIDENCE INTERVALS WITH MEANS
@@ -699,9 +704,9 @@ def categorical_categorical_plots(df, col1, col2):
         
     # STACKED BAR CHARTS
     stacked_bar = alt.Chart(source).mark_bar().encode(
-        y=alt.Y(f"{col1}:O", title=col1),
+        y=alt.Y(f"{col1}:N", title=col1),
         x=alt.X('count():Q', title='Count'),
-        color=alt.Color(f"{col2}:O", title=col2),
+        color=alt.Color(f"{col2}:N", title=col2),
         tooltip=[f"{col1}:O", f"{col2}:O", 'count():Q']
     )
     
