@@ -64,7 +64,7 @@ def get_file_name(file):
     """
     Get the file name without the extension.
     """
-    filename = os.path.splitext(file.name)[0]
+    filename = os.path.splitext(file.name)[0].lower()
     return filename
 
 
