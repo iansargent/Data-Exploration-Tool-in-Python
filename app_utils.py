@@ -180,6 +180,9 @@ def clean_data(df):
     Convert binary numeric columns to boolean and parse datetime columns based on column name.
     """
     df.columns = df.columns.str.replace('.', '_', regex=False)
+    
+    df = df.replace(r'^\s*$', pd.NA, regex=True)
+ 
     for col in df.columns:
         # Convert binary numeric columns with values [0,1] to boolean
         if df[col].dropna().nunique() == 2:

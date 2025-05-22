@@ -31,8 +31,7 @@ def render_table_preview():
         st.subheader(f"Preview of {file.name}")
 
         if isinstance(df, gpd.GeoDataFrame):
-            df_geo_aggrid = df.drop(columns=["geometry"])
-            df_geo_aggrid = df.reset_index(drop=True)
+            df_geo_aggrid = df.drop(columns=["geometry"]).reset_index(drop=True)
             AgGrid(df_geo_aggrid, theme="material", 
                 columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
