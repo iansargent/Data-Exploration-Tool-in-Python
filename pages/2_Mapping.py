@@ -8,12 +8,14 @@ Mapping Page
 
 
 import streamlit as st
+import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
 from app_utils import (get_user_files, file_hash, read_data, 
                        get_file_name, get_columns, is_latitude_longitude,
                        clean_data)
 from statistics import mean
+from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 
 
 def render_mapping():
@@ -40,6 +42,7 @@ def render_mapping():
         if df is None:
             continue
         df = clean_data(df)
+        df = df.drop(columns=["Bylaw Date"])
         
         filename = get_file_name(file)
 
@@ -71,17 +74,19 @@ def render_mapping():
                     layer_name=filename,
                     style=style,
                     info_mode='on_click',
-                    zoom_to_layer=True
+                    zoom_to_layer=False
                 )
 
+    selected_district = None
     # If zoning geodata found, show filtering options and add filtered layer
     if zoning_gdf is not None:
+
         col1, col2, col3 = st.columns(3)
 
         with col1:
             county_selection = st.selectbox(
                 "Select a county to view",
-                ["All Counties"] + sorted(zoning_gdf["County"].unique()),
+                ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()),
                 index=0,
             )
 
@@ -90,7 +95,7 @@ def render_mapping():
         with col2:
             jurisdiction_selection = st.selectbox(
                 "Select a jurisdiction to view",
-                ["All Jurisdictions"] + sorted(df_filtered_county["Jurisdiction"].unique()),
+                ["All Jurisdictions"] + sorted(df_filtered_county["Jurisdiction"].dropna().unique()),
                 index=0,
             )
 
@@ -102,14 +107,14 @@ def render_mapping():
         with col3:
             district_selection = st.selectbox(
                 "Select a district to view",
-                ["All Districts"] + sorted(df_filtered_jurisdiction["Full_District_Name"].unique()),
+                ["All Districts"] + sorted(df_filtered_jurisdiction["District Name"].dropna().unique()),
                 index=0,
             )
 
         if district_selection == "All Districts":
             selected_district = df_filtered_jurisdiction
         else:
-            selected_district = df_filtered_jurisdiction[df_filtered_jurisdiction["Full_District_Name"] == district_selection]
+            selected_district = df_filtered_jurisdiction[df_filtered_jurisdiction["District Name"] == district_selection]
 
         if not selected_district.empty:
             bounds = selected_district.total_bounds
@@ -125,6 +130,7 @@ def render_mapping():
                 info_mode='on_click',
                 zoom_to_layer=True
             )
+
     elif is_latitude_longitude(df):
         
         lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
@@ -155,10 +161,67 @@ def render_mapping():
             blur=15
         )
         
-    
     with st.spinner("Loading map..."):
         map.add_layer_control()
         map.to_streamlit(use_container_width=True)
+        
+        if selected_district is not None:
+            st.subheader("Selected Areas to Compare")
+
+            selected_district = selected_district.drop(columns=["geometry"]).reset_index(drop=True)
+            
+            gb = GridOptionsBuilder.from_dataframe(selected_district)
+            gb.configure_selection(selection_mode="multiple", use_checkbox=True)
+            grid_options = gb.build()
+            
+            grid_response = AgGrid(
+                selected_district,
+                theme='material', 
+                gridOptions=grid_options, 
+                update_mode=GridUpdateMode.SELECTION_CHANGED,
+                columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,)
+
+            selected_rows = grid_response["selected_rows"]
+            
+            try:
+                if selected_rows.empty == False:
+                    selected_df = pd.DataFrame(selected_rows)
+                    dfs = []
+
+                    for _, row in selected_df.iterrows():
+                        district_name = row["District Name"]
+
+                        df_long = row.reset_index()
+                        df_long.columns = ["Variable", "Value"]
+
+                        # Rename Value column only, keep Variable as is
+                        df_long = df_long.rename(columns={"Value": district_name})
+                        dfs.append(df_long)
+
+                    from functools import reduce
+
+                    # Merge all dfs on Variable column
+                    combined_df = reduce(
+                        lambda left, right: pd.merge(left, right, on="Variable", how="outer"),
+                        dfs
+                    )
+                    st.subheader("District Comparisons")
+                    st.write(combined_df)
+
+                
+            except AttributeError:
+                st.warning("No rows selected. Please select at least one row to compare district data.")
+
+                
+                
+                
+
+
+
+
+            
+
+
     
 
 render_mapping()
