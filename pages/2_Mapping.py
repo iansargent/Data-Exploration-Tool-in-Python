@@ -10,7 +10,9 @@ Mapping Page
 import streamlit as st
 import geopandas as gpd
 import leafmap.foliumap as leafmap
-from app_utils import get_user_files, file_hash, read_data, get_file_name, get_columns
+from app_utils import (get_user_files, file_hash, read_data, 
+                       get_file_name, get_columns, is_latitude_longitude,
+                       clean_data)
 
 
 def render_mapping():
@@ -32,6 +34,7 @@ def render_mapping():
         seen_hashes.add(fid)
 
         df = read_data(file)
+        df = clean_data(df)
         
         if isinstance(df, gpd.GeoDataFrame):
             has_geodata = True
@@ -90,10 +93,9 @@ def render_mapping():
 
         if district_selection == "All Districts":
             selected_district = df_filtered_jurisdiction
-            zoom = 7
         else:
             selected_district = df_filtered_jurisdiction[df_filtered_jurisdiction["Full_District_Name"] == district_selection]
-            zoom = 15
+
 
         if not selected_district.empty:
             bounds = selected_district.total_bounds
@@ -115,7 +117,53 @@ def render_mapping():
             map.to_streamlit(use_container_width=True)
     
     
-    elif has_geodata == True and "zoning" not in filename:
+    elif has_geodata == True and is_latitude_longitude(df) and "zoning" not in filename:
+
+        # Get actual lat/lon column names
+        lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
+        lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
+
+        numeric_cols = df.select_dtypes(include="number").columns.tolist()
+
+        # User selects one numeric column to map
+        heatmap_var = st.selectbox(
+            "Select a numeric column to map:",
+            numeric_cols,
+            index=0
+        )
+
+        heatmap_df = df[[lat_col, lon_col, heatmap_var]].dropna()
+
+        if not heatmap_df.empty:
+            # Set map center
+            bounds = heatmap_df[[lon_col, lat_col]].agg(['min', 'max']).values
+            min_x, max_x = bounds[0]
+            min_y, max_y = bounds[1]
+            
+            center_long = (min_x + max_x) / 2
+            center_lat = (min_y + max_y) / 2
+            
+            heatmap = leafmap.Map(zoom=10)
+            heatmap.set_center(center_long, center_lat)
+            heatmap.fit_bounds([[min_y, min_x], [max_y, max_x]])
+
+            # Add heatmap
+            heatmap.add_heatmap(
+                data=heatmap_df,
+                latitude=lat_col,
+                longitude=lon_col,
+                value=heatmap_var,
+                radius=15,
+                blur=20
+            )
+
+            with st.spinner("Loading heatmap..."):
+                heatmap.add_layer_control()
+                heatmap.to_streamlit(use_container_width=True)
+        else:
+            st.warning("No valid lat/lon data to plot a heatmap.")
+        
+        
         # Add the GeoDataFrame to the map
         map.add_gdf(
             df,
@@ -130,7 +178,6 @@ def render_mapping():
         center_long = (minx + maxx) / 2
         center_lat = (miny + maxy) / 2
         map.set_center(center_long, center_lat)
-        map.set_zoom(zoom)
         # Display the map
         with st.spinner("Loading map..."):
             map.add_layer_control()

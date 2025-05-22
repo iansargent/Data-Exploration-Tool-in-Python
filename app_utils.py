@@ -83,22 +83,26 @@ def get_file_extension(file):
 @st.cache_data
 def read_data(file):
     """
-    Read the uploaded file and return a DataFrame.
+    Read the uploaded file and return a DataFrame or GeoDataFrame.
     """
     file_extension = get_file_extension(file)
     
-    # Reading the properly formatted file
     if file_extension == '.csv':
-        
-        if is_latitude_longitude(file):
+        df = pd.read_csv(file)
+
+        if is_latitude_longitude(df):
+
+            lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
+            lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
+
             df = gpd.GeoDataFrame(
-                df,
-                geometry=gpd.points_from_xy(df["longitude"], df["latitude"]),
-                crs="EPSG:4326"
+            df,
+            geometry=gpd.points_from_xy(df[lon_col], df[lat_col]),
+            crs="EPSG:4326"
             )
-        else:
-            df = pd.read_csv(file)
-                
+        
+        return df
+
     elif file_extension == '.sav':
         import pyreadstat as prs
         import tempfile
@@ -108,22 +112,25 @@ def read_data(file):
             tmp_path = tmp.name
 
         df, _ = prs.read_sav(tmp_path)
-                
+        return df
+
     elif file_extension == '.xlsx':
         import openpyxl
         df = pd.read_excel(file, engine='openpyxl')
-                
+        return df
+
     elif file_extension == '.xls':
         df = pd.read_excel(file, engine='xlrd')
-    
-    elif file_extension in [".geojson",".json", ".fgb", ".shp"]:
+        return df
+
+    elif file_extension in [".geojson", ".json", ".fgb", ".shp"]:
         import pyogrio
         df = gpd.read_file(file, engine="pyogrio")
-    
+        return df
+
     else:
         st.error("Unsupported file format. Please upload a CSV, JSON, GEOJSON, SAV, XLS, or XLSX file.")
-
-    return df
+        return None
 
 
 def get_columns(df):
