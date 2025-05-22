@@ -28,7 +28,7 @@ import leafmap as lfm
 def get_user_files():
     uploaded_files = st.sidebar.file_uploader(
         "Upload your dataset(s)", 
-        type=["csv", "xlsx", "xls", "json", 'geojson', 'sav'],
+        type=["geojson", "fgb", "csv", "xlsx", 'xls', 'json', 'sav'],
         accept_multiple_files=True,
         key = "data_upload"
     )
@@ -112,7 +112,8 @@ def read_data(file):
         df = pd.read_excel(file, engine='xlrd')
     
     elif file_extension in [".geojson", ".fgb"]:
-        df = gpd.read_file(file)
+        import pyogrio
+        df = gpd.read_file(file, engine="pyogrio")
     
     else:
         st.error("Unsupported file format. Please upload a CSV, JSON, GEOJSON, SAV, XLS, or XLSX file.")

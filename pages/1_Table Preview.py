@@ -9,6 +9,7 @@ Table Preview Page
 import streamlit as st
 from st_aggrid import AgGrid, ColumnsAutoSizeMode
 from app_utils import get_user_files, file_hash, read_data, get_columns
+import geopandas as gpd
 
 def render_table_preview():
     st.title("Table Preview")
@@ -29,8 +30,15 @@ def render_table_preview():
         df = read_data(file)
         st.subheader(f"Preview of {file.name}")
 
-        if df is not None:
-            AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+        if isinstance(df, gpd.GeoDataFrame):
+            df_geo_aggrid = df.drop(columns=["geometry"])
+            df_geo_aggrid = df.reset_index(drop=True)
+            AgGrid(df_geo_aggrid, theme="material", 
+                columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+
+        else:
+            if df is not None:
+                AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
 
 def main():

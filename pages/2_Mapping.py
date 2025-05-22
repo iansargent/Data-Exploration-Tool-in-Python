@@ -21,7 +21,7 @@ def render_mapping():
     has_geodata = False
     map = leafmap.Map(zoom=10)
 
-    if user_files == False:
+    if not user_files:
         st.warning("No files uploaded.")
         return
 
