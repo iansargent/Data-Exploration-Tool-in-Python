@@ -106,7 +106,7 @@ def render_preview():
         map.to_streamlit(use_container_width=True)
 
         # Show table previews
-        st.subheader("Table Previews for Each Layer")
+        st.subheader("Table Previews")
         for name, df_preview in table_previews:
             with st.expander(f"**{name}**"):
                 st.write("This is a preview of the data.")

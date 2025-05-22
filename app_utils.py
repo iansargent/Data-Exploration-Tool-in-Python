@@ -178,6 +178,7 @@ def clean_data(df):
     Clean the column types of the DataFrame.
     Convert binary numeric columns to boolean and parse datetime columns based on column name.
     """
+    df.columns = df.columns.str.replace('.', '_', regex=False)
     for col in df.columns:
         # Convert binary numeric columns with values [0,1] to boolean
         if df[col].dropna().nunique() == 2:
@@ -315,6 +316,9 @@ def single_column_plot(df, selected_column):
 
     # If the column is numeric
     elif column_type in ['int64', 'float64']:
+        
+        df[selected_column] = pd.to_numeric(df[selected_column], errors='coerce')
+        source = df[[selected_column]].dropna()
 
         # Slider for number of bins in the histogram
         bin_slider = st.slider(
@@ -329,7 +333,7 @@ def single_column_plot(df, selected_column):
         # Histogram
         histogram = alt.Chart(source).mark_bar().encode(
             x=alt.X(f"{selected_column}:Q", bin=alt.Bin(maxbins=bin_slider), title=selected_column),
-            y=alt.Y('count()', title='Count'),
+            y=alt.Y('count():Q', title='Count'),
             tooltip=[alt.Tooltip('count()', title='Count')]
         ).properties(
             width=400,
@@ -368,6 +372,7 @@ def single_column_plot(df, selected_column):
         
         # Create two columns for density plot and confidence interval
         col1, col2 = st.columns(2)
+       
         with col1:
             st.subheader(f"Density Plot")
             st.altair_chart(density, use_container_width=True)
@@ -632,9 +637,8 @@ def numeric_categorical_plots(df, col1, col2):
 
         # Calculate the mean of col2 for each category in col1
         observed_points = alt.Chart(source).mark_point().encode(
-            x = alt.X('mean(col2)'),
+            x = alt.X(f'{col2}:Q', aggregate='mean'),
             y = alt.Y(f"{col1}:O", sort='-x', title=col1)
-
         )
         
         # Combine the error bars and observed points into one plot
