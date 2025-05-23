@@ -199,7 +199,7 @@ def clean_data(df):
         # Convert binary numeric columns with values [0,1] to boolean
         if df[col].dropna().nunique() == 2:
             unique_vals = sorted(df[col].dropna().unique())
-            if unique_vals == [0, 1]:
+            if (unique_vals == [0, 1]) or (unique_vals == ["Yes", "No"]):
                 df[col] = df[col].astype(bool)
 
         # Handle datetime-like columns based on column name

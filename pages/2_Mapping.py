@@ -138,17 +138,23 @@ def render_mapping():
 
         # On the right column, create a selection box for the district
         with col3:
-            district_selection = st.selectbox(
-                "Select a district to view",
-                ["All Districts"] + sorted(df_filtered_jurisdiction["District Name"].dropna().unique()),
-                index=0,
+            district_options = sorted(df_filtered_jurisdiction["District Name"].dropna().unique())
+            all_district_option = "All Districts"
+            multiselect_options = [all_district_option] + district_options
+            
+            district_selection = st.multiselect(
+                "Select district(s) to view",
+                options=multiselect_options,
+                default=[all_district_option]
             )
 
         # Filter the zoning dataframe based on the district selection
-        if district_selection == "All Districts":
+        if all_district_option in district_selection or not district_selection:
             selected_district = df_filtered_jurisdiction
         else:
-            selected_district = df_filtered_jurisdiction[df_filtered_jurisdiction["District Name"] == district_selection]
+            selected_district = df_filtered_jurisdiction[
+                df_filtered_jurisdiction["District Name"].isin(district_selection)
+            ]
 
         # If a district is selected, set the map center and zoom level
         if not selected_district.empty:
