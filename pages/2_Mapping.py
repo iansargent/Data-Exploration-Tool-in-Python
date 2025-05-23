@@ -6,7 +6,7 @@ Streamlit Data Visualization App
 Mapping Page
 """
 
-# Necessary Packages and Functions
+# Necessary imports
 import streamlit as st
 import pandas as pd
 import geopandas as gpd

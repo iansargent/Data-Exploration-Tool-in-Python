@@ -6,7 +6,7 @@ Streamlit Data Visualization App
 Data Summary Page
 """
 
-
+# Necessary imports
 import streamlit as st
 from app_utils import get_user_files, file_hash, read_data, clean_data, get_columns, column_summaries, generate_profile_report
 import ydata_profiling
@@ -33,31 +33,35 @@ def render_data_summary():
         # Add the file ID to the set of uploaded hashes
         seen_hashes.add(file_id)
 
-        # Read, clean, and summarize the data
+        # Read the data
         df = read_data(file)
+        # Clean the data
         df_clean = clean_data(df)
 
+        # If the file is a GeoDataFrame
         if isinstance(df_clean, gpd.GeoDataFrame):
+            # Drop the geometry column
             df_clean = df_clean.drop(columns=["geometry"]).reset_index(drop=True)
         
+        # Get a list of the column names
         columns = get_columns(df_clean)
 
-        # Display column summaries
+        # Display a column summary for each column in the dataframe
         column_summaries(df_clean, columns, file.name)
         st.markdown("---")
 
-        # The ydata-profiling report
+        # Subheader for the ydata-profiling report
         st.subheader("Data Report")
         
         # Add a loading spinner icon to ensure the user knows the report is being generated
         with st.spinner(text = "Generating report..."):
             # Create the ydata-profiling report
             profile = generate_profile_report(df_clean)
+            # Allow for an html export
             report_export = profile.to_html()
-            
             # Add a download button for the HTML report
             st.download_button(label="View Full Report", data=report_export, file_name='data_report.html')
-            # Display the report
+            # Display the report on the page
             st_profile_report(profile)
         st.markdown("---")
 
