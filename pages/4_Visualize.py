@@ -25,7 +25,7 @@ def render_visualization(mode="single", processed_files=None):
         # Get a list of column names for selection
         columns = get_columns(df)
         # Subheader for the plot section
-        st.subheader(f"Plots for {filename}")
+        st.header(f"Plots for {filename}")
 
         # In the single-variable tab
         if mode == "single":

@@ -21,9 +21,12 @@ def render_table_preview():
     user_files = get_user_files()
     processed = process_uploaded_files(user_files)
     
-    for df, filename in processed:
+    
+    dividers = ["blue", "green", "orange", "red", "violet", "grey"]
+    
+    for i, (df, filename) in enumerate(processed):
         # Subheader for the table preview
-        st.subheader(f"Preview of {filename}")
+        st.header(f"Preview of {filename}", divider=dividers[i])
         
         # If the dataframe is a GeoDataFrame, drop the geometry column in order to display the table
         if isinstance(df, gpd.GeoDataFrame):

@@ -23,7 +23,8 @@ def render_data_summary():
     processed_files = process_uploaded_files(user_files)
 
     for df, filename in processed_files:
-    
+        
+        st.header(f"Summary of {filename}")
         # If the file is a GeoDataFrame
         if isinstance(df, gpd.GeoDataFrame):
             # Drop the geometry column
