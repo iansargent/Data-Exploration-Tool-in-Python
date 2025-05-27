@@ -88,10 +88,16 @@ def process_uploaded_files(user_files):
             except Exception as e:
                 st.warning(f"Error converting to GeoDataFrame: {e}")
                 continue
-
+        else:
+            df = gpd.GeoDataFrame(df)
+            df = df.reset_index(drop=True)
+        
+        # Get the file name as a string
         filename = get_file_name(file)
+        # Add the DataFrame and filename to the list of processed files
         processed.append((df, filename))
-
+    
+    # Return the list of processed DataFrames and their file names
     return processed
 
 
