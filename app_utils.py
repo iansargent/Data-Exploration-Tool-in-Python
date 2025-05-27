@@ -88,9 +88,6 @@ def process_uploaded_files(user_files):
             except Exception as e:
                 st.warning(f"Error converting to GeoDataFrame: {e}")
                 continue
-        else:
-            df = gpd.GeoDataFrame(df)
-            df = df.reset_index(drop=True)
         
         # Get the file name as a string
         filename = get_file_name(file)
@@ -136,10 +133,12 @@ def read_data(file):
     """
     Read the uploaded file and return a DataFrame or GeoDataFrame.
     """
+    
     file_extension = get_file_extension(file)
     
     if file_extension == '.csv':
         df = pd.read_csv(file)
+        return df
 
     elif file_extension == '.sav':
         import pyreadstat as prs
@@ -191,7 +190,7 @@ def is_latitude_longitude(df):
     """
     Check if the DataFrame contains latitude and longitude columns.
     """
-    df_columns = get_columns(df)
+    df_columns = [col.strip().lower() for col in get_columns(df)]
 
     lat_col = [col for col in df_columns if "latitude" in col.lower()]
     lon_col = [col for col in df_columns if "longitude" in col.lower()]

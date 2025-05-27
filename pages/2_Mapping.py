@@ -77,7 +77,7 @@ def render_mapping():
         if "border" in filename:
             style = {"fillOpacity": 0.2, "color": "dodgerblue", "weight": 2}
         elif "linearfeatures" in filename:
-            style = {"color": "navy", "weight": 2}
+            style = {"color": "blue", "weight": 2}
         elif "pointfeatures" in filename:
             style = {"color": "darkorange", "weight": 2}
         elif "servicearea" in filename:
@@ -85,10 +85,12 @@ def render_mapping():
         elif ("wwtf" in filename) or ("facilit" in filename):
             style = {"color": "darkgreen", "weight": 2}
         elif "zoning" in filename:
-            style = {"color": "blue", "weight": 0.5}
+            style = {"color": "navy", "weight": 0.3, "fillOpacity": 0}
         else:
             style = {}
 
+        # Initialize selected_district variable for use in filtering the dataset
+        selected_district = None
         # Check if the dataframe is a GeoDataFrame without longitude/latitude coordinates
         if isinstance(df, gpd.GeoDataFrame) and is_latitude_longitude(df) == False:
             
@@ -98,89 +100,84 @@ def render_mapping():
                 zoning_style = style
                 # NOTE: This is hardcoded for now (date column cannot be mapped), but could be made dynamic
                 zoning_gdf = zoning_gdf.drop(columns=["Bylaw Date"])
-            
-            # If it is not a zoning file, add it as a layer to the map
-            else:
-                # Add other GeoDataFrames as separate layers
-                map.add_gdf(
-                    df,
-                    layer_name=filename,
-                    style=style,
-                    info_mode='on_click',
-                    zoom_to_layer=True
+
+
+                # Create three columns to display the three selection boxes (County, Jurisdiction, District)
+                col1, col2, col3 = st.columns(3)
+
+                # On the left column, create a selection box for the county
+                with col1:
+                    county_selection = st.selectbox(
+                        "**County**",
+                        ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()),
+                        index=0,
+                    )
+
+                # Filter the zoning dataframe based on the county selection
+                df_filtered_county = zoning_gdf if county_selection == "All Counties" else zoning_gdf[zoning_gdf["County"] == county_selection]
+
+                # On the middle column, create a selection box for the jurisdiction
+                with col2:
+                    jurisdiction_selection = st.selectbox(
+                        "**Jurisdiction**",
+                        ["All Jurisdictions"] + sorted(df_filtered_county["Jurisdiction"].dropna().unique()),
+                        index=0,
+                    )
+
+                # Filter the zoning dataframe based on the jurisdiction selection
+                df_filtered_jurisdiction = (
+                    df_filtered_county if jurisdiction_selection == "All Jurisdictions"
+                    else df_filtered_county[df_filtered_county["Jurisdiction"] == jurisdiction_selection]
                 )
 
-    # Initialize selected_district variable for use in filtering the dataset
-    selected_district = None
+                # On the right column, create a selection box for the district
+                with col3:
+                    district_options = sorted(df_filtered_jurisdiction["District Name"].dropna().unique())
+                    all_district_option = "All Districts"
+                    multiselect_options = [all_district_option] + district_options
+                    
+                    district_selection = st.multiselect(
+                        "**District(s)**",
+                        options=multiselect_options,
+                        default=[all_district_option]
+                    )
+
+                # Filter the zoning dataframe based on the district selection
+                if all_district_option in district_selection or not district_selection:
+                    selected_district = df_filtered_jurisdiction
+                else:
+                    selected_district = df_filtered_jurisdiction[
+                        df_filtered_jurisdiction["District Name"].isin(district_selection)
+                    ]
+
+                # If a district is selected, set the map center and zoom level
+                if not selected_district.empty:
+                    bounds = selected_district.total_bounds
+                    minx, miny, maxx, maxy = bounds
+                    center_long = (minx + maxx) / 2
+                    center_lat = (miny + maxy) / 2
+                    map.set_center(center_long, center_lat, zoom=10)
+                    
+                    # Add the user-filtered zoning layer to the map
+                    map.add_gdf(
+                        selected_district,
+                        layer_name=f"{district_selection} Geometry" if district_selection != "All Districts" else "Selected Area",
+                        style=zoning_style,
+                        info_mode='on_click',
+                        zoom_to_layer=True
+                    )
+                    
+                # If it is not a zoning file, add it as a layer to the map
+                else:
+                    # Add other GeoDataFrames as separate layers
+                    map.add_gdf(
+                        df,
+                        layer_name=filename,
+                        style=style,
+                        info_mode='on_click',
+                        zoom_to_layer=True
+                    )
     
-    # If it is a zoning dataframe, show filtering options
-    if zoning_gdf is not None:
-        
-        # Create three columns to display the three selection boxes (County, Jurisdiction, District)
-        col1, col2, col3 = st.columns(3)
-
-        # On the left column, create a selection box for the county
-        with col1:
-            county_selection = st.selectbox(
-                "**County**",
-                ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()),
-                index=0,
-            )
-
-        # Filter the zoning dataframe based on the county selection
-        df_filtered_county = zoning_gdf if county_selection == "All Counties" else zoning_gdf[zoning_gdf["County"] == county_selection]
-
-        # On the middle column, create a selection box for the jurisdiction
-        with col2:
-            jurisdiction_selection = st.selectbox(
-                "**Jurisdiction**",
-                ["All Jurisdictions"] + sorted(df_filtered_county["Jurisdiction"].dropna().unique()),
-                index=0,
-            )
-
-        # Filter the zoning dataframe based on the jurisdiction selection
-        df_filtered_jurisdiction = (
-            df_filtered_county if jurisdiction_selection == "All Jurisdictions"
-            else df_filtered_county[df_filtered_county["Jurisdiction"] == jurisdiction_selection]
-        )
-
-        # On the right column, create a selection box for the district
-        with col3:
-            district_options = sorted(df_filtered_jurisdiction["District Name"].dropna().unique())
-            all_district_option = "All Districts"
-            multiselect_options = [all_district_option] + district_options
-            
-            district_selection = st.multiselect(
-                "**District(s)**",
-                options=multiselect_options,
-                default=[all_district_option]
-            )
-
-        # Filter the zoning dataframe based on the district selection
-        if all_district_option in district_selection or not district_selection:
-            selected_district = df_filtered_jurisdiction
-        else:
-            selected_district = df_filtered_jurisdiction[
-                df_filtered_jurisdiction["District Name"].isin(district_selection)
-            ]
-
-        # If a district is selected, set the map center and zoom level
-        if not selected_district.empty:
-            bounds = selected_district.total_bounds
-            minx, miny, maxx, maxy = bounds
-            center_long = (minx + maxx) / 2
-            center_lat = (miny + maxy) / 2
-            map.set_center(center_long, center_lat, zoom=10)
-            
-            # Add the user-filtered zoning layer to the map
-            map.add_gdf(
-                selected_district,
-                layer_name=f"{district_selection} Geometry" if district_selection != "All Districts" else "Selected Area",
-                style=zoning_style,
-                info_mode='on_click',
-                zoom_to_layer=True
-            )
-
         # If the dataframe has latitude and longitude columns, create a heatmap
         elif is_latitude_longitude(df):
             # Define the latitude and longitude columns
@@ -193,14 +190,14 @@ def render_mapping():
 
             # Allow user to select a numeric variable to plot on the map
             heatmap_var = st.selectbox(
-                "Select a variable to plot on the map",
+                "Select a variable to plot on the heatmap",
                 numeric_cols,
                 index=0
             )
 
             # Filter the dataframe to only include the latitude, longitude, and selected variable column
             heatmap_df = df[[lat_col, lon_col, heatmap_var]].dropna()
-            
+                
             # Add the heatmap layer to the map
             map.add_heatmap(
                 data=heatmap_df,
@@ -219,6 +216,7 @@ def render_mapping():
 
             map.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
     
+
     # Display the map with a loading "spinner" icon
     with st.spinner("Loading map..."):
         # Add a layer control to the map
@@ -269,7 +267,7 @@ def render_mapping():
                     # Loop through each selected row
                     for _, row in selected_df.iterrows():
                         # Get the district name to use in the comparison table
-                        district_name = row["District Name"]
+                        district_name = row["Jurisdiction District Name"]
 
                         # Reset the indeces
                         df_long = row.reset_index()
