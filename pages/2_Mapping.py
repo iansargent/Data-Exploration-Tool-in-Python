@@ -318,7 +318,7 @@ def render_mapping():
             except AttributeError:
                 st.warning("No rows selected. Please select at least one row to compare district data.")
 
-def map_main():
+def show_mapping():
     st.markdown(
     """
     <style>
@@ -331,4 +331,4 @@ def map_main():
     render_mapping()
 
 if __name__ == "__main__":
-    map_main()
+    show_mapping()

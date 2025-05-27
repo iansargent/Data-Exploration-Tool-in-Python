@@ -59,7 +59,7 @@ def render_visualization(mode="single", processed_files=None):
         key += 2
 
 # The main function
-def visual_main():
+def show_plots():
     st.markdown(
     """
     <style>
@@ -82,4 +82,4 @@ def visual_main():
         render_visualization("double", processed_files)
 
 if __name__ == "__main__":
-    visual_main()
+    show_plots()

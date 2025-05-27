@@ -22,7 +22,7 @@ def render_about():
     st.markdown("[GitHub Repository Link](https://github.com/iansargent/Data-Exploration-Tool-in-Python)")
 
 
-def main():
+def show_about():
     st.markdown(
     """
     <style>
@@ -36,4 +36,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    show_about()

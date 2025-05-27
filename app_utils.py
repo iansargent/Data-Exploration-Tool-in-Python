@@ -25,7 +25,7 @@ import leafmap as lfm
 #--------------------------------------#
 #######      File Handling      ########
 #--------------------------------------#
-def get_user_files(key=""):
+def get_user_files(key="main"):
     uploaded_files = st.sidebar.file_uploader(
         label="Upload Data Files Here", 
         type=["geojson", "fgb", "csv", "xlsx", 'xls', 'json', 'sav'],
