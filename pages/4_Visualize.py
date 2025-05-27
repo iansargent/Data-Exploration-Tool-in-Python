@@ -17,7 +17,7 @@ from st_aggrid import AgGrid
 
 # The visualize page (with default arguments given)
 def render_visualization(mode="single", processed_files=None):
-    
+
     dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
 
     for i, (df, filename) in enumerate(processed_files):
@@ -59,7 +59,7 @@ def render_visualization(mode="single", processed_files=None):
         key += 2
 
 # The main function
-def main():
+def visual_main():
     st.markdown(
     """
     <style>
@@ -82,4 +82,4 @@ def main():
         render_visualization("double", processed_files)
 
 if __name__ == "__main__":
-    main()
+    visual_main()

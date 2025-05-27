@@ -60,7 +60,7 @@ def render_data_summary():
         st.markdown("---")
 
 # Run the data summary page
-def main():
+def summary_main():
     st.markdown(
     """
     <style>
@@ -74,4 +74,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    summary_main()
