@@ -29,6 +29,26 @@ def render_mapping():
     # Set the page title
     st.title("Mapping")
 
+    # Get the user files from the uploader and process them
+    user_files = get_user_files()
+    processed_files = process_uploaded_files(user_files)
+
+    # If no geo-dataframes are found, show a warning message
+    geo_df_found = False
+    for df, filename in processed_files:
+        if isinstance(df, gpd.GeoDataFrame):
+            geo_df_found = True
+            break
+    
+    # If no GeoDataFrames were found, just display a warning message
+    if geo_df_found == False:
+        st.warning("""
+        Mapping is not available because no valid GeoDataFrames were found in the uploaded files.\n
+        Please ensure that you have uploaded files with geographic data 
+        (e.g., shapefiles, GeoJSON, FlatGeobuf, etc.) or files that contain latitude and longitude coordinates.
+        """)
+        return
+
     # Initialize zoning dataframe and specific map style
     zoning_gdf = None
     zoning_style = {}
@@ -62,11 +82,6 @@ def render_mapping():
     # Initialize a blank map object to add layers onto later
     map = leafmap.Map(center=default_center, zoom=7)
     map.add_basemap(selected_basemap)
-
-    # Get the user files from the uploader and process them
-    user_files = get_user_files()
-    processed_files = process_uploaded_files(user_files)
-    
     
     # Loop through each processed dataframe and its filename
     for df, filename in processed_files:
