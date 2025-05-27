@@ -270,7 +270,6 @@ def convert_all_timestamps_to_str(gdf):
     return gdf
 
 
-
 #--------------------------------------#
 ###   Exploring and Analyzing Data   ###
 #--------------------------------------#

@@ -22,9 +22,13 @@ def render_data_summary():
     user_files = get_user_files()
     processed_files = process_uploaded_files(user_files)
 
-    for df, filename in processed_files:
-        
-        st.header(f"Summary of {filename}")
+    dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
+    
+    for i, (df, filename) in enumerate(processed_files):
+        # Initialize a unique key for each download file
+        key = 0
+        # Header section for each uploaded file
+        st.header(f"Summary of {filename}", divider=dividers[i])
         # If the file is a GeoDataFrame
         if isinstance(df, gpd.GeoDataFrame):
             # Drop the geometry column
@@ -47,9 +51,12 @@ def render_data_summary():
             # Allow for an html export
             report_export = profile.to_html()
             # Add a download button for the HTML report
-            st.download_button(label="View Full Report", data=report_export, file_name='data_report.html')
+            st.download_button(label="View Full Report", data=report_export, file_name=f'data_report_{filename}.html')
+            
+        with st.expander("View Report Preview"):
             # Display the report on the page
             st_profile_report(profile)
+        
         st.markdown("---")
 
 # Run the data summary page

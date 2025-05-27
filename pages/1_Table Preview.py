@@ -18,11 +18,12 @@ def render_table_preview():
     # Set the page title
     st.title("Table Preview")
     
+    # The the uploaded files and process them
     user_files = get_user_files()
     processed = process_uploaded_files(user_files)
     
-    
-    dividers = ["blue", "green", "orange", "red", "violet", "grey"]
+    # Define the divider colors for each file uploaded
+    dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
     
     for i, (df, filename) in enumerate(processed):
         # Subheader for the table preview
