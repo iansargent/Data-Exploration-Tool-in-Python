@@ -20,9 +20,13 @@ def main():
     st.set_page_config(
         page_title="Vermont Livability App",
         layout="wide",
-        page_icon="🍁",
-        initial_sidebar_state="collapsed"
+        page_icon="🍁"
     )
+    
+    # Set the page title and sidebar settings
+    st.markdown(
+        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Vermont Livability: A Data Exploration App</h2>",
+        unsafe_allow_html=True)
 
     st.markdown(
     """
@@ -46,8 +50,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    
-    st.sidebar.title("Upload your Dataset(s)")
+
     get_user_files()
 
 

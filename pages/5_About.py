@@ -16,7 +16,7 @@ def render_about():
     This interactive app is designed to help users and planners explore and visualize their municipal datasets
     for the Vermont Livability Project. Upload your data files to get started!
 
-    Built with ❤️\n\n- Ian.
+    Built with ❤️\n\n by Ian.
     """)
     
     st.markdown("[GitHub Repository Link](https://github.com/iansargent/Data-Exploration-Tool-in-Python)")
