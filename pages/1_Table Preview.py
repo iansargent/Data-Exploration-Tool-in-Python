@@ -14,6 +14,7 @@ import geopandas as gpd
 
 
 def render_table_preview():
+    
     # Set the page title
     st.title("Table Preview")
     
@@ -40,6 +41,15 @@ def render_table_preview():
 
 
 def main():
+    st.markdown(
+    """
+    <style>
+    /* Set Helvetica (fallback to Arial, sans-serif) globally */
+    html, body, [class*="css"]  {
+        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     render_table_preview()
 
 

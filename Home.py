@@ -22,9 +22,21 @@ def main():
         layout="wide",
         page_icon="🍁"
     )
+
+    st.markdown(
+    """
+    <style>
+    /* Set Helvetica (fallback to Arial, sans-serif) globally */
+    html, body, [class*="css"]  {
+        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Set the page title and sidebar settings
-    st.title("The Vermont Livability Map")
-    st.subheader("A Data Exploration App")
+    st.markdown(
+        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Vermont Livability: A Data Exploration App</h2>",
+        unsafe_allow_html=True)
     
     page_bg_img = '''
         <style>
@@ -52,7 +64,6 @@ def main():
     st.sidebar.write("Upload your data files below to visualize them.")
     # Add a file uploader to the sidebar
     get_user_files()
-
 
 
 if __name__ == "__main__":

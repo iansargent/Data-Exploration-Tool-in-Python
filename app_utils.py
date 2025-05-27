@@ -27,10 +27,11 @@ import leafmap as lfm
 #--------------------------------------#
 def get_user_files(key=""):
     uploaded_files = st.sidebar.file_uploader(
-        label="", 
+        label="Upload Data Files Here", 
         type=["geojson", "fgb", "csv", "xlsx", 'xls', 'json', 'sav'],
         accept_multiple_files=True,
-        key = f"data_upload_{key}"
+        key = f"data_upload_{key}",
+        label_visibility="hidden"
     )
 
     if uploaded_files:

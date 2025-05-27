@@ -52,4 +52,18 @@ def render_data_summary():
         st.markdown("---")
 
 # Run the data summary page
-render_data_summary()
+def main():
+    st.markdown(
+    """
+    <style>
+    /* Set Helvetica (fallback to Arial, sans-serif) globally */
+    html, body, [class*="css"]  {
+        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    render_data_summary()
+
+
+if __name__ == "__main__":
+    main()

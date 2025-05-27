@@ -61,6 +61,15 @@ def render_visualization(mode="single", processed_files=None):
 
 # The main function
 def main():
+    st.markdown(
+    """
+    <style>
+    /* Set Helvetica (fallback to Arial, sans-serif) globally */
+    html, body, [class*="css"]  {
+        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     tab1, tab2 = st.tabs(["Single Variable", "Two Variables"])
     user_files = get_user_files(key="shared")  # use a shared key
     processed_files = process_uploaded_files(user_files)
