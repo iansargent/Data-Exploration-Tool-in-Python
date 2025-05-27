@@ -13,7 +13,7 @@ import geopandas as gpd
 import leafmap.foliumap as leafmap
 from app_utils import (get_user_files, file_hash, read_data, 
                        get_file_name, get_columns, is_latitude_longitude,
-                       clean_data, convert_all_timestamps_to_str)
+                       clean_data, convert_all_timestamps_to_str, process_uploaded_files)
 from statistics import mean
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 import math
@@ -28,20 +28,12 @@ def render_mapping():
     """
     # Set the page title
     st.title("Mapping")
-    # Get the user files from the uploader
-    user_files = get_user_files()
-    # Initialize a set to keep track of seen file hashes
-    seen_hashes = set()
-
-    # Check if the user has uploaded any files
-    if not user_files:
-        st.warning("No files uploaded.")
-        return
 
     # Initialize zoning dataframe and specific map style
     zoning_gdf = None
     zoning_style = {}
 
+    # Create an option bank of basemaps to choose from
     basemaps = {
     "Standard": "OpenStreetMap",
     "Satellite View": "Esri.WorldImagery",
@@ -53,41 +45,29 @@ def render_mapping():
     "World Street Map": "Esri.WorldStreetMap"
     }
     
-    # Display a selection box for the basemap
+    # Display a selection box for the basemap type
     basemap_select_box = st.selectbox(
         label="**Basemap**",
         options=list(basemaps.keys()),
         index=0
     )
 
-    # Get the actual basemap string
+    # Retrieve the selected basemap as a string
     selected_basemap = basemaps[basemap_select_box]
 
     # Initialize a blank map object to add layers onto later
     map = leafmap.Map(zoom=10)
     map.add_basemap(selected_basemap)
 
-    # Loop through each uploaded file
-    for file in user_files:
-        # Give each file a unique ID
-        fid = file_hash(file)
+    # Get the user files from the uploader and process them
+    user_files = get_user_files()
+    processed_files = process_uploaded_files(user_files)
+    
 
-        # If the file ID is already seen, skip it
-        if fid in seen_hashes:
-            continue
-        # and add it to the set of seen IDs
-        seen_hashes.add(fid)
-
-        # Read the data
-        df = read_data(file)
-        if df is None:
-            continue
-        # Clean the data
-        df = clean_data(df)
-        df = convert_all_timestamps_to_str(df)
+    # Loop through each processed dataframe and its filename
+    for df, filename in processed_files:
         
-        # Get the filename to use for map layer settings
-        filename = get_file_name(file)
+        df = convert_all_timestamps_to_str(df)
 
         # Determine the layer style based on common words in the VTZA data folder
         if "border" in filename:

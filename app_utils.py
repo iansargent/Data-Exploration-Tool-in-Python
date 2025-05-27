@@ -75,6 +75,19 @@ def process_uploaded_files(user_files):
             continue
         df = clean_data(df)
         df = convert_all_timestamps_to_str(df)
+        
+        if is_latitude_longitude(df):
+            try:
+                lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
+                lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
+
+                df = gpd.GeoDataFrame(df, 
+                        geometry=gpd.points_from_xy(df[lon_col], df[lat_col]), 
+                        crs="EPSG:4326"
+                )
+            except Exception as e:
+                st.warning(f"Error converting to GeoDataFrame: {e}")
+                continue
 
         filename = get_file_name(file)
         processed.append((df, filename))
@@ -121,19 +134,6 @@ def read_data(file):
     
     if file_extension == '.csv':
         df = pd.read_csv(file)
-
-        if is_latitude_longitude(df):
-
-            lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
-            lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
-
-            df = gpd.GeoDataFrame(
-            df,
-            geometry=gpd.points_from_xy(df[lon_col], df[lat_col]),
-            crs="EPSG:4326"
-            )
-        
-        return df
 
     elif file_extension == '.sav':
         import pyreadstat as prs
