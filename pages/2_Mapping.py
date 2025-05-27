@@ -13,9 +13,10 @@ import geopandas as gpd
 import leafmap.foliumap as leafmap
 from app_utils import (get_user_files, file_hash, read_data, 
                        get_file_name, get_columns, is_latitude_longitude,
-                       clean_data)
+                       clean_data, convert_all_timestamps_to_str)
 from statistics import mean
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
+import math
 
 
 def render_mapping():
@@ -31,9 +32,6 @@ def render_mapping():
     user_files = get_user_files()
     # Initialize a set to keep track of seen file hashes
     seen_hashes = set()
-    
-    # Initialize a blank map object to add layers onto later
-    map = leafmap.Map(zoom=10)
 
     # Check if the user has uploaded any files
     if not user_files:
@@ -43,6 +41,31 @@ def render_mapping():
     # Initialize zoning dataframe and specific map style
     zoning_gdf = None
     zoning_style = {}
+
+    basemaps = {
+    "Standard": "OpenStreetMap",
+    "Satellite View": "Esri.WorldImagery",
+    "CartoDB Light": "CartoDB.Positron",
+    "Elevation": "OpenTopoMap",
+    "Shaded Relief Map": "Esri.WorldShadedRelief",
+    "Hillshade Map": "Esri.WorldHillshade",
+    "National Geographic Style": "Esri.NatGeoWorldMap",
+    "World Street Map": "Esri.WorldStreetMap"
+    }
+    
+    # Display a selection box for the basemap
+    basemap_select_box = st.selectbox(
+        label="**Basemap**",
+        options=list(basemaps.keys()),
+        index=0
+    )
+
+    # Get the actual basemap string
+    selected_basemap = basemaps[basemap_select_box]
+
+    # Initialize a blank map object to add layers onto later
+    map = leafmap.Map(zoom=10)
+    map.add_basemap(selected_basemap)
 
     # Loop through each uploaded file
     for file in user_files:
@@ -61,8 +84,7 @@ def render_mapping():
             continue
         # Clean the data
         df = clean_data(df)
-        # NOTE: This is hardcoded for now (date column cannot be mapped), but could be made dynamic
-        df = df.drop(columns=["Bylaw Date"])
+        df = convert_all_timestamps_to_str(df)
         
         # Get the filename to use for map layer settings
         filename = get_file_name(file)
@@ -76,7 +98,7 @@ def render_mapping():
             style = {"color": "darkorange", "weight": 2}
         elif "servicearea" in filename:
             style = {"color": "darkred", "weight": 2}
-        elif "wwtf" in filename:
+        elif ("wwtf" in filename) or ("facilit" in filename):
             style = {"color": "darkgreen", "weight": 2}
         elif "zoning" in filename:
             style = {"color": "blue", "weight": 0.5}
@@ -90,6 +112,8 @@ def render_mapping():
             if "zoning" in filename.lower():
                 zoning_gdf = df
                 zoning_style = style
+                # NOTE: This is hardcoded for now (date column cannot be mapped), but could be made dynamic
+                zoning_gdf = zoning_gdf.drop(columns=["Bylaw Date"])
             
             # If it is not a zoning file, add it as a layer to the map
             else:
@@ -99,7 +123,7 @@ def render_mapping():
                     layer_name=filename,
                     style=style,
                     info_mode='on_click',
-                    zoom_to_layer=False
+                    zoom_to_layer=True
                 )
 
     # Initialize selected_district variable for use in filtering the dataset
@@ -114,7 +138,7 @@ def render_mapping():
         # On the left column, create a selection box for the county
         with col1:
             county_selection = st.selectbox(
-                "Select a county to view",
+                "**County**",
                 ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()),
                 index=0,
             )
@@ -125,7 +149,7 @@ def render_mapping():
         # On the middle column, create a selection box for the jurisdiction
         with col2:
             jurisdiction_selection = st.selectbox(
-                "Select a jurisdiction to view",
+                "**Jurisdiction**",
                 ["All Jurisdictions"] + sorted(df_filtered_county["Jurisdiction"].dropna().unique()),
                 index=0,
             )
@@ -143,7 +167,7 @@ def render_mapping():
             multiselect_options = [all_district_option] + district_options
             
             district_selection = st.multiselect(
-                "Select district(s) to view",
+                "**District(s)**",
                 options=multiselect_options,
                 default=[all_district_option]
             )
@@ -176,7 +200,7 @@ def render_mapping():
     # If the dataframe has latitude and longitude columns, create a heatmap
     elif is_latitude_longitude(df):
         # Define the latitude and longitude columns
-        # NOTE: This is hardcoded for now, but could be returned in the is_latitude_longitude function
+        # NOTE: These could be returned in the is_latitude_longitud() function
         lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
         lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
 
@@ -193,11 +217,6 @@ def render_mapping():
         # Filter the dataframe to only include the latitude, longitude, and selected variable column
         heatmap_df = df[[lat_col, lon_col, heatmap_var]].dropna()
         
-        # Set the map center based on the average latitude and longitude of the data
-        center_lat = mean(heatmap_df[lat_col])
-        center_lon = mean(heatmap_df[lon_col])
-        map.set_center(center_lon, center_lat, zoom=7.5)
-
         # Add the heatmap layer to the map
         map.add_heatmap(
             data=heatmap_df,
@@ -208,6 +227,13 @@ def render_mapping():
             radius=10,
             blur=15
         )
+        # Calculate bounding box and auto zoom
+        min_lat = heatmap_df[lat_col].min()
+        max_lat = heatmap_df[lat_col].max()
+        min_lon = heatmap_df[lon_col].min()
+        max_lon = heatmap_df[lon_col].max()
+
+        map.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
     
     # Display the map with a loading "spinner" icon
     with st.spinner("Loading map..."):
@@ -231,13 +257,19 @@ def render_mapping():
             gb.configure_selection(selection_mode="multiple", use_checkbox=True)
             grid_options = gb.build()
             
+            # Set the grid height to dynamically change with the number of rows
+            grid_height = 40 * (len(selected_district) + 1.45)
+            grid_height = min(grid_height, 600)
+
             # Display the filtered table
             grid_response = AgGrid(
                 selected_district,
                 theme='material', 
                 gridOptions=grid_options, 
                 update_mode=GridUpdateMode.SELECTION_CHANGED,
-                columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,)
+                columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
+                height=grid_height
+            )
 
             # Define the selected rows from the AgGrid table
             selected_rows = grid_response["selected_rows"]
@@ -273,25 +305,20 @@ def render_mapping():
                         lambda left, right: pd.merge(left, right, on="Variable", how="outer"),
                         dfs
                     )
+
+                    # Sort the comparison table to show non-empty rows at the top of the table 
+                    combined_df_sorted = combined_df.copy()
+                    combined_df_sorted["na_count"] = combined_df_sorted.isna().sum(axis=1)
+                    combined_df_sorted = combined_df_sorted.sort_values("na_count").drop(columns="na_count")
+
                     # Subheader for the comparison table
                     st.subheader("District Comparisons")
                     # Display the comparison table
-                    st.write(combined_df)
+                    st.dataframe(combined_df_sorted)
             
             # If the user has not selected any rows, show a warning and do not display any comparisons
             except AttributeError:
                 st.warning("No rows selected. Please select at least one row to compare district data.")
 
                 
-                
-                
-
-
-
-
-            
-
-
-    
-
 render_mapping()

@@ -50,6 +50,38 @@ def get_user_files():
     return user_files
 
 
+def process_uploaded_files(user_files):
+    """
+    Process the uploaded files and return a list of unique file names.
+    This function generates a unique hash for each file to check for duplicates.
+    It also reads the data, cleans it, and returns a list of tuples containing 
+    the DataFrame and the file name.
+    """
+    seen_hashes = set()
+    processed = []
+
+    if not user_files:
+        st.warning("No files uploaded.")
+        return []
+
+    for file in user_files:
+        fid = file_hash(file)
+        if fid in seen_hashes:
+            continue
+        seen_hashes.add(fid)
+
+        df = read_data(file)
+        if df is None:
+            continue
+        df = clean_data(df)
+        df = convert_all_timestamps_to_str(df)
+
+        filename = get_file_name(file)
+        processed.append((df, filename))
+
+    return processed
+
+
 def file_hash(file):
     """
     Generate a unique hash for the file content to check for duplicates.
@@ -198,8 +230,8 @@ def clean_data(df):
     for col in df.columns:
         # Convert binary numeric columns with values [0,1] to boolean
         if df[col].dropna().nunique() == 2:
-            unique_vals = sorted(df[col].dropna().unique())
-            if (unique_vals == [0, 1]) or (unique_vals == ["Yes", "No"]):
+            vals = set(str(v).strip().lower() for v in df[col].dropna().unique())
+            if vals == {"yes", "no"} or vals == {"0", "1"} or vals == {0, 1}:
                 df[col] = df[col].astype(bool)
 
         # Handle datetime-like columns based on column name
@@ -222,6 +254,15 @@ def clean_data(df):
             )
 
     return df
+
+
+def convert_all_timestamps_to_str(gdf):
+    # Convert all datetime columns to strings
+    for col, dtype in gdf.dtypes.items():
+        if "datetime" in str(dtype):
+            gdf[col] = gdf[col].astype(str)
+    return gdf
+
 
 
 #--------------------------------------#
@@ -602,8 +643,8 @@ def numeric_categorical_plots(df, col1, col2):
 
     # If the first column is numeric and the second is categorical
     if col1_type in ['int64', 'float64']:
-        # Set plot title
-        st.subheader(f"Boxplot of {col1} by {col2}")
+        numeric_col = col1
+        non_numeric_col = col2
             
         # MULTI BOXPLOT
         multi_box = alt.Chart(source).mark_boxplot(size=40).encode(
@@ -616,13 +657,13 @@ def numeric_categorical_plots(df, col1, col2):
         # CONFIDENCE INTERVALS WITH MEANS
         error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
             alt.X(f"{col1}").scale(zero=False),
-            alt.Y(f"{col2}", sort='-x', title=col2)
+            alt.Y(f"{col2}:O", sort='-x', title=col2)
         )
 
         # Calculate the mean of col1 for each category in col2
         observed_points = alt.Chart(source).mark_point().encode(
-            x = alt.X('mean(col1)'),
-            y = alt.Y(f"{col2}", sort='-x', title=col2)
+            x = alt.X(f"{col1}:Q", aggregate='mean'),
+            y = alt.Y(f"{col2}:O", sort='-x', title=col2)
 
         )
 
@@ -630,10 +671,12 @@ def numeric_categorical_plots(df, col1, col2):
         confint_plot = error_bars + observed_points
 
         # Return both plots
-        return multi_box, confint_plot
+        return multi_box, confint_plot, numeric_col, non_numeric_col
 
     # If the first column is categorical and the second is numeric
     else:
+        numeric_col = col2
+        non_numeric_col = col1
         # MULTI BOXPLOT
         multi_box = alt.Chart(source).mark_boxplot(size=40).encode(
             x = alt.X(f"{col1}:N", sort='-y', title=col1),
@@ -658,21 +701,21 @@ def numeric_categorical_plots(df, col1, col2):
         confint_plot = error_bars + observed_points
         
         # Return both plots
-        return multi_box, confint_plot
+        return multi_box, confint_plot, numeric_col, non_numeric_col
 
 
-def display_numeric_categorical_plots(df, col1, col2, multi_box, confint_plot):
+def display_numeric_categorical_plots(df, numeric_col, non_numeric_col, multi_box, confint_plot):
     """
     Display the boxplot and confidence interval plot 
     if both a numeric and categorical variable are selected.
     """
     
     # Display the boxplot
-    st.subheader(f"Distribution of {col2} by {col1}")
+    st.subheader(f"Distribution of {numeric_col} by {non_numeric_col}")
     st.altair_chart(multi_box, use_container_width=True)
     
     # Display the confidence interval plot
-    st.subheader(f"95% Confidence Interval of {col2} by {col1}")
+    st.subheader(f"95% Confidence Interval of {numeric_col} by {non_numeric_col}")
     st.altair_chart(confint_plot, use_container_width=True)
 
 
@@ -793,9 +836,9 @@ def two_column_plot(df, col1, col2):
     or ((col1_type == 'object' or col1_type.name == 'category') and col2_type in ['int64', 'float64'])):
 
         # Create the boxplot and confidence interval plots
-        multi_box, confint_plot = numeric_categorical_plots(df, col1, col2)
+        multi_box, confint_plot, numeric_col, non_numeric_col = numeric_categorical_plots(df, col1, col2)
         # Display the plots
-        display_numeric_categorical_plots(df, col1, col2, multi_box, confint_plot)
+        display_numeric_categorical_plots(df, numeric_col, non_numeric_col, multi_box, confint_plot)
         # Return the plots
         return multi_box, confint_plot
         
