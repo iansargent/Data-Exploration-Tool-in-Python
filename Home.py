@@ -13,8 +13,6 @@ streamlit run Home.py
 # Necessary imports
 import streamlit as st
 from streamlit_navigation_bar import st_navbar
-import pages.table_preview as table_preview
-
 from app_utils import get_user_files
 
 
@@ -37,11 +35,6 @@ def main():
     """, unsafe_allow_html=True)
 
     page = st_navbar(["Table Preview", "Mapping", "Data Summary", "Visualize", "About"])
-
-    if page == "Table Preview":
-        table_preview.show()
-    else:
-        st.write("Other page!")
     
     # Set the page title and sidebar settings
     st.markdown(
