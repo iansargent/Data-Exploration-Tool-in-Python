@@ -31,8 +31,9 @@ def render_mapping():
 
     # Get the user files from the uploader and process them
     user_files = get_user_files()
+    # If no files are uploaded, show a warning message
     processed_files = process_uploaded_files(user_files)
-
+    
     # If no geo-dataframes are found, show a warning message
     geo_df_found = False
     for df, filename in processed_files:

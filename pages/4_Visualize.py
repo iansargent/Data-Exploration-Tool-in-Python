@@ -16,20 +16,14 @@ from app_utils import (
 from st_aggrid import AgGrid
 
 # The visualize page (with default arguments given)
-def render_visualization(mode="single"):
-    
+def render_visualization(mode="single", processed_files=None):
     title = "Single Variable" if mode == "single" else "Two Variables"
-
     st.title(f"Visualize Your Data ({title})")
-    
-    user_files = get_user_files(key=mode)
-    processed_files = process_uploaded_files(user_files)
     
     for df, filename in processed_files:
         key_offset = 0
         # Get a list of column names for selection
         columns = get_columns(df)
-
         # Subheader for the plot section
         st.subheader(f"Plots for {filename}")
 
@@ -67,19 +61,14 @@ def render_visualization(mode="single"):
 
 # The main function
 def main():
-
-    # Use tabs to separate single and two variable plotting sections
     tab1, tab2 = st.tabs(["Single Variable", "Two Variables"])
-
-    # In the first tab
+    user_files = get_user_files(key="shared")  # use a shared key
+    processed_files = process_uploaded_files(user_files)
+    
     with tab1:
-        # Single variable plots
-        render_visualization("single")
-    # In the second tab
+        render_visualization("single", processed_files)
     with tab2:
-        # Two-variable plots
-        render_visualization("double")
-
+        render_visualization("double", processed_files)
 
 if __name__ == "__main__":
     main()
