@@ -44,7 +44,7 @@ def render_table_preview():
                 AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
 
-def show():
+def show_preview():
     st.markdown(
     """
     <style>
@@ -58,4 +58,4 @@ def show():
 
 
 if __name__ == "__main__":
-    show()
+    show_preview()

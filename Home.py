@@ -14,14 +14,19 @@ streamlit run Home.py
 import streamlit as st
 from streamlit_navigation_bar import st_navbar
 from app_utils import get_user_files
+from pages.table_preview import show_preview
+from pages.mapping import show_mapping
+from pages.data_summary import show_summary
+from pages.visualize import show_plots
+from pages.about import show_about
 
-
-def main():
+def home_main():
     # Set the page configuration settings
     st.set_page_config(
         page_title="Vermont Livability App",
         layout="wide",
-        page_icon="🍁"
+        page_icon="🍁",
+        initial_sidebar_state="collapsed"
     )
 
     st.markdown(
@@ -33,8 +38,6 @@ def main():
     }
     </style>
     """, unsafe_allow_html=True)
-
-    page = st_navbar(["Table Preview", "Mapping", "Data Summary", "Visualize", "About"])
     
     # Set the page title and sidebar settings
     st.markdown(
@@ -63,11 +66,12 @@ def main():
     
     st.markdown(page_bg_img, unsafe_allow_html=True)
 
-    st.sidebar.title("Welcome")
-    st.sidebar.write("Upload your data files below to visualize them.")
+    page = st_navbar(["Home", "Mapping", "Data Summary", "Visualize", "About"])
+
+    st.sidebar.title("Upload your Dataset(s)")
     # Add a file uploader to the sidebar
     get_user_files()
 
 
 if __name__ == "__main__":
-    main()
+    home_main()
