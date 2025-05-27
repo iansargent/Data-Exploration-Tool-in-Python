@@ -18,12 +18,13 @@ from app_utils import get_user_files
 def main():
     # Set the page configuration settings
     st.set_page_config(
-        page_title="Vermont Livability Data Visualization App",
+        page_title="Vermont Livability App",
         layout="wide",
         page_icon="🍁"
     )
     # Set the page title and sidebar settings
-    st.title("Vermont Livability Data Visualization")
+    st.title("The Vermont Livability Map")
+    st.subheader("A Data Exploration App")
     
     page_bg_img = '''
         <style>
