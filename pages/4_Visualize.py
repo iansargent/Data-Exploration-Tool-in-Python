@@ -16,13 +16,13 @@ from app_utils import (
 from st_aggrid import AgGrid
 
 # The visualize page (with default arguments given)
-def render_visualization(mode = "single"):
+def render_visualization(mode="single"):
     
     title = "Single Variable" if mode == "single" else "Two Variables"
 
     st.title(f"Visualize Your Data ({title})")
     
-    user_files = get_user_files()
+    user_files = get_user_files(key=mode)
     processed_files = process_uploaded_files(user_files)
     
     for df, filename in processed_files:

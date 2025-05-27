@@ -55,15 +55,19 @@ def render_mapping():
     # Retrieve the selected basemap as a string
     selected_basemap = basemaps[basemap_select_box]
 
+    
+    # Set a default map center (In Vermont)
+    default_center = [44.45, -72.71]
+
     # Initialize a blank map object to add layers onto later
-    map = leafmap.Map(zoom=10)
+    map = leafmap.Map(center=default_center, zoom=7)
     map.add_basemap(selected_basemap)
 
     # Get the user files from the uploader and process them
     user_files = get_user_files()
     processed_files = process_uploaded_files(user_files)
     
-
+    
     # Loop through each processed dataframe and its filename
     for df, filename in processed_files:
         
@@ -177,43 +181,43 @@ def render_mapping():
                 zoom_to_layer=True
             )
 
-    # If the dataframe has latitude and longitude columns, create a heatmap
-    elif is_latitude_longitude(df):
-        # Define the latitude and longitude columns
-        # NOTE: These could be returned in the is_latitude_longitud() function
-        lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
-        lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
+        # If the dataframe has latitude and longitude columns, create a heatmap
+        elif is_latitude_longitude(df):
+            # Define the latitude and longitude columns
+            # NOTE: These could be returned in the is_latitude_longitud() function
+            lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
+            lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
 
-        # Get all numeric columns to display in the heatmap
-        numeric_cols = df.select_dtypes(include="number").columns.tolist()
+            # Get all numeric columns to display in the heatmap
+            numeric_cols = df.select_dtypes(include="number").columns.tolist()
 
-        # Allow user to select a numeric variable to plot on the map
-        heatmap_var = st.selectbox(
-            "Select a variable to plot on the map",
-            numeric_cols,
-            index=0
-        )
+            # Allow user to select a numeric variable to plot on the map
+            heatmap_var = st.selectbox(
+                "Select a variable to plot on the map",
+                numeric_cols,
+                index=0
+            )
 
-        # Filter the dataframe to only include the latitude, longitude, and selected variable column
-        heatmap_df = df[[lat_col, lon_col, heatmap_var]].dropna()
-        
-        # Add the heatmap layer to the map
-        map.add_heatmap(
-            data=heatmap_df,
-            latitude=lat_col,
-            longitude=lon_col,
-            layer_name="Heatmap",
-            value = heatmap_var,
-            radius=10,
-            blur=15
-        )
-        # Calculate bounding box and auto zoom
-        min_lat = heatmap_df[lat_col].min()
-        max_lat = heatmap_df[lat_col].max()
-        min_lon = heatmap_df[lon_col].min()
-        max_lon = heatmap_df[lon_col].max()
+            # Filter the dataframe to only include the latitude, longitude, and selected variable column
+            heatmap_df = df[[lat_col, lon_col, heatmap_var]].dropna()
+            
+            # Add the heatmap layer to the map
+            map.add_heatmap(
+                data=heatmap_df,
+                latitude=lat_col,
+                longitude=lon_col,
+                layer_name="Heatmap",
+                value = heatmap_var,
+                radius=10,
+                blur=15
+            )
+            # Calculate bounding box and auto zoom
+            min_lat = heatmap_df[lat_col].min()
+            max_lat = heatmap_df[lat_col].max()
+            min_lon = heatmap_df[lon_col].min()
+            max_lon = heatmap_df[lon_col].max()
 
-        map.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+            map.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
     
     # Display the map with a loading "spinner" icon
     with st.spinner("Loading map..."):

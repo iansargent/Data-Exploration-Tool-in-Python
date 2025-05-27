@@ -25,12 +25,12 @@ import leafmap as lfm
 #--------------------------------------#
 #######      File Handling      ########
 #--------------------------------------#
-def get_user_files():
+def get_user_files(key=""):
     uploaded_files = st.sidebar.file_uploader(
         "Upload your dataset(s)", 
         type=["geojson", "fgb", "csv", "xlsx", 'xls', 'json', 'sav'],
         accept_multiple_files=True,
-        key = "data_upload"
+        key = f"data_upload_{key}"
     )
 
     if uploaded_files:
