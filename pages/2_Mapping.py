@@ -83,7 +83,7 @@ def render_mapping():
     default_center = [44.45, -72.71]
 
     # Initialize a blank map object to add layers onto later
-    map = leafmap.Map(center=default_center, zoom=7)
+    map = leafmap.Map(center=default_center, zoom_to_layer=True)
     map.add_basemap(selected_basemap)
     
     # Loop through each processed dataframe and its filename
@@ -321,6 +321,28 @@ def render_mapping():
                 st.warning("No rows selected. Please select at least one row to compare district data.")
 
 def show_mapping():
+    st.markdown(
+    """
+    <style>
+    html, body, [class*="css"]  {
+        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
+    }
+    [data-testid="stAppViewContainer"] {
+        background-image: url("https://t3.ftcdn.net/jpg/01/99/28/98/360_F_199289808_twlKOyrViuqfzyV5JFmYdly2GHihxqEh.jpg");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-position: center;
+    }
+    [data-testid="stHeader"] {
+        background: rgba(255, 255, 255, 0.0);
+    }
+    [data-testid="stSidebar"] {
+        background: rgba(255, 255, 255, 0.5);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     st.markdown(
     """
     <style>

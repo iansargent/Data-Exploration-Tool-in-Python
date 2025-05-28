@@ -64,6 +64,30 @@ def render_data_summary():
 
 # Run the data summary page
 def show_summary():
+    
+    st.markdown(
+    """
+    <style>
+    html, body, [class*="css"]  {
+        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
+    }
+    [data-testid="stAppViewContainer"] {
+        background-image: url("https://t3.ftcdn.net/jpg/01/99/28/98/360_F_199289808_twlKOyrViuqfzyV5JFmYdly2GHihxqEh.jpg");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-position: center;
+    }
+    [data-testid="stHeader"] {
+        background: rgba(255, 255, 255, 0.0);
+    }
+    [data-testid="stSidebar"] {
+        background: rgba(255, 255, 255, 0.5);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    
     st.markdown(
     """
     <style>

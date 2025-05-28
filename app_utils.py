@@ -783,34 +783,31 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
     if two categorical variables are selected.
     """
     
-    # Set two columns for formatted output
-    column1, column2 = st.columns(2)
-
-    with column1:
-        # Display the frequency table
-        st.subheader(f"Frequency Table of {col1} and {col2}")
-        st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
-    
-    with column2:
-        # The the unique values of the two columns are reasonable for plotting
-        if ((df[col1].nunique() > 2 and df[col2].nunique() > 2) and 
+    # The the unique values of the two columns are reasonable for plotting
+    if ((df[col1].nunique() > 2 and df[col2].nunique() > 2) and 
         (df[col1].nunique() <= 12 and df[col2].nunique() <= 12)):
-            # Display the heatmap
+        column1, column2 = st.columns(2)
+        # Display the frequency table
+        with column1:
+            st.subheader(f"Frequency Table of {col1} and {col2}")
+            st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
+        # Display the heatmap
+        with column2:
             st.subheader(f"Heatmap of {col1} and {col2}")
             st.altair_chart(heatmap, use_container_width=True)
 
-    # Display the stacked bar charts
-    column3, column4 = st.columns(2)
+    else:
+        # Just display the frequency table
+        st.subheader(f"Frequency Table of {col1} and {col2}")
+        st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
+
+    # Display the stacked bar chart
+    st.subheader(f"Stacked Bar Chart of {col2} by {col1}")
+    st.altair_chart(stacked_bar, use_container_width=True)
     
-    with column3:
-        # Display the stacked bar chart
-        st.subheader(f"Stacked Bar Chart of {col2} by {col1}")
-        st.altair_chart(stacked_bar, use_container_width=True)
-    
-    with column4:
-        # Display the 100% stacked bar chart next to the other chart
-        st.subheader(f"100% Stacked Bar Chart of {col1} by {col2}")
-        st.altair_chart(stacked_bar_100_pct, use_container_width=True)
+    # Display the 100% stacked bar chart next to the other chart
+    st.subheader(f"100% Stacked Bar Chart of {col1} by {col2}")
+    st.altair_chart(stacked_bar_100_pct, use_container_width=True)
 
 
 def two_column_plot(df, col1, col2):
@@ -865,3 +862,67 @@ def two_column_plot(df, col1, col2):
     else:
         st.write(f"Cannot visualize {col1} and {col2} together YET")
         return None
+
+
+
+def group_by_plot(df, num_op, num_var, grp_by):
+    
+    # Create a new simple DataFrame with the two columns of interest
+    df_simple = df[[grp_by, num_var]]
+
+    # Group by the "grp_by" variable using the SELECTED OPERATION
+    if num_op == "Total":
+        df_grouped = df_simple.groupby(by = [grp_by]).sum()
+        prefix = "total_"
+    elif num_op == "Average":
+        df_grouped = df_simple.groupby(by = [grp_by]).mean()
+        prefix = "avg_"
+    elif num_op == "Median":
+        df_grouped = df_simple.groupby(by = [grp_by]).median()
+        prefix = "median_"
+    elif num_op == "Count":
+        df_grouped = df_simple.groupby(by = [grp_by]).count()
+        prefix = "count of"
+    elif num_op == "Unique Count":
+        df_grouped = df_simple.groupby(by = [grp_by]).nunique()
+        prefix = "unique count of"
+    elif num_op == "Standard Deviation":
+        df_grouped = df_simple.groupby(by = [grp_by]).std()
+        prefix = "std_dev_"
+
+    # Reset the DataFrame index for plotting
+    df_grouped = df_grouped.reset_index()
+    
+    # Edit the existing column name to reflect the operation
+    num_var_name = f"{prefix}{num_var}"
+    df_grouped.rename(columns={num_var: num_var_name}, inplace=True)
+
+    # Use a select box to sort the plot (Defualt, Ascending, or Descending)
+    sort_option = st.selectbox(
+        label = "",
+        options=["Defualt", "Ascending", "Descending"],
+        index=0,
+        label_visibility="hidden"
+    )
+    
+    if sort_option == "Ascending":
+        sort = 'y'
+    elif sort_option == "Descending":
+        sort = '-y' 
+    else:
+        sort = list(df_grouped[grp_by])
+    
+    grouped_chart = alt.Chart(df_grouped).mark_bar().encode(
+        x=alt.X(f'{grp_by}:N', sort=sort),
+        y=alt.Y(f'{num_var_name}:Q')
+    )
+
+    # Display the plot
+    st.subheader("Plot")
+    st.altair_chart(grouped_chart, use_container_width=True)
+
+    # Display the summarized table
+    st.subheader("Table")
+    st.dataframe(df_grouped)
+
+    return df_grouped, grouped_chart
