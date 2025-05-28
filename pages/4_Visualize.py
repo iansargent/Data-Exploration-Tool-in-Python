@@ -18,6 +18,12 @@ from st_aggrid import AgGrid
 # The visualize page (with default arguments given)
 def render_visualization(mode="single", processed_files=None):
 
+    # Set the page title
+    st.markdown(
+        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Visualize</h2>",
+        unsafe_allow_html=True)
+
+
     dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
 
     for i, (df, filename) in enumerate(processed_files):
@@ -70,8 +76,6 @@ def show_plots():
     </style>
     """, unsafe_allow_html=True)
     
-    st.title(f"Visualize Your Data")
-
     tab1, tab2 = st.tabs(["Single Variable", "Two Variables"])
     user_files = get_user_files(key="shared")  # use a shared key
     processed_files = process_uploaded_files(user_files)

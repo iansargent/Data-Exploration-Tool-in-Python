@@ -9,29 +9,67 @@ About Page
 
 
 import streamlit as st
+import markdown
 
 def render_about():
-    st.title("About the App")
-    st.markdown("""
-    This interactive app is designed to help users and planners explore and visualize their municipal datasets
-    for the Vermont Livability Project. Upload your data files to get started!
+    # Set the page title
+    st.markdown(
+        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>About the Project</h2>",
+        unsafe_allow_html=True)
 
-    Built with ❤️\n\n by Ian.
-    """)
-    
-    st.markdown("[GitHub Repository Link](https://github.com/iansargent/Data-Exploration-Tool-in-Python)")
+    with open('/Users/iansargent/streamlit-data-app/pages/about.md', 'r', encoding='utf-8') as file:
+        about_content = file.read()
+        html_content = markdown.markdown(about_content)
 
+
+    with st.container():        
+        
+        st.markdown(
+            f"""
+            <div class="custom-container">
+                <p>{html_content}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 def show_about():
     st.markdown(
-    """
-    <style>
-    /* Set Helvetica (fallback to Arial, sans-serif) globally */
-    html, body, [class*="css"]  {
-        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+        """
+        <style>
+        html, body, [class*="css"]  {
+            font-family: 'Avenir', 'Arial', sans-serif;
+            font-weight: 300;
+        }
+
+        [data-testid="stAppViewContainer"] {
+            background-image: url("https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Images/HomePagePhoto.png");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            background-position: center;
+        }
+
+        [data-testid="stHeader"] {
+            background: rgba(255, 255, 255, 0.0);
+        }
+
+        [data-testid="stSidebar"] {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Custom container style */
+        .custom-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     render_about()
 
 

@@ -23,7 +23,7 @@ def main():
         page_icon="🍁"
     )
     
-    # Set the page title and sidebar settings
+    # Set the page title
     st.markdown(
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Vermont Livability: A Data Exploration App</h2>",
         unsafe_allow_html=True)

@@ -17,7 +17,10 @@ import geopandas as gpd
 
 
 def render_data_summary():
-    st.title("Data Summary")
+    # Set the page title
+    st.markdown(
+        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Data Summary</h2>",
+        unsafe_allow_html=True)
     
     user_files = get_user_files()
     processed_files = process_uploaded_files(user_files)

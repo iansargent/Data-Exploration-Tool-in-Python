@@ -16,7 +16,9 @@ import geopandas as gpd
 def render_table_preview():
     
     # Set the page title
-    st.title("Table Preview")
+    st.markdown(
+        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Table Preview</h2>",
+        unsafe_allow_html=True)
     
     # The the uploaded files and process them
     user_files = get_user_files()

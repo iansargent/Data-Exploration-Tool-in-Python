@@ -27,7 +27,9 @@ def render_mapping():
     based on user selections.
     """
     # Set the page title
-    st.title("Mapping")
+    st.markdown(
+        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Mapping</h2>",
+        unsafe_allow_html=True)
 
     # Get the user files from the uploader and process them
     user_files = get_user_files()
