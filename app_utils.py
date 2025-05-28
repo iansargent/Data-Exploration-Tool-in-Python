@@ -864,7 +864,6 @@ def two_column_plot(df, col1, col2):
         return None
 
 
-
 def group_by_plot(df, num_op, num_var, grp_by):
     
     # Create a new simple DataFrame with the two columns of interest
@@ -926,3 +925,4 @@ def group_by_plot(df, num_op, num_var, grp_by):
     st.dataframe(df_grouped)
 
     return df_grouped, grouped_chart
+

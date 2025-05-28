@@ -11,12 +11,12 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
-from app_utils import (get_user_files, file_hash, read_data, 
-                       get_file_name, get_columns, is_latitude_longitude,
-                       clean_data, convert_all_timestamps_to_str, process_uploaded_files)
+from app_utils import (get_user_files, is_latitude_longitude, 
+                       convert_all_timestamps_to_str, process_uploaded_files)
 from statistics import mean
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
-import math
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 
 
 def render_mapping():
@@ -58,13 +58,13 @@ def render_mapping():
 
     # Create an option bank of basemaps to choose from
     basemaps = {
+    "Light": "CartoDB.Positron",
     "Standard": "OpenStreetMap",
-    "Satellite View": "Esri.WorldImagery",
-    "CartoDB Light": "CartoDB.Positron",
+    "Satellite": "Esri.WorldImagery",
     "Elevation": "OpenTopoMap",
     "Shaded Relief Map": "Esri.WorldShadedRelief",
     "Hillshade Map": "Esri.WorldHillshade",
-    "National Geographic Style": "Esri.NatGeoWorldMap",
+    "National Geographic": "Esri.NatGeoWorldMap",
     "World Street Map": "Esri.WorldStreetMap"
     }
     
@@ -177,13 +177,41 @@ def render_mapping():
                     map.set_center(center_long, center_lat, zoom=10)
                     
                     # Add the user-filtered zoning layer to the map
+                    from leafmap import colormaps
+
+                    # Create a categorical colormap based on unique District Types
+                    unique_types = selected_district["District Type"].dropna().unique()
+                    
+                    # Generate distinct colors from a colormap
+                    cmap = plt.get_cmap("Set2")
+                    colors = [mcolors.rgb2hex(cmap(i % cmap.N)) for i in range(len(unique_types))]
+
+                    # Create the mapping
+                    district_type_color_map = dict(zip(unique_types, colors))
+
+                    def style_by_district_type(feature):
+                        district_type = feature["properties"]["District Type"]
+                        return {
+                            "color": "black",
+                            "weight": 0.3,
+                            "fillColor": district_type_color_map.get(district_type, "gray"),
+                            "fillOpacity": 0.4
+                        }
+
+                    
                     map.add_gdf(
                         selected_district,
-                        layer_name=f"{district_selection} Geometry" if district_selection != "All Districts" else "Selected Area",
-                        style=zoning_style,
+                        layer_name="Districts by Type",
+                        style_function=style_by_district_type,
                         info_mode='on_click',
                         zoom_to_layer=True
                     )
+
+                    # Convert the district type-color mapping into a legend dict
+                    legend_dict = {district_type: color for district_type, color in district_type_color_map.items()}
+
+                    # Add legend to the map
+                    map.add_legend(title="District Type", legend_dict=legend_dict)
                     
                 # If it is not a zoning file, add it as a layer to the map
                 else:

@@ -61,7 +61,7 @@ def render_visualization(mode="single", processed_files=None):
             # Display the set of plots based on the datatype combination
             two_column_plot(df, col1, col2)
 
-        elif mode == "triple":
+        elif mode == "group-by":
             
             # Define a list of useful "group-by" operations
             operations = ["Total", "Average", "Median", "Count", "Unique Count", 'Standard Deviation']
@@ -157,7 +157,7 @@ def show_plots():
     with tab2:
         render_visualization("double", processed_files)
     with tab3:
-        render_visualization("triple", processed_files)
+        render_visualization("group-by", processed_files)
 
 if __name__ == "__main__":
     show_plots()
