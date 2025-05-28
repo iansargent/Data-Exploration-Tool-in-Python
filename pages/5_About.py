@@ -23,7 +23,6 @@ def render_about():
 
 
     with st.container():        
-        
         st.markdown(
             f"""
             <div class="custom-container">
@@ -60,15 +59,16 @@ def show_about():
 
         /* Custom container style */
         .custom-container {
-            background-color: white;
+            background-color: cornsilk;
             padding: 2rem;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            font-family: 'Avenir', 'Arial';
+            font-weight: 300;
+            color: #333333;
         }
         </style>
-        """,
-        unsafe_allow_html=True
-    )
+        """, unsafe_allow_html=True)
 
     render_about()
 
