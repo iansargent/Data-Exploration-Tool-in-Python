@@ -83,7 +83,7 @@ def render_mapping():
     default_center = [44.45, -72.71]
 
     # Initialize a blank map object to add layers onto later
-    map = leafmap.Map(center=default_center, zoom_to_layer=True)
+    map = leafmap.Map(center=default_center, zoom = 7.5)
     map.add_basemap(selected_basemap)
     
     # Loop through each processed dataframe and its filename
@@ -93,7 +93,7 @@ def render_mapping():
 
         # Determine the layer style based on common words in the VTZA data folder
         if "border" in filename:
-            style = {"fillOpacity": 0.2, "color": "dodgerblue", "weight": 2}
+            style = {"color": "dodgerblue", "weight": 2}
         elif "linearfeatures" in filename:
             style = {"color": "blue", "weight": 2}
         elif "pointfeatures" in filename:
@@ -215,16 +215,16 @@ def render_mapping():
                     # Add legend to the map
                     map.add_legend(title="District Type", legend_dict=legend_dict)
                     
-                # If it is not a zoning file, add it as a layer to the map
-                else:
-                    # Add other GeoDataFrames as separate layers
-                    map.add_gdf(
-                        df,
-                        layer_name=filename,
-                        style=style,
-                        info_mode='on_click',
-                        zoom_to_layer=True
-                    )
+            # If it is not a zoning file, add it as a layer to the map
+            else:
+                # Add other GeoDataFrames as separate layers
+                map.add_gdf(
+                    df,
+                    layer_name=filename,
+                    style=style,
+                    info_mode='on_click',
+                    zoom_to_layer=True
+                )
     
         # If the dataframe has latitude and longitude columns, create a heatmap
         elif is_latitude_longitude(df):

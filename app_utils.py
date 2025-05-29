@@ -301,7 +301,7 @@ def clean_data(df):
         if df[col].dropna().nunique() == 2:
             vals = set(str(v).strip().lower() for v in df[col].dropna().unique())
             if vals == {"yes", "no"} or vals == {"0", "1"} or vals == {0, 1} or vals == {"y", "n"}:
-                df[col] = df[col].astype(object)
+                df[col] = df[col].astype(bool)
         
         if isinstance(df, gpd.GeoDataFrame):
             convert_all_timestamps_to_str(df)
@@ -983,6 +983,11 @@ def two_column_plot(df, col1, col2):
     """
     Create a series of two-variable plots based on the data types of each selected column.
     """
+    # Create a copy of the original dataset
+    df = df.copy()
+    # Define boolean variables as "object" type for plotting purposes
+    df[df.select_dtypes(include='bool').columns] = df.select_dtypes(include='bool').astype('object')
+    
     # Define the data types of both selected columns
     col1_type = get_column_type(df, col1)
     col2_type = get_column_type(df, col2)

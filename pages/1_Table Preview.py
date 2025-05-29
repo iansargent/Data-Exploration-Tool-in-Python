@@ -13,6 +13,8 @@ from streamlit_extras.metric_cards import style_metric_cards
 from app_utils import get_user_files, process_uploaded_files, data_snapshot
 import geopandas as gpd
 
+from streamlit_extras.dataframe_explorer import dataframe_explorer 
+
 
 def render_table_preview():
     
@@ -46,6 +48,10 @@ def render_table_preview():
             if df is not None:
                 # Display the table using AgGrid
                 AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+
+                # NOTE: TEMPORARY COMPARISON USING DATAFRAME_EXPLORER
+                filtered_df = dataframe_explorer(df, case=False)
+                st.dataframe(filtered_df, use_container_width=True)
 
 
 def show_preview():
