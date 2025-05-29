@@ -509,22 +509,48 @@ def single_column_plot(df, selected_column):
 def numeric_numeric_plots(df, col1, col2):
     """
     Create a scatterplot with regression line and heatmap 
-    if two numeric variables are selected.
+    if two numeric variables are selected. Add a group by option
+    for the scatterplots and use color as the grouping variable.
     """
+    key = 0
     source = df[[col1, col2]].dropna()
+
+    categorical_columns = df.select_dtypes(include=["object", "category", "bool"])
+    
+    categorical_column_names = []
+    for col in categorical_columns.columns:
+        if df[col].nunique(dropna=True) <= 6:
+            categorical_column_names.append(col)
+
+
+
+    grp_by = st.selectbox(
+        f"OPTIONAL: Select a variable to summarize by", 
+        ["None"] + sorted(categorical_column_names), 
+        index=0,
+        key=f"num-num-grp_by-{key}"
+    )
+
+    key += 1
+
+    if grp_by != "None":
+        source = df[[col1, col2, grp_by]].dropna()
+        color = alt.Color(f"{grp_by}:N", title=grp_by)
+    else:
+        color = alt.value("mediumseagreen")
 
     # SCATTERPLOT
     scatterplot = alt.Chart(source).mark_square(
-        color = "mediumseagreen",
         opacity = 0.7
     ).encode(
         x = alt.X(f"{col1}:Q", title=col1).scale(zero=False),
         y = alt.Y(f"{col2}:Q", title=col2).scale(zero=False),
-        tooltip=[f"{col1}:Q", f"{col2}:Q"]
+        color = color,
+        tooltip=[col1, col2] + ([grp_by] if grp_by != "None" else [])
     )
 
     # REGRESSION LINE
-    regression_line = scatterplot.transform_regression(
+    regression_line = scatterplot.transform_loess(
         f"{col1}", f"{col2}"
     ).mark_line().encode(
         color=alt.value("tomato"),
