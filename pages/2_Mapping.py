@@ -37,6 +37,7 @@ def render_mapping():
     
     # If no geo-dataframes are found, show a warning message
     geo_df_found = False
+    
     for df, filename in processed_files:
         if isinstance(df, gpd.GeoDataFrame):
             geo_df_found = True

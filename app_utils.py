@@ -300,6 +300,9 @@ def clean_data(df):
             vals = set(str(v).strip().lower() for v in df[col].dropna().unique())
             if vals == {"yes", "no"} or vals == {"0", "1"} or vals == {0, 1} or vals == {"y", "n"}:
                 df[col] = df[col].astype(object)
+        
+        if isinstance(df, gpd.GeoDataFrame):
+            convert_all_timestamps_to_str(df)
     
     # Return the cleaned dataframe
     return df
@@ -314,6 +317,7 @@ def convert_all_timestamps_to_str(gdf):
     for col, dtype in gdf.dtypes.items():
         if "datetime" in str(dtype):
             gdf[col] = gdf[col].astype(str)
+    
     # Return the GeoDataFrame
     return gdf
 
@@ -362,10 +366,12 @@ def generate_profile_report(df):
     Generate a tailored profile report 
     given a DataFrame using the ydata-profiling package.
     """
-    
+    # Get the number of columns in the dataframe
     df_columns = get_columns(df)
     num_columns = len(df_columns)
 
+    # If there are a large amount of columns (30)
+    # Exclude sections "samples", "correlations", and "interactions" for computing purposes
     if num_columns > 30:
         report = ProfileReport(
             df,
@@ -375,6 +381,7 @@ def generate_profile_report(df):
             correlations=None,
             interactions=None
         )
+    # If there are less than 30 columns, only exclude the correlation matrix diagram
     else:
         report = ProfileReport(
             df,
@@ -384,7 +391,8 @@ def generate_profile_report(df):
                 "matrix": False,
             }
         )
-
+    
+    # Return the ydata-profiling report
     return report
 
 
@@ -397,9 +405,9 @@ def single_column_plot(df, selected_column):
     Create a single column plot based on the data type of the selected column.
     The plot type is determined by the data type of the column.
     """
-    
+    # Define the plotting source as the one selected column without missing values
     source = df[[selected_column]].dropna()
-    
+    # Get the column type
     column_type = get_column_type(df, selected_column)
     
     # If the column is categorical (object type)
@@ -419,13 +427,14 @@ def single_column_plot(df, selected_column):
         )
         # Disply the chart
         st.altair_chart(bar_chart, use_container_width=True)
-        
+        # Return the bar chart
         return bar_chart
 
     # If the column is numeric
     elif column_type in ['int64', 'float64']:
-        
+        # Ensure the data type is numeric
         df[selected_column] = pd.to_numeric(df[selected_column], errors='coerce')
+        # Redefine the plotting source
         source = df[[selected_column]].dropna()
 
         # Slider for number of bins in the histogram
@@ -458,7 +467,7 @@ def single_column_plot(df, selected_column):
             y=alt.Y('density:Q', title='Density')
         )
 
-        # Confidence Interval
+        # Define the 95% confidence interval bounds
         d = DescrStatsW(source[selected_column])
         ci_low, ci_high = d.tconfint_mean()
         CI = (ci_low, ci_high)
@@ -478,13 +487,17 @@ def single_column_plot(df, selected_column):
         # Display the histogram
         st.altair_chart(histogram, use_container_width=True)
         
-        # Create two columns for density plot and confidence interval
+        # Create two columns for formattinf the density plot and confidence interval
         col1, col2 = st.columns(2)
-       
+        
+        # On the left
         with col1:
+            # Display the density plot
             st.subheader(f"Density Plot")
             st.altair_chart(density, use_container_width=True)
+        # On the right
         with col2:
+            # Display the confidence interval
             with st.container():
                 st.subheader(f"95% Confidence Interval")
             st.markdown(f"{ci_low:,.1f} to {ci_high:,.1f}")
@@ -494,10 +507,11 @@ def single_column_plot(df, selected_column):
                 f"{ci_low:.1f} and {ci_high:.1f} based on this sample."
             )
         
-        # Display the box plot
+        # Display the box plot below
         st.subheader(f"Box Plot")
         st.altair_chart(boxplot, use_container_width=True)
 
+        # Return the plots and confidence interval
         return histogram, boxplot, CI, density
 
     # If the column is datetime
@@ -511,10 +525,12 @@ def single_column_plot(df, selected_column):
         numeric_cols = df.select_dtypes(include=['int', 'float']).columns.tolist()
         numeric_cols = [col for col in numeric_cols if col != selected_column]
         
+        # If there are no numeric columns to plot over time
         if not numeric_cols:
             st.warning("No numeric columns available to plot against time.")
             return
         
+        # Define the variable to plot over time
         y_column = st.selectbox("Select a column to plot over time:", numeric_cols)
 
         # Create the LINE CHART
@@ -524,7 +540,7 @@ def single_column_plot(df, selected_column):
             color = alt.value("dodgerblue"),
         )
 
-        # Create the LOESS line chart with proper data transformation
+        # Create the LOESS curve to add to the time series plot 
         time_chart = chart + chart.transform_loess(
             f"{selected_column}", f"{y_column}", bandwidth=0.2
         ).mark_line().encode(color = alt.value("tomato"))
@@ -532,6 +548,7 @@ def single_column_plot(df, selected_column):
         # Display the chart
         st.altair_chart(time_chart, use_container_width=True)
         
+        # Return the time series chart
         return time_chart
 
     # If the column is boolean
@@ -548,6 +565,7 @@ def single_column_plot(df, selected_column):
         # Display the chart
         st.altair_chart(pie_chart, use_container_width=True)
         
+        # Return the pie chart
         return pie_chart
 
     # If the column data type is not recognized (int, float, object, datetime, bool)
@@ -561,31 +579,35 @@ def numeric_numeric_plots(df, col1, col2):
     if two numeric variables are selected. Add a group by option
     for the scatterplots and use color as the grouping variable.
     """
-    key = 0
+
+    # Define the plotting source
     source = df[[col1, col2]].dropna()
 
+    # Select only categorical columns (including boolean type)
     categorical_columns = df.select_dtypes(include=["object", "category", "bool"])
     
+    # Create a list of categorical column names
     categorical_column_names = []
     for col in categorical_columns.columns:
         if df[col].nunique(dropna=True) <= 6:
             categorical_column_names.append(col)
 
-
-
+    # Create a select box for the group-by variable for the scatterplot
     grp_by = st.selectbox(
         f"OPTIONAL: Select a variable to summarize by", 
         ["None"] + sorted(categorical_column_names), 
         index=0,
-        key=f"num-num-grp_by-{key}"
+        key=f"num-num-grp_by_{categorical_column_names}"
     )
 
-    key += 1
-
+    # If they select a group-by variable
     if grp_by != "None":
+        # Create a new plotting source including the grp-by column
         source = df[[col1, col2, grp_by]].dropna()
+        # Define the point colors as a factor of the variable
         color = alt.Color(f"{grp_by}:N", title=grp_by)
     else:
+        # Just use the default point color of "mediumseagreen"
         color = alt.value("mediumseagreen")
 
     # SCATTERPLOT
@@ -669,7 +691,7 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, 
     Display a scatterplot, regression line, heatmap, and correlation coefficient
     if two numeric variables are selected.
     """
-    
+    # Define the plotting source
     source = df[[col1, col2]].dropna()
     
     # Set title for scatterplots
@@ -723,6 +745,7 @@ def numeric_categorical_plots(df, col1, col2):
 
     # If the first column is numeric and the second is categorical
     if col1_type in ['int64', 'float64']:
+        # Define the numeric and non-numeric columns
         numeric_col = col1
         non_numeric_col = col2
             
@@ -755,8 +778,10 @@ def numeric_categorical_plots(df, col1, col2):
 
     # If the first column is categorical and the second is numeric
     else:
+        # Define the numeric and non-numeric columns
         numeric_col = col2
         non_numeric_col = col1
+        
         # MULTI BOXPLOT
         multi_box = alt.Chart(source).mark_boxplot(size=40).encode(
             x = alt.X(f"{col1}:N", sort='-y', title=col1),
@@ -804,6 +829,7 @@ def categorical_categorical_plots(df, col1, col2):
     Create a crosstab with raw counts and percentages for two categorical variables 
     if two categorical variables are selected.
     """
+    # Define the plotting source
     source = df[[col1, col2]].dropna()
 
     # Crosstab with raw counts
@@ -858,7 +884,7 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
     if two categorical variables are selected.
     """
     
-    # The the unique values of the two columns are reasonable for plotting
+    # If the number of unique values of the two columns are reasonable for plotting
     if ((df[col1].nunique() > 2 and df[col2].nunique() > 2) and 
         (df[col1].nunique() <= 12 and df[col2].nunique() <= 12)):
         column1, column2 = st.columns(2)
@@ -866,11 +892,13 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
         with column1:
             st.subheader(f"Frequency Table of {col1} and {col2}")
             st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
+        
         # Display the heatmap
         with column2:
             st.subheader(f"Heatmap of {col1} and {col2}")
             st.altair_chart(heatmap, use_container_width=True)
-
+    
+    # If the number of unique values is NOT reasonable for plotting
     else:
         # Just display the frequency table
         st.subheader(f"Frequency Table of {col1} and {col2}")
@@ -967,7 +995,7 @@ def group_by_plot(df, num_op, num_var, grp_by):
     # Reset the DataFrame index for plotting
     df_grouped = df_grouped.reset_index()
     
-    # Edit the existing column name to reflect the operation
+    # Rename the existing column to reflect the applied operation
     num_var_name = f"{prefix}{num_var}"
     df_grouped.rename(columns={num_var: num_var_name}, inplace=True)
 
@@ -979,6 +1007,7 @@ def group_by_plot(df, num_op, num_var, grp_by):
         label_visibility="hidden"
     )
     
+    # Change the sort variable based on the sorting selection
     if sort_option == "Ascending":
         sort = 'y'
     elif sort_option == "Descending":
@@ -986,6 +1015,7 @@ def group_by_plot(df, num_op, num_var, grp_by):
     else:
         sort = list(df_grouped[grp_by])
     
+    # BAR CHART
     grouped_chart = alt.Chart(df_grouped).mark_bar().encode(
         x=alt.X(f'{grp_by}:N', sort=sort),
         y=alt.Y(f'{num_var_name}:Q')
@@ -999,5 +1029,6 @@ def group_by_plot(df, num_op, num_var, grp_by):
     st.subheader("Table")
     st.dataframe(df_grouped)
 
+    # Return the aggregated DataFrame and the corresponsing bar chart
     return df_grouped, grouped_chart
 
