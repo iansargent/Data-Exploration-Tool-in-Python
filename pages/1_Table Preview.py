@@ -47,9 +47,9 @@ def render_table_preview():
         else:
             if df is not None:
                 # Display the table using AgGrid
-                AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+                # AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
 
-                # NOTE: TEMPORARY COMPARISON USING DATAFRAME_EXPLORER
+                # Display a filterable table using dataframe_explorer
                 filtered_df = dataframe_explorer(df, case=False)
                 st.dataframe(filtered_df, use_container_width=True)
 
