@@ -26,6 +26,7 @@ import leafmap as lfm
 #######      File Handling      ########
 #--------------------------------------#
 def get_user_files(key="main"):
+    # Define a file uploader object accepting various file types
     uploaded_files = st.sidebar.file_uploader(
         label="Upload Data Files Here", 
         type=["geojson", "fgb", "csv", "xlsx", 'xls', 'json', 'sav'],
@@ -34,20 +35,24 @@ def get_user_files(key="main"):
         label_visibility="hidden"
     )
 
+    # If the user uploads a file
     if uploaded_files:
+        # Add it the to session state
         st.session_state["user_files"] = uploaded_files
 
-    # Show uploaded file names
+    # Keep track of the uploaded file names in the sidebar
     user_files = st.session_state.get("user_files", [])
     if user_files:
         st.sidebar.markdown("### Uploaded Files:")
         for file in user_files:
             st.sidebar.write(f"📄 {file.name}")
 
+        # Set a 'clear uploads' buttton that clears the files from memory
         if st.sidebar.button("🔁 Clear Data Uploads"):
             st.session_state.pop("user_files", None)
             st.rerun()
-
+    
+    # Return a list of the uploaded files
     return user_files
 
 
@@ -56,36 +61,49 @@ def process_uploaded_files(user_files):
     Process the uploaded files and return a list of unique file names.
     This function generates a unique hash for each file to check for duplicates.
     It also reads the data, cleans it, and returns a list of tuples containing 
-    the DataFrame and the file name.
+    the DataFrame and the corresponding file name.
     """
+    # Create an empty set of seen hash codes
     seen_hashes = set()
+    # Define an empty list to store processed files
     processed = []
 
+    # If the user has not uploaded any files
     if not user_files:
         st.warning("No files uploaded.")
         return []
 
+    # For each uploaded file
     for file in user_files:
+        # Give it a unique hash code for validation purposes
         fid = file_hash(file)
+        # If it is already recognized, continue
         if fid in seen_hashes:
             continue
+        # Add the file hash to the set of seen hash codes
         seen_hashes.add(fid)
 
+        # Read the dataset using the read_data() function
         df = read_data(file)
         if df is None:
             continue
+        # Clean the data using the clean_data() function
         df = clean_data(df)
-        df = convert_all_timestamps_to_str(df)
-        
+
+        # If longitude and latitude coordinate columns are found in the file        
         if is_latitude_longitude(df):
+            # Attempt to convert it into a GeoDataFrame
             try:
+                # Define the latitude and longitude columns
                 lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
                 lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
 
+                # Convert into a GeoDataFrame with geometry
                 df = gpd.GeoDataFrame(df, 
                         geometry=gpd.points_from_xy(df[lon_col], df[lat_col]), 
                         crs="EPSG:4326"
                 )
+            # If it cannot convert it
             except Exception as e:
                 st.warning(f"Error converting to GeoDataFrame: {e}")
                 continue
@@ -106,6 +124,7 @@ def file_hash(file):
     file.seek(0)
     content = file.read()
     file.seek(0)
+    
     return hashlib.md5(content).hexdigest()
 
 
@@ -114,6 +133,7 @@ def get_file_name(file):
     Get the file name without the extension.
     """
     filename = os.path.splitext(file.name)[0].lower()
+    
     return filename
 
 
@@ -122,6 +142,7 @@ def get_file_extension(file):
     Extract the file extension of the uploaded file.
     """
     file_extension = os.path.splitext(file.name)[1]
+    
     return file_extension
 
 
@@ -134,13 +155,15 @@ def read_data(file):
     """
     Read the uploaded file and return a DataFrame or GeoDataFrame.
     """
-    
+    # Get the file extension of the uploaded file
+    # This will determine how the data is read
     file_extension = get_file_extension(file)
     
+    # For CSV files, use pandas
     if file_extension == '.csv':
         df = pd.read_csv(file)
         return df
-
+    # For SPSS files, use pyreadstat
     elif file_extension == '.sav':
         import pyreadstat as prs
         import tempfile
@@ -151,21 +174,21 @@ def read_data(file):
 
         df, _ = prs.read_sav(tmp_path)
         return df
-
+    # For XLSX files, use pandas with the openpyxl engine
     elif file_extension == '.xlsx':
         import openpyxl
         df = pd.read_excel(file, engine='openpyxl')
         return df
-
+    # For XLS files, use pandas with the xlrd engine
     elif file_extension == '.xls':
         df = pd.read_excel(file, engine='xlrd')
         return df
-
+    # For 'geographic' file types, use geopandas with the pyogrio engine
     elif file_extension in [".geojson", ".json", ".fgb", ".shp"]:
         import pyogrio
-        df = gpd.read_file(file, engine="pyogrio")
-        return df
-
+        gdf = gpd.read_file(file, engine="pyogrio")
+        return gdf
+    # If the file extension is not listed above, return an error
     else:
         st.error("Unsupported file format. Please upload a CSV, JSON, GEOJSON, SAV, XLS, or XLSX file.")
         return None
@@ -176,6 +199,7 @@ def get_columns(df):
     Get the column names from the DataFrame as a list.
     """
     columns = df.columns.tolist()
+    
     return columns
 
 
@@ -184,6 +208,7 @@ def get_column_type(df, column_name):
     Get the data type of a specific column in the DataFrame.
     """
     column_type = df[column_name].dtype
+    
     return column_type
 
 
@@ -191,18 +216,26 @@ def is_latitude_longitude(df):
     """
     Check if the DataFrame contains latitude and longitude columns.
     """
+    # Get the column names from the DataFrame
     df_columns = [col.strip().lower() for col in get_columns(df)]
 
+    # Define both the latitude and longitude columns
     lat_col = [col for col in df_columns if "latitude" in col.lower()]
     lon_col = [col for col in df_columns if "longitude" in col.lower()]
 
+    # If both columns are found, return True
     if lat_col and lon_col:
         return True
+    # If one or no columns are found, return false
     else:
         return False
 
 
 def month_name_to_num(month_name):
+    """
+    Convert string-type month names into corresponding integers
+    to make it easier to convert into datetime-type columns.
+    """
     # Try to convert month string (like "May", "5", "05") to number 1-12
     if pd.isna(month_name):
         return None
@@ -217,10 +250,13 @@ def month_name_to_num(month_name):
     # Check if month name (short or full)
     month_abbrs = {m.lower(): i for i, m in enumerate(calendar.month_abbr) if m}
     month_names = {m.lower(): i for i, m in enumerate(calendar.month_name) if m}
+    
     if month_name in month_abbrs:
         return month_abbrs[month_name]
+    
     if month_name in month_names:
         return month_names[month_name]
+    
     return None
 
 
@@ -229,23 +265,29 @@ def clean_data(df):
     Clean the column types of the DataFrame.
     Convert binary numeric columns to boolean and parse datetime columns based on column name.
     """
+    # Replace "." name spacers with "_"
     df.columns = df.columns.str.replace('.', '_', regex=False)
+    # Replace empty values with NA
     df = df.replace(r'^\s*$', pd.NA, regex=True)
 
     for col in df.columns:
+        # Get the column name
         col_name = col.lower()
 
         # Handle datetime-like columns based on column name
         if any(x in col_name for x in ["datetime", "date", "time"]):
             df[col] = pd.to_datetime(df[col], errors='coerce')
             continue  # Skip further checks
-
+        # If the column is a year variable
         elif "year" in col_name:
+            # Convert it into a datetime type
             df[col] = pd.to_datetime(df[col].astype(str) + "-01-01", errors='coerce')
             continue
-
+        # If the column is a month variable
         elif "month" in col_name:
+            # Convert month names into numbers
             df[col] = df[col].apply(month_name_to_num)
+            # Convert it into a datetime type
             df[col] = pd.to_datetime(
                 "2000-" + df[col].astype(int).astype(str).str.zfill(2) + "-01",
                 format="%Y-%m-%d",
@@ -258,16 +300,21 @@ def clean_data(df):
             vals = set(str(v).strip().lower() for v in df[col].dropna().unique())
             if vals == {"yes", "no"} or vals == {"0", "1"} or vals == {0, 1} or vals == {"y", "n"}:
                 df[col] = df[col].astype(object)
-
+    
+    # Return the cleaned dataframe
     return df
 
 
-
 def convert_all_timestamps_to_str(gdf):
+    """
+    Converts all timestamp columns in a GeoDataFrame 
+    into strings for mapping purposes.
+    """
     # Convert all datetime columns to strings
     for col, dtype in gdf.dtypes.items():
         if "datetime" in str(dtype):
             gdf[col] = gdf[col].astype(str)
+    # Return the GeoDataFrame
     return gdf
 
 

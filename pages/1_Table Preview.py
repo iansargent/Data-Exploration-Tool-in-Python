@@ -9,7 +9,7 @@ Table Preview Page
 # Necessary imports
 import streamlit as st
 from st_aggrid import AgGrid, ColumnsAutoSizeMode
-from app_utils import get_user_files, file_hash, read_data, get_columns, clean_data, process_uploaded_files
+from app_utils import get_user_files, process_uploaded_files
 import geopandas as gpd
 
 
@@ -20,13 +20,14 @@ def render_table_preview():
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Table Preview</h2>",
         unsafe_allow_html=True)
     
-    # The the uploaded files and process them
+    # Get the uploaded files and process them
     user_files = get_user_files()
     processed = process_uploaded_files(user_files)
     
     # Define the divider colors for each file uploaded
     dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
     
+    # For each uploaded file
     for i, (df, filename) in enumerate(processed):
         # Subheader for the table preview
         st.header(f"Preview of {filename}", divider=dividers[i])
@@ -47,6 +48,7 @@ def render_table_preview():
 
 
 def show_preview():
+    # Apply a background color to the page
     st.markdown(
     """
     <style>
@@ -69,6 +71,7 @@ def show_preview():
     </style>
     """, unsafe_allow_html=True)
     
+    # Show the table page
     render_table_preview()
 
 

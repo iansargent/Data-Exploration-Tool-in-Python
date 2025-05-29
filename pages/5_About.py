@@ -17,11 +17,12 @@ def render_about():
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>About the Project</h2>",
         unsafe_allow_html=True)
 
+    # Open the 'about.md' file and read its content
     with open('/Users/iansargent/streamlit-data-app/pages/about.md', 'r', encoding='utf-8') as file:
         about_content = file.read()
         html_content = markdown.markdown(about_content)
 
-
+    # Display the 'about.md' content in a container 
     with st.container():        
         st.markdown(
             f"""
@@ -33,6 +34,7 @@ def render_about():
         )
 
 def show_about():
+    # Set the global font settings and display a background image
     st.markdown(
         """
         <style>
@@ -69,7 +71,8 @@ def show_about():
         }
         </style>
         """, unsafe_allow_html=True)
-
+    
+    # Show the about page
     render_about()
 
 

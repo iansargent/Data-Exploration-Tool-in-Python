@@ -18,10 +18,11 @@ import pandas as pd
 # The visualize page (with default arguments given)
 def render_visualization(mode="single", processed_files=None):
     
-    for i, (df, filename) in enumerate(processed_files):
+    # For each processed file
+    for df, filename in processed_files:
+        # Initialize a unique key for certain page features
         key = 0
-        
-        # Convert any date/time columns from object to datetime here:
+        # Manually convert any date/time columns from object to datetime here:
         # NOTE: Should be integrated into clean_data() at a later date.
         for col in df.columns:
             if any(k in col.lower() for k in ['date', 'time']):
@@ -34,11 +35,13 @@ def render_visualization(mode="single", processed_files=None):
         # In the single-variable tab
         if mode == "single":
             # Allow users to select a variable
-            col = st.selectbox(f"Select a column to plot", 
-                               columns, 
-                               index=1,
-                               key=f"{filename}-single-{key}")
-            
+            col = st.selectbox(
+                f"Select a column to plot", 
+                columns, 
+                index=1,
+                key=f"{filename}-single-{key}"
+            )
+            # Advance the unique key
             key += 1
 
             # Display plot(s) based on the variable type
@@ -46,11 +49,11 @@ def render_visualization(mode="single", processed_files=None):
         
         # In the two-variable tab
         elif mode == "double":         
-            
+            # Define a set of 2 columns for formating the variable select boxes
             column1, column2 = st.columns(2)
 
+            # In the first column
             with column1:
-            
                 # Selection box for the first variable
                 col1 = st.selectbox(
                     f"Select a column to plot", 
@@ -58,6 +61,7 @@ def render_visualization(mode="single", processed_files=None):
                     index=1,
                     key=f"{filename}-col1-{key}"
                     )
+            # In the second column
             with column2:
                 # Selection box for the second variable
                 col2 = st.selectbox(
@@ -70,13 +74,15 @@ def render_visualization(mode="single", processed_files=None):
             # Display the set of plots based on the datatype combination
             two_column_plot(df, col1, col2)
 
+        # In the "group-by" tab
         elif mode == "group-by":
-            
             # Define a list of useful "group-by" operations
             operations = ["Total", "Average", "Median", "Count", "Unique Count", 'Standard Deviation']
             
+            # Define a set of 3 columns for formating the select boxes
             column1, column2, column3 = st.columns(3)
             
+            # In the first column
             with column1:
                 # Selection box for numeric OPERATION (average, total, SD, etc.)
                 num_op = st.selectbox(
@@ -85,11 +91,12 @@ def render_visualization(mode="single", processed_files=None):
                     index=0,
                     key=f"{filename}-num_op-{key}"
                     )
-                
+            
             # Define a list of only numeric columns in the dataframe to select from
             numeric_columns = df.select_dtypes(include=[np.number])
+            # Get the column names as a list
             numeric_column_names = numeric_columns.columns.tolist()
-
+            # In the second column
             with column2:
                 # Selection box for the numeric variable
                 num_var = st.selectbox(
@@ -102,7 +109,7 @@ def render_visualization(mode="single", processed_files=None):
             # Define a list of only categorical columns to summarize by
             categorical_columns = df.select_dtypes(include=["object", "category"])
             categorical_column_names = categorical_columns.columns.tolist()
-
+            # In the third column
             with column3:
                 # Selection box for the "group-by" variable
                 grp_by = st.selectbox(
@@ -119,7 +126,7 @@ def render_visualization(mode="single", processed_files=None):
 
 # The main function
 def show_plots():
-    
+    # Apply a background color to the page
     st.markdown(
     """
     <style>
@@ -147,6 +154,7 @@ def show_plots():
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Visualize</h2>",
         unsafe_allow_html=True)
     
+    # Apply global font settings
     st.markdown(
     """
     <style>
@@ -157,10 +165,14 @@ def show_plots():
     </style>
     """, unsafe_allow_html=True)
     
+    # Define the three plotting tabs
     tab1, tab2, tab3 = st.tabs(["Single Variable", "Two Variables", "Group By"])
-    user_files = get_user_files(key="shared")  # use a shared key
+    
+    # Get the user files and process them
+    user_files = get_user_files(key="shared")
     processed_files = process_uploaded_files(user_files)
     
+    # Display the pages for each plotting mode (single, double, group-by)
     with tab1:
         render_visualization("single", processed_files)
     with tab2:

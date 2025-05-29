@@ -17,6 +17,7 @@ from app_utils import get_user_files
 
 
 def main():
+    # Set page configurations
     st.set_page_config(
         page_title="Vermont Livability App",
         layout="wide",
@@ -28,6 +29,7 @@ def main():
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Vermont Livability: A Data Exploration App</h2>",
         unsafe_allow_html=True)
 
+    # Display a background photo for the page
     st.markdown(
     """
     <style>
@@ -50,7 +52,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-
+    # Display the file uploader in the side panel
     get_user_files()
 
 

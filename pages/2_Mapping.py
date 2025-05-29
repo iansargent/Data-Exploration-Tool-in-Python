@@ -13,7 +13,6 @@ import geopandas as gpd
 import leafmap.foliumap as leafmap
 from app_utils import (get_user_files, is_latitude_longitude, 
                        convert_all_timestamps_to_str, process_uploaded_files)
-from statistics import mean
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -182,23 +181,25 @@ def render_mapping():
                     # Create a categorical colormap based on unique District Types
                     unique_types = selected_district["District Type"].dropna().unique()
                     
-                    # Generate distinct colors from a colormap
+                    # Generate distinct colors from a colormap (discrete scale)
                     cmap = plt.get_cmap("Set2")
+                    # Assign colors to the levels of the "District Type" variable
                     colors = [mcolors.rgb2hex(cmap(i % cmap.N)) for i in range(len(unique_types))]
 
-                    # Create the mapping
+                    # Create the color map
                     district_type_color_map = dict(zip(unique_types, colors))
 
+                    # Define a style function that assigns a color to each district type
                     def style_by_district_type(feature):
                         district_type = feature["properties"]["District Type"]
                         return {
-                            "color": "black",
+                            "color": "navy",
                             "weight": 0.3,
                             "fillColor": district_type_color_map.get(district_type, "gray"),
                             "fillOpacity": 0.4
                         }
 
-                    
+                    # Apply the filtered layer to the map
                     map.add_gdf(
                         selected_district,
                         layer_name="Districts by Type",
@@ -349,6 +350,8 @@ def render_mapping():
                 st.warning("No rows selected. Please select at least one row to compare district data.")
 
 def show_mapping():
+    
+    # Apply a background color to the page
     st.markdown(
     """
     <style>
@@ -371,6 +374,7 @@ def show_mapping():
     </style>
     """, unsafe_allow_html=True)
     
+    # Set the global fonts 
     st.markdown(
     """
     <style>
@@ -380,6 +384,8 @@ def show_mapping():
     }
     </style>
     """, unsafe_allow_html=True)
+    
+    # Display the page
     render_mapping()
 
 if __name__ == "__main__":

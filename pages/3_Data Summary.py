@@ -8,9 +8,8 @@ Data Summary Page
 
 # Necessary imports
 import streamlit as st
-from app_utils import (get_user_files, file_hash, read_data, clean_data, 
-                       get_columns, column_summaries, generate_profile_report,
-                       process_uploaded_files)
+from app_utils import (get_user_files, get_columns, column_summaries, 
+                       generate_profile_report, process_uploaded_files)
 import ydata_profiling
 from streamlit_pandas_profiling import st_profile_report
 import geopandas as gpd
@@ -22,15 +21,18 @@ def render_data_summary():
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Data Summary</h2>",
         unsafe_allow_html=True)
     
+    # Get the user files and process them
     user_files = get_user_files()
     processed_files = process_uploaded_files(user_files)
 
+    # Define a list of divider colors that will visually separate each file report on the page
     dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
     
+    # For each processed file
     for i, (df, filename) in enumerate(processed_files):
         # Initialize a unique key for each download file
         key = 0
-        # Header section for each uploaded file
+        # Header section for each uploaded file with a new divider color
         st.header(f"Summary of {filename}", divider=dividers[i])
         # If the file is a GeoDataFrame
         if isinstance(df, gpd.GeoDataFrame):
@@ -54,17 +56,22 @@ def render_data_summary():
             # Allow for an html export
             report_export = profile.to_html()
             # Add a download button for the HTML report
-            st.download_button(label="View Full Report", data=report_export, file_name=f'data_report_{filename}.html')
-            
+            st.download_button(label="View Full Report", data=report_export, file_name=f'data_report_{filename}_{key}.html')
+            # Advance the unique key
+            key += 1
+        
+        # Using an expander-type button
         with st.expander("View Report Preview"):
             # Display the report on the page
             st_profile_report(profile)
         
+        # Add a visual divider
         st.markdown("---")
 
 # Run the data summary page
 def show_summary():
     
+    # Apply a background color to the page
     st.markdown(
     """
     <style>
@@ -87,7 +94,7 @@ def show_summary():
     </style>
     """, unsafe_allow_html=True)
     
-    
+    # Set the global font settings
     st.markdown(
     """
     <style>
@@ -97,6 +104,8 @@ def show_summary():
     }
     </style>
     """, unsafe_allow_html=True)
+    
+    # Show the data summary page
     render_data_summary()
 
 
