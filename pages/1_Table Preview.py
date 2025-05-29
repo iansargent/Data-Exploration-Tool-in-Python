@@ -9,7 +9,8 @@ Table Preview Page
 # Necessary imports
 import streamlit as st
 from st_aggrid import AgGrid, ColumnsAutoSizeMode
-from app_utils import get_user_files, process_uploaded_files
+from streamlit_extras.metric_cards import style_metric_cards 
+from app_utils import get_user_files, process_uploaded_files, data_snapshot
 import geopandas as gpd
 
 
@@ -25,12 +26,12 @@ def render_table_preview():
     processed = process_uploaded_files(user_files)
     
     # Define the divider colors for each file uploaded
-    dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
+    # dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
     
     # For each uploaded file
     for i, (df, filename) in enumerate(processed):
-        # Subheader for the table preview
-        st.header(f"Preview of {filename}", divider=dividers[i])
+        # Data information (dimensions and filename)
+        data_snapshot(df, filename)
         
         # If the dataframe is a GeoDataFrame, drop the geometry column in order to display the table
         if isinstance(df, gpd.GeoDataFrame):
