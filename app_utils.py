@@ -230,36 +230,37 @@ def clean_data(df):
     Convert binary numeric columns to boolean and parse datetime columns based on column name.
     """
     df.columns = df.columns.str.replace('.', '_', regex=False)
-    
     df = df.replace(r'^\s*$', pd.NA, regex=True)
- 
+
     for col in df.columns:
-        # Convert binary numeric columns with values [0,1] to boolean
-        if df[col].dropna().nunique() == 2:
-            vals = set(str(v).strip().lower() for v in df[col].dropna().unique())
-            if vals == {"yes", "no"} or vals == {"0", "1"} or vals == {0, 1}:
-                df[col] = df[col].astype(bool)
+        col_name = col.lower()
 
         # Handle datetime-like columns based on column name
-        col_name = col.lower()
         if any(x in col_name for x in ["datetime", "date", "time"]):
             df[col] = pd.to_datetime(df[col], errors='coerce')
+            continue  # Skip further checks
 
         elif "year" in col_name:
-            # Convert year to datetime (Jan 1 of that year)
             df[col] = pd.to_datetime(df[col].astype(str) + "-01-01", errors='coerce')
+            continue
 
         elif "month" in col_name:
-            # Convert string month to month number
             df[col] = df[col].apply(month_name_to_num)
-            # Then to datetime with fixed year
             df[col] = pd.to_datetime(
                 "2000-" + df[col].astype(int).astype(str).str.zfill(2) + "-01",
                 format="%Y-%m-%d",
                 errors='coerce'
             )
+            continue
+
+        # Convert binary numeric columns with values [0,1] to boolean
+        if df[col].dropna().nunique() == 2:
+            vals = set(str(v).strip().lower() for v in df[col].dropna().unique())
+            if vals == {"yes", "no"} or vals == {"0", "1"} or vals == {0, 1} or vals == {"y", "n"}:
+                df[col] = df[col].astype(object)
 
     return df
+
 
 
 def convert_all_timestamps_to_str(gdf):
@@ -349,12 +350,13 @@ def single_column_plot(df, selected_column):
     Create a single column plot based on the data type of the selected column.
     The plot type is determined by the data type of the column.
     """
+    
     source = df[[selected_column]].dropna()
     
-
     column_type = get_column_type(df, selected_column)
+    
     # If the column is categorical (object type)
-    if column_type == 'object' or column_type.name == 'category':
+    if column_type == 'object':
         # Set plot title
         st.subheader(f"Bar Chart of {selected_column}")
         # Create a sorted BAR CHART using Altair (descending)
@@ -452,7 +454,7 @@ def single_column_plot(df, selected_column):
         return histogram, boxplot, CI, density
 
     # If the column is datetime
-    elif pd.api.types.is_datetime64_any_dtype(column_type):
+    elif pd.api.types.is_datetime64_any_dtype(df[selected_column]):
         # Set plot title
         st.subheader(f"Time Series Plot of {selected_column}")
         # Clean the datetime column

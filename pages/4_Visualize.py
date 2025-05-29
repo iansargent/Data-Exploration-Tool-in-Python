@@ -12,13 +12,21 @@ from app_utils import (get_user_files, get_columns, single_column_plot,
                        two_column_plot, process_uploaded_files, group_by_plot)
 from st_aggrid import AgGrid
 import numpy as np
+import pandas as pd
 
 
 # The visualize page (with default arguments given)
 def render_visualization(mode="single", processed_files=None):
-
+    
     for i, (df, filename) in enumerate(processed_files):
         key = 0
+        
+        # Convert any date/time columns from object to datetime here:
+        # NOTE: Should be integrated into clean_data() at a later date.
+        for col in df.columns:
+            if any(k in col.lower() for k in ['date', 'time']):
+                df[col] = pd.to_datetime(df[col], errors='coerce')
+        
         # Get a list of column names for selection
         columns = get_columns(df)
         # Subheader for the plot section
@@ -32,6 +40,7 @@ def render_visualization(mode="single", processed_files=None):
                                key=f"{filename}-single-{key}")
             
             key += 1
+
             # Display plot(s) based on the variable type
             single_column_plot(df, col)
         
