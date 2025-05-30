@@ -427,9 +427,9 @@ def column_summaries(df, df_columns, filename):
                     st.dataframe(summary_df.style.format(precision=2, na_rep="—"))
 
 
-def generate_profile_report(df):
+def generate_exploratory_report(df):
     """
-    Generate a tailored profile report 
+    Generate a tailored exploratory profile report 
     given a DataFrame using the ydata-profiling package.
     """
     # Get the number of columns in the dataframe
@@ -437,30 +437,43 @@ def generate_profile_report(df):
     num_columns = len(df_columns)
 
     # If there are a large amount of columns (30)
-    # Exclude sections "samples", "correlations", and "interactions" for computing purposes
+    # Use a "minimal" report to decrease computation
     if num_columns > 30:
         report = ProfileReport(
             df,
-            title="Data Report",
-            explorative=True,
-            samples=None,
+            title="Exploratory Report",
+            minimal=True,
             correlations=None,
-            interactions=None
+            interactions=None,
+            samples=None
         )
-    # If there are less than 30 columns, only exclude the correlation matrix diagram
+    # If there are less than 30 columns
     else:
         report = ProfileReport(
             df,
-            explorative=True,
-            title="Data Report",
-            missing_diagrams={
-                "matrix": False,
-            }
+            title="Exploratory Report",
+            explorative=True
         )
     
     # Return the ydata-profiling report
     return report
 
+
+def generate_quality_report(df):
+    """
+    Generate a tailored data quality profile report 
+    given a DataFrame using the ydata-profiling package.
+    """
+    report = ProfileReport(
+            df,
+            title="Data Quality",
+            minimal=True,
+            correlations=None,
+            interactions=None,
+            samples=None
+        )
+
+    return report
 
 #--------------------------------------#
 ###   Plotting and Displaying Data   ###

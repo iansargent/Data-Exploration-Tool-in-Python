@@ -9,8 +9,9 @@ Data Summary Page
 # Necessary imports
 import streamlit as st
 from app_utils import (get_user_files, get_columns, column_summaries, 
-                       generate_profile_report, process_uploaded_files)
-import ydata_profiling
+                       generate_exploratory_report, process_uploaded_files,
+                       generate_quality_report)
+from ydata_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
 import geopandas as gpd
 
@@ -49,21 +50,39 @@ def render_data_summary():
         # Subheader for the ydata-profiling report
         st.subheader("Data Report")
         
-        # Add a loading spinner icon to ensure the user knows the report is being generated
-        with st.spinner(text = "Generating report..."):
-            # Create the ydata-profiling report
-            profile = generate_profile_report(df)
-            # Allow for an html export
-            report_export = profile.to_html()
-            # Add a download button for the HTML report
-            st.download_button(label="View Full Report", data=report_export, file_name=f'data_report_{filename}_{key}.html')
-            # Advance the unique key
-            key += 1
+        if st.button(label="Generate Exploratory Summary"):
+            # Add a loading spinner icon to ensure the user knows the report is being generated
+            with st.spinner(text = "Generating report..."):
+                # Create the ydata-profiling report
+                ex_profile = generate_exploratory_report(df)
+                # Allow for an html export
+                report_export = ex_profile.to_html()
+                # Add a download button for the HTML report
+                st.download_button(label="View Full Report", data=report_export, file_name=f'data_report_{filename}_{key}.html')
+                # Advance the unique key
+                key += 1
+            
+            # Using an expander-type button
+            with st.expander("View Exploratory Report"):
+                # Display the report on the page
+                st_profile_report(ex_profile)
         
-        # Using an expander-type button
-        with st.expander("View Report Preview"):
-            # Display the report on the page
-            st_profile_report(profile)
+        if st.button(label="Generate Data Quality Summary"):
+            # Add a loading spinner icon to ensure the user knows the report is being generated
+            with st.spinner(text = "Generating report..."):
+                # Create the ydata-profiling report
+                qual_profile = generate_quality_report(df)
+                # Allow for an html export
+                report_export = qual_profile.to_html()
+                # Add a download button for the HTML report
+                st.download_button(label="View Full Report", data=report_export, file_name=f'data_report_{filename}_{key}.html')
+                # Advance the unique key
+                key += 1
+            
+            # Using an expander-type button
+            with st.expander("View Quality Report"):
+                # Display the report on the page
+                st_profile_report(qual_profile)
         
         # Add a visual divider
         st.markdown("---")
