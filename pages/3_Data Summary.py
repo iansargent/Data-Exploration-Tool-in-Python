@@ -90,12 +90,11 @@ def render_data_summary():
         st.markdown("---")
 
     if len(processed_files) >= 2:
-        st.subheader("Comparison Report")
+        st.header("Comparison Report")
         if st.button(label="Generate Comparison Report"):
             dfs = [item[0] for item in processed_files] 
             comp_report = generate_comparison_report(dfs)
             st_profile_report(comp_report)
-
 
 
 # Run the data summary page

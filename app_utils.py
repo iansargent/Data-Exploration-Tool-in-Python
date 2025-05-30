@@ -688,7 +688,7 @@ def numeric_numeric_plots(df, col1, col2):
     # Select only categorical columns (including boolean type)
     categorical_columns = df.select_dtypes(include=["object", "category", "bool"])
     
-    # Create a list of categorical column names
+    # Create a list to store categorical column names
     categorical_column_names = []
     for col in categorical_columns.columns:
         if df[col].nunique(dropna=True) <= 6:
@@ -723,7 +723,7 @@ def numeric_numeric_plots(df, col1, col2):
     )
 
     # REGRESSION LINE
-    regression_line = scatterplot.transform_loess(
+    regression_line = scatterplot.transform_regression(
         f"{col1}", f"{col2}"
     ).mark_line().encode(
         color=alt.value("tomato"),
@@ -793,45 +793,79 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, 
     Display a scatterplot, regression line, heatmap, and correlation coefficient
     if two numeric variables are selected.
     """
+    from sklearn.linear_model import LinearRegression
+    from sklearn.feature_selection import f_regression
+    from sklearn.metrics import mean_absolute_error  
+
     # Define the plotting source
     source = df[[col1, col2]].dropna()
+    X = source[[col1]]
+    y = source[col2]
+
+    model = LinearRegression().fit(X, y)
+    y_pred = model.predict(X)
+    mae = mean_absolute_error(y, y_pred)
+
+    F, p = f_regression(X, y)
+    
+    p_value = round(p[0], 4)
+    display_value = f"{p_value:.4f}" if p_value > 0 else "p < 0.0001"
     
     # Set title for scatterplots
     st.subheader(f"Scatterplot of {col1} and {col2}")
-    
     # Formatting plot output with two columns
-    column_one, column_two = st.columns(2)
-        
+    column1, column2 = st.columns(2)  
     # First, show the scatterplot
-    with column_one:
-        st.altair_chart(scatterplot, use_container_width=True)
-        
+    with column1:
+        st.altair_chart(scatterplot, use_container_width=True)  
     # Next to it, show the regression line on top of the scatterplot
-    with column_two:
+    with column2:
         st.altair_chart(scatterplot + regression_line, use_container_width=True)
     
-    # Below the scatterplots, show the heatmap   
+    # Below the scatterplot, show various regression metrics
+    column3, column4, column5 = st.columns(3)
+    column6, column7, column8 = st.columns(3)
+    
+    sample_size = len(source)
+    column3.metric(label="**Sample Size (N)**", value = f"{sample_size}")
+    column4.metric(label="**Correlation (R)**", value=f"{correlation:.2f}")
+    
+    model_str = "No Relationship"
+    if abs(correlation) < 0.1:
+        model_str = "Weak"
+    elif abs(correlation) < 0.3:
+        model_str = "Mod -"
+    elif abs(correlation) < 0.6:
+        model_str = "Mod +"
+    elif abs(correlation) <= 1:
+        model_str = "Strong"
+
+    column5.metric(label="**Model Strength**", value = f"{model_str}")    
+    r_squared = (correlation ** 2)
+    column6.metric(label="**R-Squared**", value = f"{r_squared * 100:.0f}%")    
+    column7.metric(label="**Mean Absolute Error**", value = f"{mae:.2f}")
+    column8.metric(label="**Model P-Value**", value = display_value)
+
+    style_metric_cards(
+        background_color="whitesmoke",
+        border_left_color="mediumseagreen",
+        box_shadow=True,
+        border_size_px=0.5
+    )
+    
+    # Below the regression metrics, show the heatmap   
     with st.container():
         st.subheader(f"Heatmap of {col1} and {col2}")
         st.altair_chart(heatmap, use_container_width=True)
 
-
-    # Below the heatmap, show the correlation coefficient
-    with st.container():
-        st.subheader(f"Correlation Coefficient")
-        # Backround of what a correlation coefficient actually is
-        st.markdown(f"""
-            ***Note:*** A *correlation coefficient* of 1 indicates a perfect positive relationship, 
-            while a coefficient of -1 indicates a perfect negative relationship. A coefficient of 
-            0 indicates no relationship."
-            """
-        )
-        # Display the correlation coefficient
-        st.markdown(f"**{col1}** and **{col2}** have a correlation coefficient of **{correlation:.2f}**.")
-
     # Show Aggrid table display of the two plotted columns
     st.subheader(f"Data Table of {col1} and {col2}")
-    st.dataframe(data=source.style.format("{:.2f}"), hide_index=True, column_order=(col1, col2))
+    st.dataframe(
+        data=source.style.format("{:.2f}"), 
+        hide_index=True, 
+        column_order=(col1, col2),
+        use_container_width=False)
+
 
 
 def numeric_categorical_plots(df, col1, col2):
