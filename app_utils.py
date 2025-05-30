@@ -531,6 +531,7 @@ def single_column_plot(df, selected_column):
         )
         # Disply the chart
         st.altair_chart(bar_chart, use_container_width=True)
+        
         # Return the bar chart
         return bar_chart
 
@@ -541,6 +542,31 @@ def single_column_plot(df, selected_column):
         # Redefine the plotting source
         source = df[[selected_column]].dropna()
 
+        # Define the 95% confidence interval bounds
+        d = DescrStatsW(source[selected_column])
+        ci_low, ci_high = d.tconfint_mean()
+        CI = (ci_low, ci_high)
+
+        # Calculate descriptive statistics
+        var_mean = source[selected_column].mean()
+        var_med = source[selected_column].median()
+        var_std_dev = source[selected_column].std()
+        
+        # Display variable descriptive statistics
+        column1, column2 = st.columns(2) 
+        column3, column4 = st.columns(2)
+        column1.metric(label="Mean", value = f"{var_mean:.2f}")
+        column2.metric(label="Median", value = f"{var_med:.2f}")
+        column3.metric(label="Standard Deviation", value = f"{var_std_dev:.3f}")
+        column4.metric(label="95% Confidence Interval", value = f"[{ci_low:,.1f}  -  {ci_high:,.1f}]")
+
+        style_metric_cards(
+            background_color="whitesmoke",
+            border_left_color="mediumseagreen",
+            border_size_px=0.5
+        )
+        
+        st.subheader("Histogram")
         # Slider for number of bins in the histogram
         bin_slider = st.slider(
             "Select the Level of Detail", 
@@ -571,45 +597,18 @@ def single_column_plot(df, selected_column):
             y=alt.Y('density:Q', title='Density')
         )
 
-        # Define the 95% confidence interval bounds
-        d = DescrStatsW(source[selected_column])
-        ci_low, ci_high = d.tconfint_mean()
-        CI = (ci_low, ci_high)
-
         # Boxplot
         boxplot = alt.Chart(source).mark_boxplot(color='dodgerblue').encode(
             x=alt.X(f"{selected_column}:Q", title=selected_column)
-        ).configure_mark(
-            color="mediumseagreen"
-        ).configure_boxplot(
-            size=160
-        ).properties(
-            width=400,
-            height=300
-        )
+        ).configure_mark().configure_boxplot(size=160
+        ).properties(width=400, height=300)
 
         # Display the histogram
         st.altair_chart(histogram, use_container_width=True)
-        
-        # Create two columns for formattinf the density plot and confidence interval
-        col1, col2 = st.columns(2)
-        
-        # On the left
-        with col1:
-            # Display the density plot
-            st.subheader(f"Density Plot")
-            st.altair_chart(density, use_container_width=True)
-        # On the right
-        with col2:
-            # Display the confidence interval
-            with st.container():
-                st.subheader(f"95% Confidence Interval")
-            st.markdown(f"{ci_low:,.1f} to {ci_high:,.1f}")
-
-            st.markdown(
-                f"We are 95% confident that the true population ***{selected_column}*** lies between\n "
-                f"{ci_low:.1f} and {ci_high:.1f} based on this sample."
-            )
+                
+        # Display the density plot
+        st.subheader(f"Density Plot")
+        st.altair_chart(density, use_container_width=True)
         
         # Display the box plot below
         st.subheader(f"Box Plot")
@@ -762,10 +761,7 @@ def numeric_numeric_plots(df, col1, col2):
     resids = alt.Chart(resid_df).mark_square(color = "tomato").encode(
         x = alt.X('y_pred', title = 'Predicted'),
         y = alt.Y('residuals', title = 'Residual'),
-        tooltip=['y_pred', 'residuals']
-    ).properties(
-        title='Residual Plot'
-    ).interactive()
+        tooltip=['y_pred', 'residuals']).interactive()
 
     # Optional horizontal zero line
     zero_line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule(color = 'black').encode(y='y')
@@ -919,9 +915,11 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, 
     with column2:
         st.altair_chart((scatterplot + regression_line + loess_line).interactive(), use_container_width=True)
 
+    # Display Regression Metrics
     regression_metric_cards(df, col1, col2)
 
     with st.container():
+        st.subheader("Residual Plot")
         st.altair_chart(resid_plot, use_container_width=True)
 
     # Below the regression metrics, display the table and the heatmap
