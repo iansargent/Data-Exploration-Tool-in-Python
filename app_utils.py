@@ -475,6 +475,29 @@ def generate_quality_report(df):
 
     return report
 
+def generate_comparison_report(dfs):
+    """
+    Generates a comparison report given a list of 
+    uploaded dataframes
+    """
+    
+    from ydata_profiling import ProfileReport, compare
+    
+    reports = []
+    for i, df in enumerate(dfs):
+        report = ProfileReport(
+            df,
+            title = f"Report_{i}"
+        )
+        reports.append(report)
+    
+    comparison_report = compare(reports)
+    # Obtain merged statistics
+    # statistics = comparison_report.get_description()
+
+    return comparison_report
+
+
 #--------------------------------------#
 ###   Plotting and Displaying Data   ###
 #--------------------------------------#

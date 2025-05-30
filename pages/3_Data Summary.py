@@ -10,7 +10,7 @@ Data Summary Page
 import streamlit as st
 from app_utils import (get_user_files, get_columns, column_summaries, 
                        generate_exploratory_report, process_uploaded_files,
-                       generate_quality_report)
+                       generate_quality_report, generate_comparison_report)
 from ydata_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
 import geopandas as gpd
@@ -45,12 +45,14 @@ def render_data_summary():
 
         # Display a column summary for each column in the dataframe
         column_summaries(df, columns, filename)
+        
+        # A visual divider
         st.markdown("---")
 
         # Subheader for the ydata-profiling report
-        st.subheader("Data Report")
+        st.subheader("Data Reports")
         
-        if st.button(label="Generate Exploratory Summary"):
+        if st.button(label="Generate Exploratory Summary", key=f"{filename}_expl_{key}"):
             # Add a loading spinner icon to ensure the user knows the report is being generated
             with st.spinner(text = "Generating report..."):
                 # Create the ydata-profiling report
@@ -67,7 +69,7 @@ def render_data_summary():
                 # Display the report on the page
                 st_profile_report(ex_profile)
         
-        if st.button(label="Generate Data Quality Summary"):
+        if st.button(label="Generate Data Quality Summary", key=f"{filename}_qual_{key}"):
             # Add a loading spinner icon to ensure the user knows the report is being generated
             with st.spinner(text = "Generating report..."):
                 # Create the ydata-profiling report
@@ -86,6 +88,15 @@ def render_data_summary():
         
         # Add a visual divider
         st.markdown("---")
+
+    if len(processed_files) >= 2:
+        st.subheader("Comparison Report")
+        if st.button(label="Generate Comparison Report"):
+            dfs = [item[0] for item in processed_files] 
+            comp_report = generate_comparison_report(dfs)
+            st_profile_report(comp_report)
+
+
 
 # Run the data summary page
 def show_summary():
