@@ -38,8 +38,6 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
    ```
 
 2. **Upload** your data files via the sidebar. Many file formats are supported.
-
-   * Insert Screenshot
    
 3. **Navigate** through the pages to preview, summarize, and visualize your data.
 
