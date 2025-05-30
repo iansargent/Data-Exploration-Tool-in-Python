@@ -475,6 +475,7 @@ def generate_quality_report(df):
 
     return report
 
+
 def generate_comparison_report(dfs):
     """
     Generates a comparison report given a list of 
@@ -501,6 +502,7 @@ def generate_comparison_report(dfs):
 #--------------------------------------#
 ###   Plotting and Displaying Data   ###
 #--------------------------------------#
+
 
 def single_column_plot(df, selected_column):
     """
@@ -681,6 +683,8 @@ def numeric_numeric_plots(df, col1, col2):
     if two numeric variables are selected. Add a group by option
     for the scatterplots and use color as the grouping variable.
     """
+    from sklearn.linear_model import LinearRegression
+
 
     # Define the plotting source
     source = df[[col1, col2]].dropna()
@@ -738,6 +742,36 @@ def numeric_numeric_plots(df, col1, col2):
         size=alt.value(1.5)
     )
 
+    # RESIDUAL PLOT
+
+    # Define the X and y columns for calculating metrics
+    X = source[[col1]]
+    y = source[col2]
+
+    model = LinearRegression().fit(X, y)
+
+    y_pred = model.predict(X)
+    residuals = y  - y_pred
+
+    # Add predictions and residuals to the DataFrame
+    resid_df = pd.DataFrame({
+        'y_pred' : y_pred,
+        'residuals' : residuals
+    })
+    
+    resids = alt.Chart(resid_df).mark_square(color = "tomato").encode(
+        x = alt.X('y_pred', title = 'Predicted'),
+        y = alt.Y('residuals', title = 'Residual'),
+        tooltip=['y_pred', 'residuals']
+    ).properties(
+        title='Residual Plot'
+    ).interactive()
+
+    # Optional horizontal zero line
+    zero_line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule(color = 'black').encode(y='y')
+
+    resid_plot = resids + zero_line
+
     # Create bins for the x and y axes
     col1_bins = np.linspace(df[col1].min(), df[col1].max(), 21).round().astype(int)
     col2_bins = np.linspace(df[col2].min(), df[col2].max(), 21).round().astype(int)
@@ -789,7 +823,7 @@ def numeric_numeric_plots(df, col1, col2):
     )
 
     # Return all computed metrics and plots
-    return scatterplot, regression_line, loess_line, heatmap
+    return scatterplot, regression_line, loess_line, resid_plot, heatmap
 
 
 def regression_metric_cards(df, col1, col2):
@@ -866,12 +900,11 @@ def regression_metric_cards(df, col1, col2):
     )
 
 
-def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, loess_line, heatmap):
+def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, loess_line, resid_plot, heatmap):
     """
     Display a scatterplot, regression line, heatmap, and correlation coefficient
     if two numeric variables are selected.
     """  
-
     # Define the plotting source
     source = df[[col1, col2]].dropna()
     
@@ -881,12 +914,15 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, 
     column1, column2 = st.columns(2)  
     # First, show the scatterplot
     with column1:
-        st.altair_chart(scatterplot, use_container_width=True)  
+        st.altair_chart(scatterplot.interactive(), use_container_width=True)  
     # Next to it, show the regression line on top of the scatterplot
     with column2:
-        st.altair_chart(scatterplot + regression_line + loess_line, use_container_width=True)
+        st.altair_chart((scatterplot + regression_line + loess_line).interactive(), use_container_width=True)
 
     regression_metric_cards(df, col1, col2)
+
+    with st.container():
+        st.altair_chart(resid_plot, use_container_width=True)
 
     # Below the regression metrics, display the table and the heatmap
     with st.container():
@@ -1109,9 +1145,9 @@ def two_column_plot(df, col1, col2):
     # If two NUMERIC variables are selected
     if pd.api.types.is_numeric_dtype(col1_type) and pd.api.types.is_numeric_dtype(col2_type): 
         # Define all the needed plots
-        scatterplot, regression_line, loess_line, heatmap = numeric_numeric_plots(df, col1, col2)
+        scatterplot, regression_line, loess_line, resid_plot, heatmap = numeric_numeric_plots(df, col1, col2)
         # Display all plots
-        display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, loess_line, heatmap)
+        display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, loess_line, resid_plot, heatmap)
         # Return all plots
         return scatterplot, regression_line, heatmap
 
