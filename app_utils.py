@@ -730,6 +730,14 @@ def numeric_numeric_plots(df, col1, col2):
         size=alt.value(1.5)
     )
 
+    # LOESS LINE
+    loess_line = scatterplot.transform_loess(
+        f"{col1}", f"{col2}"
+    ).mark_line().encode(
+        color=alt.value("steelblue"),
+        size=alt.value(1.5)
+    )
+
     # Create bins for the x and y axes
     col1_bins = np.linspace(df[col1].min(), df[col1].max(), 21).round().astype(int)
     col2_bins = np.linspace(df[col2].min(), df[col2].max(), 21).round().astype(int)
@@ -781,7 +789,7 @@ def numeric_numeric_plots(df, col1, col2):
     )
 
     # Return all computed metrics and plots
-    return scatterplot, regression_line, heatmap
+    return scatterplot, regression_line, loess_line, heatmap
 
 
 def regression_metric_cards(df, col1, col2):
@@ -858,7 +866,7 @@ def regression_metric_cards(df, col1, col2):
     )
 
 
-def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, heatmap):
+def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, loess_line, heatmap):
     """
     Display a scatterplot, regression line, heatmap, and correlation coefficient
     if two numeric variables are selected.
@@ -876,10 +884,10 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, 
         st.altair_chart(scatterplot, use_container_width=True)  
     # Next to it, show the regression line on top of the scatterplot
     with column2:
-        st.altair_chart(scatterplot + regression_line, use_container_width=True)
+        st.altair_chart(scatterplot + regression_line + loess_line, use_container_width=True)
 
     regression_metric_cards(df, col1, col2)
-    
+
     # Below the regression metrics, display the table and the heatmap
     with st.container():
         st.subheader(f"Heatmap and Table: {col1} vs {col2}")
@@ -897,7 +905,6 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, 
         # Display the heatmap
         with col_heatmap:
             st.altair_chart(heatmap, use_container_width=True)
-
 
 
 def numeric_categorical_plots(df, col1, col2):
@@ -1102,9 +1109,9 @@ def two_column_plot(df, col1, col2):
     # If two NUMERIC variables are selected
     if pd.api.types.is_numeric_dtype(col1_type) and pd.api.types.is_numeric_dtype(col2_type): 
         # Define all the needed plots
-        scatterplot, regression_line, heatmap = numeric_numeric_plots(df, col1, col2)
+        scatterplot, regression_line, loess_line, heatmap = numeric_numeric_plots(df, col1, col2)
         # Display all plots
-        display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, heatmap)
+        display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, loess_line, heatmap)
         # Return all plots
         return scatterplot, regression_line, heatmap
 
