@@ -780,36 +780,92 @@ def numeric_numeric_plots(df, col1, col2):
         strokeWidth=0
     )
 
-    # CORRELATION COEFFICIENT
-    corr_df = source[[col1, col2]].corr(min_periods=10, numeric_only=True)
-    correlation = corr_df.loc[col1, col2]
-
     # Return all computed metrics and plots
-    return scatterplot, regression_line, heatmap, correlation
+    return scatterplot, regression_line, heatmap
 
 
-def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, heatmap, correlation):
+def regression_metric_cards(df, col1, col2):
     """
-    Display a scatterplot, regression line, heatmap, and correlation coefficient
-    if two numeric variables are selected.
+    Calculates and displays regression metrics to a page. Metrics include
+    sample size, correlation, R-squared, model strength, MAE, and p-value 
+    (F statistic)
     """
+
     from sklearn.linear_model import LinearRegression
     from sklearn.feature_selection import f_regression
-    from sklearn.metrics import mean_absolute_error  
+    from sklearn.metrics import mean_absolute_error
 
-    # Define the plotting source
+    # Define the regression dataframe with the two columns of interest
     source = df[[col1, col2]].dropna()
+    
+    # Define the X and y columns for calculating metrics
     X = source[[col1]]
     y = source[col2]
 
+    ## SAMPLE SIZE
+    sample_size = len(source)
+
+    ## CORRELATION
+    corr_df = source[[col1, col2]].corr(min_periods=10, numeric_only=True)
+    correlation = corr_df.loc[col1, col2]
+
+    ## MODEL STRENGTH (Based on the correlation value)
+    model_str = "No Relationship"
+    if abs(correlation) < 0.1:
+        model_str = "Weak"
+    elif abs(correlation) < 0.3:
+        model_str = "Mod -"
+    elif abs(correlation) < 0.6:
+        model_str = "Mod +"
+    elif abs(correlation) <= 1:
+        model_str = "Strong"
+
+    # R-SQUARED
+    r_squared = correlation ** 2
+
+    ## MEAN ABSOLUTE ERROR (MAE)
+    # Define a simple linear model
     model = LinearRegression().fit(X, y)
+    # Obtain the predicted y values
     y_pred = model.predict(X)
+    # Calculate the MAE using the observations and predictions
     mae = mean_absolute_error(y, y_pred)
 
-    F, p = f_regression(X, y)
-    
+    ## OVERALL MODEL P-VALUE
+    F_stat, p = f_regression(X, y)
     p_value = round(p[0], 4)
+    # If the rounded p-value is still zero, display it as less than 0.0001
     display_value = f"{p_value:.4f}" if p_value > 0 else "p < 0.0001"
+
+    # Set up formatting columns for display (2 rows of 3)
+    column3, column4, column5 = st.columns(3)
+    column6, column7, column8 = st.columns(3)
+    
+    # Use metric cards to display each metric
+    column3.metric(label="**Sample Size (N)**", value = f"{sample_size}")
+    column4.metric(label="**Correlation (R)**", value=f"{correlation:.2f}")
+    column5.metric(label="**Model Strength**", value = f"{model_str}")    
+    column6.metric(label="**R-Squared**", value = f"{r_squared * 100:.0f}%")    
+    column7.metric(label="**Mean Absolute Error**", value = f"{mae:.2f}")
+    column8.metric(label="**Model Significance**", value = display_value)
+
+    # Metric card customizations
+    style_metric_cards(
+        background_color="whitesmoke",
+        border_left_color="mediumseagreen",
+        box_shadow=True,
+        border_size_px=0.5
+    )
+
+
+def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, heatmap):
+    """
+    Display a scatterplot, regression line, heatmap, and correlation coefficient
+    if two numeric variables are selected.
+    """  
+
+    # Define the plotting source
+    source = df[[col1, col2]].dropna()
     
     # Set title for scatterplots
     st.subheader(f"Scatterplot of {col1} and {col2}")
@@ -821,50 +877,26 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, 
     # Next to it, show the regression line on top of the scatterplot
     with column2:
         st.altair_chart(scatterplot + regression_line, use_container_width=True)
-    
-    # Below the scatterplot, show various regression metrics
-    column3, column4, column5 = st.columns(3)
-    column6, column7, column8 = st.columns(3)
-    
-    sample_size = len(source)
-    column3.metric(label="**Sample Size (N)**", value = f"{sample_size}")
-    column4.metric(label="**Correlation (R)**", value=f"{correlation:.2f}")
-    
-    model_str = "No Relationship"
-    if abs(correlation) < 0.1:
-        model_str = "Weak"
-    elif abs(correlation) < 0.3:
-        model_str = "Mod -"
-    elif abs(correlation) < 0.6:
-        model_str = "Mod +"
-    elif abs(correlation) <= 1:
-        model_str = "Strong"
 
-    column5.metric(label="**Model Strength**", value = f"{model_str}")    
-    r_squared = (correlation ** 2)
-    column6.metric(label="**R-Squared**", value = f"{r_squared * 100:.0f}%")    
-    column7.metric(label="**Mean Absolute Error**", value = f"{mae:.2f}")
-    column8.metric(label="**Model P-Value**", value = display_value)
-
-    style_metric_cards(
-        background_color="whitesmoke",
-        border_left_color="mediumseagreen",
-        box_shadow=True,
-        border_size_px=0.5
-    )
+    regression_metric_cards(df, col1, col2)
     
-    # Below the regression metrics, show the heatmap   
+    # Below the regression metrics, display the table and the heatmap
     with st.container():
-        st.subheader(f"Heatmap of {col1} and {col2}")
-        st.altair_chart(heatmap, use_container_width=True)
+        st.subheader(f"Heatmap and Table: {col1} vs {col2}")
+        # Define the space ratio for the table and heatmap
+        col_table, col_heatmap = st.columns([1, 3])
 
-    # Show Aggrid table display of the two plotted columns
-    st.subheader(f"Data Table of {col1} and {col2}")
-    st.dataframe(
-        data=source.style.format("{:.2f}"), 
-        hide_index=True, 
-        column_order=(col1, col2),
-        use_container_width=False)
+        # Display the table
+        with col_table:
+            st.dataframe(
+                data=source.style.format("{:.2f}"),
+                hide_index=True,
+                column_order=(col1, col2),
+                use_container_width=True
+            )
+        # Display the heatmap
+        with col_heatmap:
+            st.altair_chart(heatmap, use_container_width=True)
 
 
 
@@ -1070,11 +1102,11 @@ def two_column_plot(df, col1, col2):
     # If two NUMERIC variables are selected
     if pd.api.types.is_numeric_dtype(col1_type) and pd.api.types.is_numeric_dtype(col2_type): 
         # Define all the needed plots
-        scatterplot, regression_line, heatmap, correlation = numeric_numeric_plots(df, col1, col2)
+        scatterplot, regression_line, heatmap = numeric_numeric_plots(df, col1, col2)
         # Display all plots
-        display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, heatmap, correlation)
+        display_numeric_numeric_plots(df, col1, col2, scatterplot, regression_line, heatmap)
         # Return all plots
-        return scatterplot, regression_line, heatmap, correlation
+        return scatterplot, regression_line, heatmap
 
 
     # If NUMERIC and CATEGORICAL variables are selected
