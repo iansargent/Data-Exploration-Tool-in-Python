@@ -83,7 +83,7 @@ def render_mapping():
     default_center = [44.45, -72.71]
 
     # Initialize a blank map object to add layers onto later
-    map = leafmap.Map(center=default_center, zoom = 7.5)
+    map = leafmap.Map(center=default_center)
     map.add_basemap(selected_basemap)
     
     # Loop through each processed dataframe and its filename
