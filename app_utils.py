@@ -19,7 +19,13 @@ from ydata_profiling.config import Settings
 from streamlit_pandas_profiling import st_profile_report
 from ydata_profiling import ProfileReport
 import geopandas as gpd
-import leafmap as lfm
+import leafmap.foliumap as lfm
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
+from streamlit_extras.dataframe_explorer import dataframe_explorer 
+
+
 
 
 #--------------------------------------#
@@ -330,6 +336,140 @@ def convert_all_timestamps_to_str(gdf):
     
     # Return the GeoDataFrame
     return gdf
+
+
+#--------------------------------------#
+#                Mapping               #
+#--------------------------------------#
+
+
+def load_zoning_data(path):
+    gdf = gpd.read_file(path)
+    return gdf.drop(columns=["Bylaw Date"], errors="ignore")
+
+
+def render_table(df):
+    """
+    Displays an interactive AgGrid table and returns selected rows.
+    """
+    gb = GridOptionsBuilder.from_dataframe(df)
+    gb.configure_selection(selection_mode="multiple", use_checkbox=True)
+    grid_options = gb.build()
+
+    grid_height = 40 * (len(df) + 1.45)
+    grid_height = min(grid_height, 600)
+
+    grid_response = AgGrid(
+        df,
+        theme="material",
+        gridOptions=grid_options,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
+        height=grid_height
+    )
+
+    return grid_response.get("selected_rows", [])
+
+
+def render_comparison_table(selected_rows):
+    """
+    Takes selected rows from AgGrid, creates a comparison table, and displays it.
+    """
+    if not selected_rows:
+        return
+
+    selected_df = pd.DataFrame(selected_rows)
+    dfs = []
+
+    for _, row in selected_df.iterrows():
+        district_name = row.get("Jurisdiction District Name", "District")
+        df_long = pd.DataFrame(row).reset_index()
+        df_long.columns = ["Variable", district_name]
+        dfs.append(df_long)
+
+    from functools import reduce
+
+    combined_df = reduce(
+        lambda left, right: pd.merge(left, right, on="Variable", how="outer"),
+        dfs
+    )
+
+    combined_df_sorted = combined_df.copy()
+    combined_df_sorted["na_count"] = combined_df_sorted.isna().sum(axis=1)
+    combined_df_sorted = combined_df_sorted.sort_values("na_count").drop(columns="na_count")
+
+    st.subheader("District Comparisons")
+    filtered_combined_df_sorted = dataframe_explorer(combined_df_sorted, case=False)
+    st.dataframe(filtered_combined_df_sorted, use_container_width=True)
+
+
+def filter_zoning_data(gdf, county, jurisdiction, districts):
+    df = gdf.copy()
+    if county != "All Counties":
+        df = df[df["County"] == county]
+    if jurisdiction != "All Jurisdictions":
+        df = df[df["Jurisdiction"] == jurisdiction]
+    if "All Districts" not in districts:
+        df = df[df["District Name"].isin(districts)]
+    return df
+
+
+def generate_district_color_map(gdf):
+    district_types = gdf["District Type"].dropna()
+    # Ensure valid string keys, strip whitespace, remove "None" as string if present
+    unique_types = sorted(set(str(dt).strip() for dt in district_types if str(dt).strip().lower() != "none"))
+
+    cmap = plt.get_cmap("Set2")
+    colors = [mcolors.rgb2hex(cmap(i % cmap.N)) for i in range(len(unique_types))]
+
+    return dict(zip(unique_types, colors))
+
+
+def render_zoning_layer(map):
+    zoning_gdf = load_zoning_data("/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb")
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        county = st.selectbox("**County**", ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()))
+    with col2:
+        jurisdiction = st.selectbox("**Jurisdiction**", ["All Jurisdictions"] + sorted(
+            zoning_gdf[zoning_gdf["County"] == county]["Jurisdiction"].dropna().unique()
+        ) if county != "All Counties" else ["All Jurisdictions"] + sorted(zoning_gdf["Jurisdiction"].dropna().unique()))
+    with col3:
+        district_opts = sorted(zoning_gdf["District Name"].dropna().unique())
+        districts = st.multiselect("**District(s)**", ["All Districts"] + district_opts, default=["All Districts"])
+
+    filtered_gdf = filter_zoning_data(zoning_gdf, county, jurisdiction, districts)
+    if filtered_gdf.empty:
+        st.warning("No districts match your filters.")
+        return
+
+    center = filtered_gdf.geometry.unary_union.centroid
+    map.set_center(center.x, center.y, zoom=10)
+
+    color_map = generate_district_color_map(filtered_gdf)
+
+    def style_fn(f):
+        dt = f["properties"].get("District Type", "")
+        return {"color": "navy", "weight": 0.3, "fillColor": color_map.get(dt, "gray"), "fillOpacity": 0.4}
+
+    map.add_gdf(
+        filtered_gdf, 
+        "Districts by Type", 
+        style_function=style_fn, 
+        info_mode="on_click", 
+        zoom_to_layer=True)
+    
+    map.add_legend(title="District Type", legend_dict=color_map)
+
+    with st.spinner("Loading map..."):
+        map.add_layer_control()
+        map.to_streamlit(use_container_width=True)
+
+    st.subheader("Selected Areas to Compare")
+    selected_rows = render_table(filtered_gdf.drop(columns="geometry"))
+    if selected_rows:
+        render_comparison_table(selected_rows)
 
 
 #--------------------------------------#
