@@ -13,7 +13,8 @@ import geopandas as gpd
 import leafmap.foliumap as leafmap
 from app_utils import (get_user_files, is_latitude_longitude, 
                        convert_all_timestamps_to_str, process_uploaded_files, 
-                       render_zoning_layer)
+                       render_zoning_layer, assign_layer_style, render_table,
+                       render_comparison_table)
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
@@ -36,6 +37,9 @@ def render_mapping():
     # If no files are uploaded, show a warning message
     processed_files = process_uploaded_files(user_files)
 
+    # Create a on/off toggle to show VT Zoning Data
+    vt_zoning = st.toggle(label = "Use the VT Zoning Data Dataset")
+
     # Create an option bank of basemaps to choose from
     basemaps = {
     "Light": "CartoDB.Positron",
@@ -54,10 +58,8 @@ def render_mapping():
         options=list(basemaps.keys()),
         index=0
     )
-
     # Retrieve the selected basemap as a string
     selected_basemap = basemaps[basemap_select_box]
-
     # Set a default map center (In Vermont)
     default_center = [44.45, -72.71]
 
@@ -65,33 +67,15 @@ def render_mapping():
     map = leafmap.Map(center=default_center)
     # Add the basemap configuration
     map.add_basemap(selected_basemap)
-    
-    # Create a on/off toggle to show VT Zoning Data
-    vt_zoning = st.toggle(label = "Use the VT Zoning Data Dataset")
-        
+            
     if vt_zoning == True:
-         render_zoning_layer(map)
+        render_zoning_layer(map)
     
     # Loop through each processed/uploaded dataframe and its filename
     for df, filename in processed_files:
         
         df = convert_all_timestamps_to_str(df)
-
-        # Determine the layer style based on common words in the VTZA data folder
-        if "border" in filename:
-            style = {"color": "dodgerblue", "weight": 2}
-        elif "linearfeatures" in filename:
-            style = {"color": "blue", "weight": 2}
-        elif "pointfeatures" in filename:
-            style = {"color": "darkorange", "weight": 2}
-        elif "servicearea" in filename:
-            style = {"color": "darkred", "weight": 2}
-        elif ("wwtf" in filename) or ("facilit" in filename):
-            style = {"color": "darkgreen", "weight": 2}
-        elif "zoning" in filename:
-            style = {"color": "navy", "weight": 0.3, "fillOpacity": 0}
-        else:
-            style = {}
+        style = assign_layer_style(filename)
 
         # Check if the dataframe is a GeoDataFrame without longitude/latitude coordinates
         if isinstance(df, gpd.GeoDataFrame) and is_latitude_longitude(df) == False:   

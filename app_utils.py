@@ -373,7 +373,6 @@ def render_table(df):
     return selected
 
 
-
 def render_comparison_table(selected_rows):
     """
     Takes selected rows from AgGrid, creates a comparison table, and displays it.
@@ -464,10 +463,10 @@ def render_zoning_layer(map):
         zoom_to_layer=True)
     
     map.add_legend(title="District Type", legend_dict=color_map)
+    map.to_streamlit()
 
     with st.spinner("Loading map..."):
         map.add_layer_control()
-        map.to_streamlit(use_container_width=True)
 
     st.subheader("Selected Areas to Compare")
     selected_rows = render_table(filtered_gdf.drop(columns="geometry"))
@@ -476,6 +475,28 @@ def render_zoning_layer(map):
         render_comparison_table(selected_rows)
     else:
         st.warning("No rows selected yet. Select rows from the table above to compare.")
+    
+    return map
+
+
+def assign_layer_style(filename):
+    if "border" in filename:
+        style = {"color": "dodgerblue", "weight": 2}
+    elif "linearfeatures" in filename:
+        style = {"color": "blue", "weight": 2}
+    elif "pointfeatures" in filename:
+        style = {"color": "darkorange", "weight": 2}
+    elif "servicearea" in filename:
+        style = {"color": "darkred", "weight": 2}
+    elif ("wwtf" in filename) or ("facilit" in filename):
+        style = {"color": "darkgreen", "weight": 2}
+    elif "zoning" in filename:
+        style = {"color": "navy", "weight": 0.3, "fillOpacity": 0}
+    else:
+        style = {}
+    
+    return style
+
 
 
 #--------------------------------------#
@@ -1375,7 +1396,7 @@ def group_by_plot(df, num_op, num_var, grp_by):
     # Use a select box to sort the plot (Defualt, Ascending, or Descending)
     sort_option = st.selectbox(
         label = "",
-        options=["Defualt", "Ascending", "Descending"],
+        options=["Default", "Ascending", "Descending"],
         index=0,
         label_visibility="hidden"
     )
