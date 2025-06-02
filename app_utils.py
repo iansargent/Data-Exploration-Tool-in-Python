@@ -367,15 +367,18 @@ def render_table(df):
         columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
         height=grid_height
     )
+    
+    selected = grid_response.get("selected_rows", [])
 
-    return grid_response.get("selected_rows", [])
+    return selected
+
 
 
 def render_comparison_table(selected_rows):
     """
     Takes selected rows from AgGrid, creates a comparison table, and displays it.
     """
-    if not selected_rows:
+    if len(selected_rows) == 0:
         return
 
     selected_df = pd.DataFrame(selected_rows)
@@ -468,8 +471,11 @@ def render_zoning_layer(map):
 
     st.subheader("Selected Areas to Compare")
     selected_rows = render_table(filtered_gdf.drop(columns="geometry"))
-    if selected_rows:
+    
+    if selected_rows is not None:
         render_comparison_table(selected_rows)
+    else:
+        st.warning("No rows selected yet. Select rows from the table above to compare.")
 
 
 #--------------------------------------#

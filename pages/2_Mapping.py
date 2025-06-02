@@ -15,9 +15,6 @@ from app_utils import (get_user_files, is_latitude_longitude,
                        convert_all_timestamps_to_str, process_uploaded_files, 
                        render_zoning_layer)
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import io
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
 
@@ -71,12 +68,10 @@ def render_mapping():
     
     # Create a on/off toggle to show VT Zoning Data
     vt_zoning = st.toggle(label = "Use the VT Zoning Data Dataset")
-    
-    # Initialize selected_district variable for use in filtering the dataset
-    selected_district = None
-    
+        
     if vt_zoning == True:
          render_zoning_layer(map)
+    
     # Loop through each processed/uploaded dataframe and its filename
     for df, filename in processed_files:
         
@@ -99,8 +94,7 @@ def render_mapping():
             style = {}
 
         # Check if the dataframe is a GeoDataFrame without longitude/latitude coordinates
-        if isinstance(df, gpd.GeoDataFrame) and is_latitude_longitude(df) == False:
-                    
+        if isinstance(df, gpd.GeoDataFrame) and is_latitude_longitude(df) == False:   
             # Add other GeoDataFrames as separate layers
             map.add_gdf(
                 df,
@@ -110,7 +104,7 @@ def render_mapping():
                 zoom_to_layer=True
             )
     
-        # If the dataframe has latitude and longitude columns, create a heatmap
+        # If the dataframe has latitude and longitude columns, create a HEATMAP
         elif is_latitude_longitude(df):
             # Define the latitude and longitude columns
             # NOTE: These could be returned in the is_latitude_longitud() function
@@ -147,94 +141,7 @@ def render_mapping():
             max_lon = heatmap_df[lon_col].max()
 
             map.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
-    
-
-    # Display the map with a loading "spinner" icon
-    with st.spinner("Loading map..."):
-        # Add a layer control to the map
-        map.add_layer_control()
-        # Display the map on the page
-        map.to_streamlit(use_container_width=True)
-        
-        # If the user has selected a district, show the selected areas they might want to compare
-        if selected_district is not None:
-            # Section title
-            st.subheader("Selected Areas to Compare")
-
-            # Drop the geometry column to allow for table display to work
-            selected_district = selected_district.drop(columns=["geometry"]).reset_index(drop=True)
             
-            # Building a custom table display using AgGrid
-            # NOTE: This will show what is on the map in table form
-            # NOTE: This table allows for users to select certain rows to make comparisons
-            gb = GridOptionsBuilder.from_dataframe(selected_district)
-            gb.configure_selection(selection_mode="multiple", use_checkbox=True)
-            grid_options = gb.build()
-            
-            # Set the grid height to dynamically change with the number of rows
-            grid_height = 40 * (len(selected_district) + 1.45)
-            grid_height = min(grid_height, 600)
-
-            # Display the filtered table
-            grid_response = AgGrid(
-                selected_district,
-                theme='material', 
-                gridOptions=grid_options, 
-                update_mode=GridUpdateMode.SELECTION_CHANGED,
-                columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
-                height=grid_height
-            )
-
-            # Define the selected rows from the AgGrid table
-            selected_rows = grid_response["selected_rows"]
-            
-            try:
-                # If the user has selected rows, show the comparison table
-                if selected_rows.empty == False:
-                    # Turn the selected rows into a DataFrame
-                    selected_df = pd.DataFrame(selected_rows)
-                    # Initialize an empty list to hold the melted rows for each district (for comparison)
-                    dfs = []
-
-                    # Loop through each selected row
-                    for _, row in selected_df.iterrows():
-                        # Get the district name to use in the comparison table
-                        district_name = row["Jurisdiction District Name"]
-
-                        # Reset the indeces
-                        df_long = row.reset_index()
-                        # Define the column names for the "long" format rows (should look like two column)
-                        df_long.columns = ["Variable", "Value"]
-
-                        # Rename Value column only, keep Variable as is
-                        df_long = df_long.rename(columns={"Value": district_name})
-                        # Add each 
-                        dfs.append(df_long)
-
-                    # Import functools reduce to merge each separate row into a single comparison dataframe
-                    from functools import reduce
-
-                    # Merge all dfs on the "Variable" column
-                    combined_df = reduce(
-                        lambda left, right: pd.merge(left, right, on="Variable", how="outer"),
-                        dfs
-                    )
-
-                    # Sort the comparison table to show non-empty rows at the top of the table 
-                    combined_df_sorted = combined_df.copy()
-                    combined_df_sorted["na_count"] = combined_df_sorted.isna().sum(axis=1)
-                    combined_df_sorted = combined_df_sorted.sort_values("na_count").drop(columns="na_count")
-
-                    # Subheader for the comparison table
-                    st.subheader("District Comparisons")
-                    # Display the comparison table
-                    filtered_combined_df_sorted = dataframe_explorer(combined_df_sorted, case=False)
-                    st.dataframe(filtered_combined_df_sorted, use_container_width=True)
-            
-            # If the user has not selected any rows, show a warning and do not display any comparisons
-            except AttributeError:
-                st.warning("No rows selected. Please select at least one row to compare district data.")
-
 def show_mapping():
     
     # Apply a background color to the page
