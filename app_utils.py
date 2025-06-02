@@ -27,6 +27,9 @@ import leafmap as lfm
 #--------------------------------------#
 
 def get_user_files(key="main"):
+    
+    st.sidebar.markdown("### Upload Data")
+    
     # Define a file uploader object accepting various file types
     uploaded_files = st.sidebar.file_uploader(
         label="Upload Data Files Here", 
@@ -35,6 +38,11 @@ def get_user_files(key="main"):
         key = f"data_upload_{key}",
         label_visibility="hidden"
     )
+
+    url_upload = st.sidebar.text_input(
+        label = "URL Uploader",
+        placeholder = "Enter a URL Dataset to Analyze",
+        label_visibility="hidden")
 
     # If the user uploads a file
     if uploaded_files:
@@ -46,7 +54,7 @@ def get_user_files(key="main"):
     if user_files:
         st.sidebar.markdown("### Uploaded Files:")
         for file in user_files:
-            st.sidebar.write(f"📄 {file.name}")
+            st.sidebar.write(f"📄 {get_file_name(file)}")
 
         # Set a 'clear uploads' buttton that clears the files from memory
         if st.sidebar.button("🔁 Clear Data Uploads"):

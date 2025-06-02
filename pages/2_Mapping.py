@@ -16,6 +16,9 @@ from app_utils import (get_user_files, is_latitude_longitude,
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import io
+from streamlit_extras.dataframe_explorer import dataframe_explorer 
+
 
 
 def render_mapping():
@@ -29,32 +32,12 @@ def render_mapping():
     st.markdown(
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Mapping</h2>",
         unsafe_allow_html=True)
+    
 
     # Get the user files from the uploader and process them
     user_files = get_user_files()
     # If no files are uploaded, show a warning message
     processed_files = process_uploaded_files(user_files)
-    
-    # If no geo-dataframes are found, show a warning message
-    geo_df_found = False
-    
-    for df, filename in processed_files:
-        if isinstance(df, gpd.GeoDataFrame):
-            geo_df_found = True
-            break
-    
-    # If no GeoDataFrames were found, just display a warning message
-    if geo_df_found == False:
-        st.warning("""
-        Mapping is not available because no valid GeoDataFrames were found in the uploaded files.\n
-        Please ensure that you have uploaded files with geographic data 
-        (e.g., shapefiles, GeoJSON, FlatGeobuf, etc.) or files that contain latitude and longitude coordinates.
-        """)
-        return
-
-    # Initialize zoning dataframe and specific map style
-    zoning_gdf = None
-    zoning_style = {}
 
     # Create an option bank of basemaps to choose from
     basemaps = {
@@ -78,15 +61,127 @@ def render_mapping():
     # Retrieve the selected basemap as a string
     selected_basemap = basemaps[basemap_select_box]
 
-    
     # Set a default map center (In Vermont)
     default_center = [44.45, -72.71]
 
-    # Initialize a blank map object to add layers onto later
+    # Initialize a blank map centered on VT
     map = leafmap.Map(center=default_center)
+    # Add the basemap configuration
     map.add_basemap(selected_basemap)
     
-    # Loop through each processed dataframe and its filename
+    # Create a on/off toggle to show VT Zoning Data
+    vt_zoning = st.toggle(label = "Use the VT Zoning Data Dataset")
+    
+    # Initialize selected_district variable for use in filtering the dataset
+    selected_district = None
+    
+    if vt_zoning == True:
+        # Local path to the vt-zoning-update.fgb file
+        # NOTE: This path is local to my machine and should be converted to a URL        
+        vt_path = '/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb'
+        
+        # The DataFrame is defined as the zoning file
+        zoning_gdf = gpd.read_file(vt_path)
+                
+        # NOTE: This is hardcoded for now (date column cannot be mapped), but could be made dynamic
+        zoning_gdf = zoning_gdf.drop(columns=["Bylaw Date"])
+
+        # Create three columns to display the three selection boxes (County, Jurisdiction, District)
+        col1, col2, col3 = st.columns(3)
+
+        # On the left column, create a selection box for the county
+        with col1:
+            county_selection = st.selectbox(
+                "**County**",
+                ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()),
+                index=0,
+            )
+
+        # Filter the zoning dataframe based on the county selection
+        df_filtered_county = zoning_gdf if county_selection == "All Counties" else zoning_gdf[zoning_gdf["County"] == county_selection]
+
+        # On the middle column, create a selection box for the jurisdiction
+        with col2:
+            jurisdiction_selection = st.selectbox(
+                "**Jurisdiction**",
+                ["All Jurisdictions"] + sorted(df_filtered_county["Jurisdiction"].dropna().unique()),
+                index=0,
+            )
+
+        # Filter the zoning dataframe based on the jurisdiction selection
+        df_filtered_jurisdiction = (
+            df_filtered_county if jurisdiction_selection == "All Jurisdictions"
+            else df_filtered_county[df_filtered_county["Jurisdiction"] == jurisdiction_selection]
+        )
+
+        # On the right column, create a selection box for the district
+        with col3:
+            district_options = sorted(df_filtered_jurisdiction["District Name"].dropna().unique())
+            all_district_option = "All Districts"
+            multiselect_options = [all_district_option] + district_options
+            
+            district_selection = st.multiselect(
+                "**District(s)**",
+                options=multiselect_options,
+                default=[all_district_option]
+            )
+
+        # Filter the zoning dataframe based on the district selection
+        if all_district_option in district_selection or not district_selection:
+            selected_district = df_filtered_jurisdiction
+        else:
+            selected_district = df_filtered_jurisdiction[
+                df_filtered_jurisdiction["District Name"].isin(district_selection)
+            ]
+
+        # If a district is selected, set the map center and zoom level
+        if not selected_district.empty:
+            bounds = selected_district.total_bounds
+            minx, miny, maxx, maxy = bounds
+            center_long = (minx + maxx) / 2
+            center_lat = (miny + maxy) / 2
+            map.set_center(center_long, center_lat, zoom=10)
+            
+            # Add the user-filtered zoning layer to the map
+            from leafmap import colormaps
+
+            # Create a categorical colormap based on unique District Types
+            unique_types = selected_district["District Type"].dropna().unique()
+            
+            # Generate distinct colors from a colormap (discrete scale)
+            cmap = plt.get_cmap("Set2")
+            # Assign colors to the levels of the "District Type" variable
+            colors = [mcolors.rgb2hex(cmap(i % cmap.N)) for i in range(len(unique_types))]
+
+            # Create the color map
+            district_type_color_map = dict(zip(unique_types, colors))
+
+            # Define a style function that assigns a color to each district type
+            def style_by_district_type(feature):
+                district_type = feature["properties"]["District Type"]
+                return {
+                    "color": "navy",
+                    "weight": 0.3,
+                    "fillColor": district_type_color_map.get(district_type, "gray"),
+                    "fillOpacity": 0.4
+                }
+
+            # Apply the filtered layer to the map
+            map.add_gdf(
+                selected_district,
+                layer_name="Districts by Type",
+                style_function=style_by_district_type,
+                info_mode='on_click',
+                zoom_to_layer=True
+            )
+
+            # Convert the district type-color mapping into a legend dict
+            legend_dict = {district_type: color for district_type, color in district_type_color_map.items()}
+
+            # Add legend to the map
+            map.add_legend(title="District Type", legend_dict=legend_dict)
+
+    # Loop through each processed/uploaded dataframe and its filename
     for df, filename in processed_files:
         
         df = convert_all_timestamps_to_str(df)
@@ -107,113 +202,12 @@ def render_mapping():
         else:
             style = {}
 
-        # Initialize selected_district variable for use in filtering the dataset
-        selected_district = None
         # Check if the dataframe is a GeoDataFrame without longitude/latitude coordinates
         if isinstance(df, gpd.GeoDataFrame) and is_latitude_longitude(df) == False:
             
             # If the dataframe is a zoning file
-            if "zoning" in filename.lower():
-                zoning_gdf = df
-                zoning_style = style
-                # NOTE: This is hardcoded for now (date column cannot be mapped), but could be made dynamic
-                zoning_gdf = zoning_gdf.drop(columns=["Bylaw Date"])
-
-
-                # Create three columns to display the three selection boxes (County, Jurisdiction, District)
-                col1, col2, col3 = st.columns(3)
-
-                # On the left column, create a selection box for the county
-                with col1:
-                    county_selection = st.selectbox(
-                        "**County**",
-                        ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()),
-                        index=0,
-                    )
-
-                # Filter the zoning dataframe based on the county selection
-                df_filtered_county = zoning_gdf if county_selection == "All Counties" else zoning_gdf[zoning_gdf["County"] == county_selection]
-
-                # On the middle column, create a selection box for the jurisdiction
-                with col2:
-                    jurisdiction_selection = st.selectbox(
-                        "**Jurisdiction**",
-                        ["All Jurisdictions"] + sorted(df_filtered_county["Jurisdiction"].dropna().unique()),
-                        index=0,
-                    )
-
-                # Filter the zoning dataframe based on the jurisdiction selection
-                df_filtered_jurisdiction = (
-                    df_filtered_county if jurisdiction_selection == "All Jurisdictions"
-                    else df_filtered_county[df_filtered_county["Jurisdiction"] == jurisdiction_selection]
-                )
-
-                # On the right column, create a selection box for the district
-                with col3:
-                    district_options = sorted(df_filtered_jurisdiction["District Name"].dropna().unique())
-                    all_district_option = "All Districts"
-                    multiselect_options = [all_district_option] + district_options
-                    
-                    district_selection = st.multiselect(
-                        "**District(s)**",
-                        options=multiselect_options,
-                        default=[all_district_option]
-                    )
-
-                # Filter the zoning dataframe based on the district selection
-                if all_district_option in district_selection or not district_selection:
-                    selected_district = df_filtered_jurisdiction
-                else:
-                    selected_district = df_filtered_jurisdiction[
-                        df_filtered_jurisdiction["District Name"].isin(district_selection)
-                    ]
-
-                # If a district is selected, set the map center and zoom level
-                if not selected_district.empty:
-                    bounds = selected_district.total_bounds
-                    minx, miny, maxx, maxy = bounds
-                    center_long = (minx + maxx) / 2
-                    center_lat = (miny + maxy) / 2
-                    map.set_center(center_long, center_lat, zoom=10)
-                    
-                    # Add the user-filtered zoning layer to the map
-                    from leafmap import colormaps
-
-                    # Create a categorical colormap based on unique District Types
-                    unique_types = selected_district["District Type"].dropna().unique()
-                    
-                    # Generate distinct colors from a colormap (discrete scale)
-                    cmap = plt.get_cmap("Set2")
-                    # Assign colors to the levels of the "District Type" variable
-                    colors = [mcolors.rgb2hex(cmap(i % cmap.N)) for i in range(len(unique_types))]
-
-                    # Create the color map
-                    district_type_color_map = dict(zip(unique_types, colors))
-
-                    # Define a style function that assigns a color to each district type
-                    def style_by_district_type(feature):
-                        district_type = feature["properties"]["District Type"]
-                        return {
-                            "color": "navy",
-                            "weight": 0.3,
-                            "fillColor": district_type_color_map.get(district_type, "gray"),
-                            "fillOpacity": 0.4
-                        }
-
-                    # Apply the filtered layer to the map
-                    map.add_gdf(
-                        selected_district,
-                        layer_name="Districts by Type",
-                        style_function=style_by_district_type,
-                        info_mode='on_click',
-                        zoom_to_layer=True
-                    )
-
-                    # Convert the district type-color mapping into a legend dict
-                    legend_dict = {district_type: color for district_type, color in district_type_color_map.items()}
-
-                    # Add legend to the map
-                    map.add_legend(title="District Type", legend_dict=legend_dict)
+            if zoning_gdf:
+                st.write("Hello")
                     
             # If it is not a zoning file, add it as a layer to the map
             else:
@@ -344,7 +338,8 @@ def render_mapping():
                     # Subheader for the comparison table
                     st.subheader("District Comparisons")
                     # Display the comparison table
-                    st.dataframe(combined_df_sorted)
+                    filtered_combined_df_sorted = dataframe_explorer(combined_df_sorted, case=False)
+                    st.dataframe(filtered_combined_df_sorted, use_container_width=True)
             
             # If the user has not selected any rows, show a warning and do not display any comparisons
             except AttributeError:
