@@ -89,7 +89,7 @@ def render_mapping():
         _, filtered_gdf = render_zoning_layer(m)
 
     # --- Always Show the Map ---
-    m.to_streamlit(height=500)
+    m.to_streamlit(height=600)
 
     # --- Zoning Table and Comparison Below ---
     if vt_zoning:

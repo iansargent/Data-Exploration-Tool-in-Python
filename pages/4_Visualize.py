@@ -102,7 +102,7 @@ def render_visualization(mode="single", processed_files=None):
                 num_var = st.selectbox(
                     f"Select a numeric column to investigate", 
                     numeric_column_names, 
-                    index=1,
+                    index=0,
                     key=f"{filename}-num_var-{key+1}"
                     )
             

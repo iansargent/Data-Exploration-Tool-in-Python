@@ -107,8 +107,7 @@ def process_uploaded_files(user_files):
             # Attempt to convert it into a GeoDataFrame
             try:
                 # Define the latitude and longitude columns
-                lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
-                lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
+                lat_col, lon_col = get_lat_lon_cols(df)
 
                 # Convert into a GeoDataFrame with geometry
                 df = gpd.GeoDataFrame(df, 
@@ -180,6 +179,7 @@ def load_zoning_file():
     if demo_path not in st.session_state.user_files:
         st.session_state.user_files.append(demo_path)
 
+
 @st.cache_data
 def read_data(file):
     """
@@ -249,9 +249,9 @@ def is_latitude_longitude(df):
     # Get the column names from the DataFrame
     df_columns = [col.strip().lower() for col in get_columns(df)]
 
-    # Define both the latitude and longitude columns
-    lat_col = [col for col in df_columns if "latitude" in col.lower()]
-    lon_col = [col for col in df_columns if "longitude" in col.lower()]
+    # Define both the latitude and longitude columns more generally
+    lat_col = [col for col in df_columns if any(kw in col.lower() for kw in ["latitude", "lat"])]
+    lon_col = [col for col in df_columns if any(kw in col.lower() for kw in ["longitude", "lon", "lng", "long"])]
 
     # If both columns are found, return True
     if lat_col and lon_col:
@@ -263,7 +263,7 @@ def is_latitude_longitude(df):
 
 def get_lat_lon_cols(df):
     candidates_lat = ["latitude", "lat", "internal point (latitude)"]
-    candidates_lon = ["longitude", "lon", "lng", "internal point (longitude)"]
+    candidates_lon = ["longitude", "lon", "lng", "long", "internal point (longitude)"]
 
     normalized_cols = {col.lower().strip(): col for col in df.columns}
 
@@ -544,6 +544,29 @@ def get_dimensions(df):
     return num_columns, num_rows
 
 
+def get_skew(df, variable):
+    """
+    Computes the sample skewness of a numeric variable in a DataFrame.
+    
+    @param df: the DataFrame
+    @param variable: the column name of the numeric variable
+    
+    @return: the skewness (float)
+    """
+    import numpy as np
+
+    x = df[variable].dropna()
+    n = len(x)
+    if n < 3:
+        return np.nan  # skewness not defined for < 3 values
+
+    mean = x.mean()
+    std = x.std(ddof=0)  # population std for formula
+
+    skewness = ((x - mean)**3).sum() / (n * (std**3))
+    
+    return skewness
+
 def data_snapshot(df, filename):
     """
     Reports the overall structure of the dataset, including
@@ -598,41 +621,6 @@ def data_snapshot(df, filename):
     return
 
 
-def column_summaries(df, df_columns, filename):
-    """
-    Display summaries of each column in the DataFrame.
-    Each summary includes the column name, data type, and a description of the column.
-    """
-    total_columns = len(df_columns)
-    max_columns = 5
-
-    # Set number of columns per row
-    if total_columns > 30:
-        return
-    else:
-        num_cols = max(
-            [n for n in range(1, max_columns + 1) if total_columns % n == 0],
-            default=1
-        )
-        if total_columns % num_cols != 0:
-            num_cols = max(
-                [n for n in range(1, total_columns + 1) if total_columns % n == 0 and n <= max_columns],
-                default=1
-            )
-    
-    st.subheader(f"Column Summaries for {filename}")
-    # Render summaries
-    for i in range(0, total_columns, num_cols):
-        cols = st.columns(min(num_cols, total_columns - i))
-        for j, column_name in enumerate(df_columns[i:i + num_cols]):
-            with cols[j]:
-                summary = df[column_name].describe(include='all')
-                summary_df = pd.DataFrame(summary).rename(columns={0: "Value"})
-
-                with st.expander(f"**{column_name.strip()}**"):
-                    st.dataframe(summary_df.style.format(precision=2, na_rep="—"))
-
-
 def generate_exploratory_report(df):
     """
     Generate a tailored exploratory profile report 
@@ -658,8 +646,9 @@ def generate_exploratory_report(df):
         report = ProfileReport(
             df,
             title="Exploratory Report",
-            explorative=True
-        )
+            explorative=True,
+            missing_diagrams={"bar": False, "matrix": False, "dendrogram": False},
+            samples=None)
     
     # Return the ydata-profiling report
     return report
@@ -673,11 +662,10 @@ def generate_quality_report(df):
     report = ProfileReport(
             df,
             title="Data Quality",
-            minimal=True,
+            missing_diagrams={"bar": True,"matrix": True},
+            duplicates={"head": 10},
             correlations=None,
-            interactions=None,
-            samples=None
-        )
+            interactions=None)
 
     return report
 
@@ -758,12 +746,20 @@ def single_column_plot(df, selected_column):
         var_med = source[selected_column].median()
         var_std_dev = source[selected_column].std()
         
+        skew = get_skew(source, selected_column)
+
+        if abs(skew) > 1:
+            skew_warning = ("NOTE: This Distribution is **Slightly Skewed**. " +
+                            "It is best to look at the **Median** instead of **Mean** in this case!")
+            st.warning(skew_warning)
+        
+        
         # Display variable descriptive statistics
         column1, column2 = st.columns(2) 
         column3, column4 = st.columns(2)
-        column1.metric(label="Mean", value = f"{var_mean:.2f}")
-        column2.metric(label="Median", value = f"{var_med:.2f}")
-        column3.metric(label="Standard Deviation", value = f"{var_std_dev:.3f}")
+        column1.metric(label="Mean", value = f"{var_mean:,.2f}")
+        column2.metric(label="Median", value = f"{var_med:,.2f}")
+        column3.metric(label="Standard Deviation", value = f"{var_std_dev:,.3f}")
         column4.metric(label="95% Confidence Interval", value = f"[{ci_low:,.1f}  -  {ci_high:,.1f}]")
 
         style_metric_cards(
@@ -801,7 +797,7 @@ def single_column_plot(df, selected_column):
         ).mark_area(color='tomato').encode(
             x=alt.X(f"{selected_column}:Q", title=selected_column),
             y=alt.Y('density:Q', title='Density')
-        )
+        ).interactive()
 
         # Boxplot
         boxplot = alt.Chart(source).mark_boxplot(color='dodgerblue').encode(
@@ -1429,7 +1425,8 @@ def group_by_plot(df, num_op, num_var, grp_by):
         label = "",
         options=["Default", "Ascending", "Descending"],
         index=0,
-        label_visibility="hidden"
+        label_visibility="hidden",
+        key=f"{num_op}_{num_var}_{grp_by}"
     )
     
     # Change the sort variable based on the sorting selection

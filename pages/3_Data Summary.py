@@ -8,8 +8,7 @@ Data Summary Page
 
 # Necessary imports
 import streamlit as st
-from app_utils import (get_user_files, get_columns, column_summaries, 
-                       generate_exploratory_report, process_uploaded_files,
+from app_utils import (get_user_files, generate_exploratory_report, process_uploaded_files,
                        generate_quality_report, generate_comparison_report)
 from ydata_profiling import ProfileReport
 from streamlit_pandas_profiling import st_profile_report
@@ -40,53 +39,61 @@ def render_data_summary():
             # Drop the geometry column
             df = df.drop(columns=["geometry"]).reset_index(drop=True)
         
-        # Get a list of the column names
-        columns = get_columns(df)
+        column1, column2 = st.columns(2)
+        column3, column4 = st.columns(2)
 
-        # Display a column summary for each column in the dataframe
-        column_summaries(df, columns, filename)
-        
-        # A visual divider
-        st.markdown("---")
+        # Initialize session state
+        expl_key = f"{filename}_expl_profile"
+        qual_key = f"{filename}_qual_profile"
+        expl_html_key = f"{filename}_expl_html"
+        qual_html_key = f"{filename}_qual_html"
 
-        # Subheader for the ydata-profiling report
-        st.subheader("Data Reports")
-        
-        if st.button(label="Generate Exploratory Summary", key=f"{filename}_expl_{key}"):
-            # Add a loading spinner icon to ensure the user knows the report is being generated
-            with st.spinner(text = "Generating report..."):
-                # Create the ydata-profiling report
-                ex_profile = generate_exploratory_report(df)
-                # Allow for an html export
-                report_export = ex_profile.to_html()
-                # Add a download button for the HTML report
-                st.download_button(label="View Full Report", data=report_export, file_name=f'data_report_{filename}_{key}.html')
-                # Advance the unique key
-                key += 1
-            
-            # Using an expander-type button
+        for k in [expl_key, qual_key, expl_html_key, qual_html_key]:
+            if k not in st.session_state:
+                st.session_state[k] = None
+
+        # Exploratory Report
+        with column1:
+            if st.button(label="Generate Exploratory Summary", key=f"{filename}_expl_{key}"):
+                with st.spinner("Generating report..."):
+                    ex_profile = generate_exploratory_report(df)
+                    st.session_state[expl_key] = ex_profile
+                    st.session_state[expl_html_key] = ex_profile.to_html()
+
+            if st.session_state[expl_html_key] is not None:
+                st.download_button(
+                    label="View Full Report",
+                    data=st.session_state[expl_html_key],
+                    file_name=f'data_report_{filename}_expl.html',
+                    key=f"{filename}_expl_dl")
+
+        # Data Quality Report
+        with column2:
+            if st.button(label="Generate Data Quality Summary", key=f"{filename}_qual_{key}"):
+                with st.spinner("Generating report..."):
+                    qual_profile = generate_quality_report(df)
+                    st.session_state[qual_key] = qual_profile
+                    st.session_state[qual_html_key] = qual_profile.to_html()
+
+            if st.session_state[qual_html_key] is not None:
+                st.download_button(
+                    label="View Full Report",
+                    data=st.session_state[qual_html_key],
+                    file_name=f'data_report_{filename}_qual.html',
+                    key=f"{filename}_qual_dl")
+
+        # Display reports
+        with column3:
             with st.expander("View Exploratory Report"):
-                # Display the report on the page
-                st_profile_report(ex_profile)
-        
-        if st.button(label="Generate Data Quality Summary", key=f"{filename}_qual_{key}"):
-            # Add a loading spinner icon to ensure the user knows the report is being generated
-            with st.spinner(text = "Generating report..."):
-                # Create the ydata-profiling report
-                qual_profile = generate_quality_report(df)
-                # Allow for an html export
-                report_export = qual_profile.to_html()
-                # Add a download button for the HTML report
-                st.download_button(label="View Full Report", data=report_export, file_name=f'data_report_{filename}_{key}.html')
-                # Advance the unique key
-                key += 1
-            
-            # Using an expander-type button
+                if st.session_state[expl_key] is not None:
+                    st_profile_report(st.session_state[expl_key])
+
+        with column4:
             with st.expander("View Quality Report"):
-                # Display the report on the page
-                st_profile_report(qual_profile)
-        
-        # Add a visual divider
+                if st.session_state[qual_key] is not None:
+                    st_profile_report(st.session_state[qual_key])
+
+        # Visual divider
         st.markdown("---")
 
     if len(processed_files) >= 2:
