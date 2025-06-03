@@ -41,7 +41,7 @@ def render_mapping():
     basemap_select_box = st.selectbox("**Basemap**", list(basemaps.keys()), index=0)
     selected_basemap = basemaps[basemap_select_box]
 
-    m = leafmap.Map(center=[44.26, -72.57], zoom=8)
+    m = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
     m.add_basemap(selected_basemap)
 
     # Add uploaded user files layers (both GeoDataFrames and lat/lon heatmaps)
