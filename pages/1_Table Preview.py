@@ -10,7 +10,7 @@ Table Preview Page
 import streamlit as st
 from st_aggrid import AgGrid, ColumnsAutoSizeMode
 from streamlit_extras.metric_cards import style_metric_cards 
-from app_utils import get_user_files, process_uploaded_files, data_snapshot
+from app_utils import get_user_files, process_uploaded_files, data_snapshot, load_zoning_file
 import geopandas as gpd
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
@@ -21,6 +21,9 @@ def render_table_preview():
     st.markdown(
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Table Preview</h2>",
         unsafe_allow_html=True)
+    
+    if st.sidebar.toggle("Load VT Zoning Data"):
+        load_zoning_file()
     
     # Get the uploaded files and process them
     user_files = get_user_files()

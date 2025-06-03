@@ -14,117 +14,94 @@ import leafmap.foliumap as leafmap
 from app_utils import (get_user_files, is_latitude_longitude, 
                        convert_all_timestamps_to_str, process_uploaded_files, 
                        render_zoning_layer, assign_layer_style, render_table,
-                       render_comparison_table)
+                       render_comparison_table, get_lat_lon_cols, load_zoning_data)
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
 
+filtered_gdf = pd.DataFrame()
+vt_zoning = False
 
 def render_mapping():
-    """
-    Render the mapping page of the Streamlit app.
-    This function retrieves user-uploaded files, processes them, and displays
-    them on a map. It also provides options for filtering and comparing data
-    based on user selections.
-    """
-    # Set the page title
-    st.markdown(
-        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Mapping</h2>",
-        unsafe_allow_html=True)
-    
-    # Get the user files from the uploader and process them
+    st.markdown("<h2 style='color: #4a4a4a;'>Mapping</h2>", unsafe_allow_html=True)
     user_files = get_user_files()
-    # If no files are uploaded, show a warning message
     processed_files = process_uploaded_files(user_files)
+    vt_zoning = st.toggle(label="Use the VT Zoning Data Dataset")
 
-    # Create a on/off toggle to show VT Zoning Data
-    vt_zoning = st.toggle(label = "Use the VT Zoning Data Dataset")
-
-    # Create an option bank of basemaps to choose from
     basemaps = {
-    "Light": "CartoDB.Positron",
-    "Standard": "OpenStreetMap",
-    "Satellite": "Esri.WorldImagery",
-    "Elevation": "OpenTopoMap",
-    "Shaded Relief Map": "Esri.WorldShadedRelief",
-    "Hillshade Map": "Esri.WorldHillshade",
-    "National Geographic": "Esri.NatGeoWorldMap",
-    "World Street Map": "Esri.WorldStreetMap"
+        "Light": "CartoDB.Positron",
+        "Standard": "OpenStreetMap",
+        "Satellite": "Esri.WorldImagery",
+        "Elevation": "OpenTopoMap",
+        "Shaded Relief Map": "Esri.WorldShadedRelief",
+        "Hillshade Map": "Esri.WorldHillshade",
+        "National Geographic": "Esri.NatGeoWorldMap",
+        "World Street Map": "Esri.WorldStreetMap"
     }
-    
-    # Display a selection box for the basemap type
-    basemap_select_box = st.selectbox(
-        label="**Basemap**",
-        options=list(basemaps.keys()),
-        index=0
-    )
-    # Retrieve the selected basemap as a string
+    basemap_select_box = st.selectbox("**Basemap**", list(basemaps.keys()), index=0)
     selected_basemap = basemaps[basemap_select_box]
-    # Set a default map center (In Vermont)
-    default_center = [44.45, -72.71]
 
-    # Initialize a blank map centered on VT
-    map = leafmap.Map(center=default_center)
-    # Add the basemap configuration
-    map.add_basemap(selected_basemap)
-            
-    if vt_zoning == True:
-        render_zoning_layer(map)
-    
-    # Loop through each processed/uploaded dataframe and its filename
+    m = leafmap.Map(center=[44.26, -72.57], zoom=8)
+    m.add_basemap(selected_basemap)
+
+    # Add uploaded user files layers (both GeoDataFrames and lat/lon heatmaps)
     for df, filename in processed_files:
-        
         df = convert_all_timestamps_to_str(df)
         style = assign_layer_style(filename)
 
-        # Check if the dataframe is a GeoDataFrame without longitude/latitude coordinates
-        if isinstance(df, gpd.GeoDataFrame) and is_latitude_longitude(df) == False:   
-            # Add other GeoDataFrames as separate layers
-            map.add_gdf(
-                df,
-                layer_name=filename,
-                style=style,
-                info_mode='on_click',
-                zoom_to_layer=True
-            )
-    
-        # If the dataframe has latitude and longitude columns, create a HEATMAP
+        if isinstance(df, gpd.GeoDataFrame) and not is_latitude_longitude(df):
+            m.add_gdf(df, layer_name=filename, style=style, info_mode='on_click', zoom_to_layer=True)
+
         elif is_latitude_longitude(df):
-            # Define the latitude and longitude columns
-            # NOTE: These could be returned in the is_latitude_longitud() function
-            lat_col = [col for col in df.columns if "latitude" in col.lower()][0]
-            lon_col = [col for col in df.columns if "longitude" in col.lower()][0]
+            lat_col, lon_col = get_lat_lon_cols(df)
+            if not lat_col or not lon_col:
+                st.warning(f"Could not identify lat/lon columns in {filename}. Skipping heatmap.")
+                continue
 
-            # Get all numeric columns to display in the heatmap
             numeric_cols = df.select_dtypes(include="number").columns.tolist()
+            circle_var = st.selectbox(f"Select a variable to plot from {filename}", numeric_cols, index=0, key=f"{filename}_circle_var")
 
-            # Allow user to select a numeric variable to plot on the map
-            heatmap_var = st.selectbox(
-                "Select a variable to plot on the heatmap",
-                numeric_cols,
-                index=0
-            )
+            circle_df = df[[lat_col, lon_col, circle_var]].dropna()
 
-            # Filter the dataframe to only include the latitude, longitude, and selected variable column
-            heatmap_df = df[[lat_col, lon_col, heatmap_var]].dropna()
-                
-            # Add the heatmap layer to the map
-            map.add_heatmap(
-                data=heatmap_df,
-                latitude=lat_col,
-                longitude=lon_col,
-                layer_name="Heatmap",
-                value = heatmap_var,
-                radius=10,
-                blur=15
-            )
-            # Calculate bounding box and auto zoom
-            min_lat = heatmap_df[lat_col].min()
-            max_lat = heatmap_df[lat_col].max()
-            min_lon = heatmap_df[lon_col].min()
-            max_lon = heatmap_df[lon_col].max()
+            from sklearn.preprocessing import MinMaxScaler
+            
+            scaler = MinMaxScaler(feature_range=(0.5, 10))
+            scaled_values = scaler.fit_transform(circle_df[[circle_var]])
+            circle_df["scaled_radius"] = scaled_values.flatten()
 
-            map.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+            for _, row in circle_df.iterrows():
+                m.add_circle_markers_from_xy(
+                    data=pd.DataFrame([row]),
+                    x=lon_col,
+                    y=lat_col,
+                    radius=row["scaled_radius"],
+                    fill_color="mediumseagreen",
+                    tooltip=[circle_var]
+                )
+
+            min_lat, max_lat = circle_df[lat_col].min(), circle_df[lat_col].max()
+            min_lon, max_lon = circle_df[lon_col].min(), circle_df[lon_col].max()
+            m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+
+        # --- Add Zoning File if Toggle is ON ---
+    if vt_zoning:
+        zoning_gdf = load_zoning_data()
+        _, filtered_gdf = render_zoning_layer(m)
+
+    # --- Always Show the Map ---
+    m.to_streamlit(height=500)
+
+    # --- Zoning Table and Comparison Below ---
+    if vt_zoning:
+        st.markdown("### Zoning Districts Table")
+        selected = render_table(filtered_gdf)
+        try:
+            if not selected.empty:
+                render_comparison_table(selected)
+        except:
+            st.warning("No Selected Districts to Compare")
+
+    return m
             
 def show_mapping():
     
@@ -161,9 +138,10 @@ def show_mapping():
     }
     </style>
     """, unsafe_allow_html=True)
-    
+        
     # Display the page
-    render_mapping()
+    map = render_mapping()
+
 
 if __name__ == "__main__":
     show_mapping()

@@ -26,8 +26,6 @@ from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdat
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
 
-
-
 #--------------------------------------#
 #######      File Handling      ########
 #--------------------------------------#
@@ -45,10 +43,10 @@ def get_user_files(key="main"):
         label_visibility="hidden"
     )
 
-    url_upload = st.sidebar.text_input(
-        label = "URL Uploader",
-        placeholder = "Enter a URL Dataset to Analyze",
-        label_visibility="hidden")
+    # url_upload = st.sidebar.text_input(
+    #     label = "URL Uploader",
+    #     placeholder = "Enter a URL Dataset to Analyze",
+    #     label_visibility="hidden")
 
     # If the user uploads a file
     if uploaded_files:
@@ -85,7 +83,6 @@ def process_uploaded_files(user_files):
 
     # If the user has not uploaded any files
     if not user_files:
-        st.warning("No files uploaded.")
         return []
 
     # For each uploaded file
@@ -134,37 +131,54 @@ def process_uploaded_files(user_files):
 
 def file_hash(file):
     """
-    Generate a unique hash for the file content to check for duplicates.
+    Generates a SHA-256 hash for either a Streamlit UploadedFile or a local file path (str).
     """
-    file.seek(0)
-    content = file.read()
-    file.seek(0)
+    hasher = hashlib.sha256()
     
-    return hashlib.md5(content).hexdigest()
+    if isinstance(file, str):
+        # It's a local path
+        with open(file, 'rb') as f:
+            content = f.read()
+            hasher.update(content)
+    else:
+        # It's an UploadedFile
+        file.seek(0)
+        content = file.read()
+        hasher.update(content)
+        file.seek(0)  # Reset after reading
+
+    return hasher.hexdigest()
 
 
 def get_file_name(file):
-    """
-    Get the file name without the extension.
-    """
-    filename = os.path.splitext(file.name)[0].lower()
-    
-    return filename
+    if isinstance(file, str):
+        return os.path.basename(file)
+    elif hasattr(file, "name"):
+        return file.name
+    else:
+        return "unknown"
 
 
 def get_file_extension(file):
-    """
-    Extract the file extension of the uploaded file.
-    """
-    file_extension = os.path.splitext(file.name)[1]
-    
-    return file_extension
+    if isinstance(file, str):
+        return os.path.splitext(file)[1].lower()
+    elif hasattr(file, "name"):
+        return os.path.splitext(file.name)[1].lower()
+    else:
+        return ""
 
 
 #--------------------------------------#
 # Reading, Handling, and Cleaning Data #
 #--------------------------------------#
 
+def load_zoning_file():
+    demo_path = "/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb"
+    if "user_files" not in st.session_state:
+        st.session_state.user_files = []
+
+    if demo_path not in st.session_state.user_files:
+        st.session_state.user_files.append(demo_path)
 
 @st.cache_data
 def read_data(file):
@@ -247,6 +261,18 @@ def is_latitude_longitude(df):
         return False
 
 
+def get_lat_lon_cols(df):
+    candidates_lat = ["latitude", "lat", "internal point (latitude)"]
+    candidates_lon = ["longitude", "lon", "lng", "internal point (longitude)"]
+
+    normalized_cols = {col.lower().strip(): col for col in df.columns}
+
+    lat_col = next((original for norm, original in normalized_cols.items() if norm in candidates_lat), None)
+    lon_col = next((original for norm, original in normalized_cols.items() if norm in candidates_lon), None)
+
+    return lat_col, lon_col
+
+
 def month_name_to_num(month_name):
     """
     Convert string-type month names into corresponding integers
@@ -284,7 +310,7 @@ def clean_data(df):
     # Replace "." name spacers with "_"
     df.columns = df.columns.str.replace('.', '_', regex=False)
     # Replace empty values with NA
-    df = df.replace(r'^\s*$', pd.NA, regex=True)
+    df = df.replace("", pd.NA, regex=True)
 
     for col in df.columns:
         # Get the column name
@@ -314,7 +340,7 @@ def clean_data(df):
         # Convert binary numeric columns with values [0,1] to boolean
         if df[col].dropna().nunique() == 2:
             vals = set(str(v).strip().lower() for v in df[col].dropna().unique())
-            if vals == {"yes", "no"} or vals == {"0", "1"} or vals == {0, 1} or vals == {"y", "n"}:
+            if vals == {"yes", "no", " "} or vals == {"0", "1"} or vals == {0, 1} or vals == {"y", "n"}:
                 df[col] = df[col].astype(bool)
         
         if isinstance(df, gpd.GeoDataFrame):
@@ -343,15 +369,26 @@ def convert_all_timestamps_to_str(gdf):
 #--------------------------------------#
 
 
-def load_zoning_data(path):
+def load_zoning_data():
+    path = '/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb'
     gdf = gpd.read_file(path)
     return gdf.drop(columns=["Bylaw Date"], errors="ignore")
 
 
-def render_table(df):
+def render_table(gdf):
     """
     Displays an interactive AgGrid table and returns selected rows.
     """
+    
+    df = gdf.copy()
+    if "geometry" in df.columns:
+        df = df.drop(columns=["geometry"])
+
+
+    first_cols = ["OBJECTID", "Jurisdiction District Name", "Abbreviated District Name", "County"]
+    remaining_cols = [col for col in df.columns if col not in first_cols]
+    df = df[first_cols + remaining_cols].sort_values(by="Jurisdiction District Name")
+
     gb = GridOptionsBuilder.from_dataframe(df)
     gb.configure_selection(selection_mode="multiple", use_checkbox=True)
     grid_options = gb.build()
@@ -368,9 +405,9 @@ def render_table(df):
         height=grid_height
     )
     
-    selected = grid_response.get("selected_rows", [])
+    selected_rows = grid_response.get("selected_rows", [])
 
-    return selected
+    return selected_rows
 
 
 def render_comparison_table(selected_rows):
@@ -428,7 +465,7 @@ def generate_district_color_map(gdf):
 
 
 def render_zoning_layer(map):
-    zoning_gdf = load_zoning_data("/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb")
+    zoning_gdf = load_zoning_data()
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -438,7 +475,14 @@ def render_zoning_layer(map):
             zoning_gdf[zoning_gdf["County"] == county]["Jurisdiction"].dropna().unique()
         ) if county != "All Counties" else ["All Jurisdictions"] + sorted(zoning_gdf["Jurisdiction"].dropna().unique()))
     with col3:
-        district_opts = sorted(zoning_gdf["District Name"].dropna().unique())
+        # Filter district options based on current county and jurisdiction selection
+        district_filter = zoning_gdf.copy()
+        if county != "All Counties":
+            district_filter = district_filter[district_filter["County"] == county]
+        if jurisdiction != "All Jurisdictions":
+            district_filter = district_filter[district_filter["Jurisdiction"] == jurisdiction]
+
+        district_opts = sorted(district_filter["District Name"].dropna().unique())
         districts = st.multiselect("**District(s)**", ["All Districts"] + district_opts, default=["All Districts"])
 
     filtered_gdf = filter_zoning_data(zoning_gdf, county, jurisdiction, districts)
@@ -463,20 +507,8 @@ def render_zoning_layer(map):
         zoom_to_layer=True)
     
     map.add_legend(title="District Type", legend_dict=color_map)
-    map.to_streamlit()
-
-    with st.spinner("Loading map..."):
-        map.add_layer_control()
-
-    st.subheader("Selected Areas to Compare")
-    selected_rows = render_table(filtered_gdf.drop(columns="geometry"))
     
-    if selected_rows is not None:
-        render_comparison_table(selected_rows)
-    else:
-        st.warning("No rows selected yet. Select rows from the table above to compare.")
-    
-    return map
+    return map, filtered_gdf
 
 
 def assign_layer_style(filename):
@@ -496,7 +528,6 @@ def assign_layer_style(filename):
         style = {}
     
     return style
-
 
 
 #--------------------------------------#
