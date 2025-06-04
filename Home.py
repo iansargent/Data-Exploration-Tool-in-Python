@@ -19,14 +19,14 @@ from app_utils import get_user_files, process_uploaded_files, load_zoning_file
 def main():
     # Set page configurations
     st.set_page_config(
-        page_title="Vermont Livability App",
+        page_title="Vermont Data App",
         layout="wide",
         page_icon="🍁"
     )
     
     # Set the page title
     st.markdown(
-        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Vermont Livability: A Data Exploration App</h2>",
+        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Vermont Data Exploration App</h2>",
         unsafe_allow_html=True)
 
     # Display a background photo for the page
@@ -73,23 +73,22 @@ def main():
     # Option to load demo dataset via toggle
     if st.sidebar.toggle("Load VT Zoning Data"):
         load_zoning_file()
-
         user_files = st.session_state["user_files"]
 
     processed_files = process_uploaded_files(user_files)
 
 
-    # navigation_placeholder = "Placeholder for app navigation / directions"
+    navigation_placeholder = "Placeholder for app navigation / directions"
 
-    # with st.container():        
-    #     st.markdown(
-    #         f"""
-    #         <div class="custom-container">
-    #             <p>{navigation_placeholder}</p>
-    #         </div>
-    #         """,
-    #         unsafe_allow_html=True
-    #     )
+    with st.container():        
+        st.markdown(
+            f"""
+            <div class="custom-container">
+                <p>{navigation_placeholder}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 if __name__ == "__main__":
