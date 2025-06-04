@@ -86,7 +86,7 @@ def render_visualization(mode="single", processed_files=None):
             with column1:
                 # Selection box for numeric OPERATION (average, total, SD, etc.)
                 num_op = st.selectbox(
-                    f"Select an operation", 
+                    f"Operation", 
                     operations, 
                     index=0,
                     key=f"{filename}-num_op-{key}"
@@ -100,7 +100,7 @@ def render_visualization(mode="single", processed_files=None):
             with column2:
                 # Selection box for the numeric variable
                 num_var = st.selectbox(
-                    f"Select a numeric column to investigate", 
+                    f"Numeric Column to Investigate", 
                     numeric_column_names, 
                     index=0,
                     key=f"{filename}-num_var-{key+1}"
@@ -113,7 +113,7 @@ def render_visualization(mode="single", processed_files=None):
             with column3:
                 # Selection box for the "group-by" variable
                 grp_by = st.selectbox(
-                    f"Select a variable to summarize by", 
+                    f"Variable to Summarize by", 
                     categorical_column_names, 
                     key=f"{filename}-grp_by-{key+2}"
                     )

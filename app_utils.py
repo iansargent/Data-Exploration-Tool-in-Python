@@ -567,6 +567,7 @@ def get_skew(df, variable):
     
     return skewness
 
+
 def data_snapshot(df, filename):
     """
     Reports the overall structure of the dataset, including
@@ -710,10 +711,8 @@ def single_column_plot(df, selected_column):
     
     # If the column is categorical (object type)
     if column_type == 'object':
-        # Set plot title
-        st.subheader(f"Bar Chart of {selected_column}")
         # Create a sorted BAR CHART using Altair (descending)
-        bar_chart = alt.Chart(source).mark_bar().encode(
+        bar_chart = alt.Chart(source, title=f"Bar Chart of {selected_column}").mark_bar().encode(
             x=alt.X(f"{selected_column}:N", sort='-y'),
             y='count()',
             tooltip=['count()']
@@ -768,7 +767,6 @@ def single_column_plot(df, selected_column):
             border_size_px=0.5
         )
         
-        st.subheader("Histogram")
         # Slider for number of bins in the histogram
         bin_slider = st.slider(
             "Select the Level of Detail", 
@@ -780,7 +778,7 @@ def single_column_plot(df, selected_column):
         )
 
         # Histogram
-        histogram = alt.Chart(source).mark_bar().encode(
+        histogram = alt.Chart(source, title=f"Histogram Distribution of {selected_column}").mark_bar().encode(
             x=alt.X(f"{selected_column}:Q", bin=alt.Bin(maxbins=bin_slider), title=selected_column),
             y=alt.Y('count():Q', title='Count'),
             tooltip=[alt.Tooltip('count()', title='Count')]
@@ -790,7 +788,7 @@ def single_column_plot(df, selected_column):
         )
 
         # Density Plot
-        density = alt.Chart(source).transform_density(
+        density = alt.Chart(source, title=f"Density Distribution of {selected_column}").transform_density(
             f"{selected_column}",
             as_=[f"{selected_column}", "density"],
             extent=[source[selected_column].min(), source[selected_column].max()]
@@ -800,7 +798,7 @@ def single_column_plot(df, selected_column):
         ).interactive()
 
         # Boxplot
-        boxplot = alt.Chart(source).mark_boxplot(color='dodgerblue').encode(
+        boxplot = alt.Chart(source, title=f"Boxplot Distribution of {selected_column}").mark_boxplot(color='dodgerblue').encode(
             x=alt.X(f"{selected_column}:Q", title=selected_column)
         ).configure_mark().configure_boxplot(size=160
         ).properties(width=400, height=300)
@@ -809,11 +807,9 @@ def single_column_plot(df, selected_column):
         st.altair_chart(histogram, use_container_width=True)
                 
         # Display the density plot
-        st.subheader(f"Density Plot")
         st.altair_chart(density, use_container_width=True)
         
         # Display the box plot below
-        st.subheader(f"Box Plot")
         st.altair_chart(boxplot, use_container_width=True)
 
         # Return the plots and confidence interval
@@ -821,8 +817,6 @@ def single_column_plot(df, selected_column):
 
     # If the column is datetime
     elif pd.api.types.is_datetime64_any_dtype(df[selected_column]):
-        # Set plot title
-        st.subheader(f"Time Series Plot of {selected_column}")
         # Clean the datetime column
         source[selected_column] = pd.to_datetime(source[selected_column])
         
@@ -839,7 +833,7 @@ def single_column_plot(df, selected_column):
         y_column = st.selectbox("Select a column to plot over time:", numeric_cols)
 
         # Create the LINE CHART
-        chart = alt.Chart(df).mark_line().encode(
+        chart = alt.Chart(df, title=f"Plot of {selected_column} Over Time").mark_line().encode(
             x=alt.X(f"{selected_column}:T", title="Time"),
             y=alt.Y(f"{y_column}:Q", title=y_column),
             color = alt.value("dodgerblue"),
@@ -858,10 +852,8 @@ def single_column_plot(df, selected_column):
 
     # If the column is boolean
     elif column_type == 'bool':
-        # Set plot title
-        st.subheader(f"Pie Chart of {selected_column}")
         # Create a pie chart using Altair
-        pie_chart = alt.Chart(source).mark_arc().encode(
+        pie_chart = alt.Chart(source, title=f"Pie Chart of {selected_column}").mark_arc().encode(
             theta='count()',
             color=alt.Color(f"{selected_column}:N"),
             tooltip=[alt.Tooltip(f"{selected_column}:N", title="Category"),
@@ -918,7 +910,7 @@ def numeric_numeric_plots(df, col1, col2):
         color = alt.value("mediumseagreen")
 
     # SCATTERPLOT
-    scatterplot = alt.Chart(source).mark_square(
+    scatterplot = alt.Chart(source, title=f"Scatterplot of {col1} v.s. {col2}").mark_square(
         opacity = 0.7
     ).encode(
         x = alt.X(f"{col1}:Q", title=col1).scale(zero=False),
@@ -962,7 +954,7 @@ def numeric_numeric_plots(df, col1, col2):
         'residuals' : residuals
     })
     
-    resids = alt.Chart(resid_df).mark_square(color = "tomato").encode(
+    resids = alt.Chart(resid_df, title=f"Residual Plot of {col2} Predictions").mark_square(color = "tomato").encode(
         x = alt.X('y_pred', title = 'Predicted'),
         y = alt.Y('residuals', title = 'Residual'),
         tooltip=['y_pred', 'residuals']).interactive()
@@ -1010,7 +1002,7 @@ def numeric_numeric_plots(df, col1, col2):
     df['y_bin'] = df['y_bin'].astype(str)
 
     # Altair heatmap
-    heatmap = alt.Chart(df).mark_rect().encode(
+    heatmap = alt.Chart(df, title=f"Heatmap Distribution of {col1} v.s. {col2}").mark_rect().encode(
         x=alt.X('x_bin:O', sort=[str(c) for c in x_order], title=col1),
         y=alt.Y('y_bin:O', sort=[str(c) for c in reversed(y_order)], title=col2),
         color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange'), title="Count"),
@@ -1125,7 +1117,6 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, scatterplot_with_
     regression_metric_cards(df, col1, col2)
 
     with st.container():
-        st.subheader("Linear Model Residual Plot")
         st.altair_chart(resid_plot, use_container_width=True)
 
     # Below the regression metrics, display the table and the heatmap
@@ -1144,7 +1135,6 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, scatterplot_with_
             )
         # Display the heatmap
         with col_heatmap:
-            st.subheader("Heatmap")
             st.altair_chart(heatmap, use_container_width=True)
 
 
@@ -1166,7 +1156,7 @@ def numeric_categorical_plots(df, col1, col2):
         non_numeric_col = col2
             
         # MULTI BOXPLOT
-        multi_box = alt.Chart(source).mark_boxplot(size=40).encode(
+        multi_box = alt.Chart(source, title=f"Boxplot Distributions of {col1} by {col2}").mark_boxplot(size=40).encode(
             x = alt.X(f"{col2}:N", sort='-y', title=col2),
             y = alt.Y(f"{col1}:Q", title=col1),
             color = alt.Color(f"{col2}:N", title=col2, legend=None, scale=alt.Scale(scheme='category20')),
@@ -1174,7 +1164,7 @@ def numeric_categorical_plots(df, col1, col2):
         )
 
         # CONFIDENCE INTERVALS WITH MEANS
-        error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
+        error_bars = alt.Chart(source, title=f"95% Confidence Intervals of {col1} by {col2}").mark_errorbar(extent='ci').encode(
             alt.X(f"{col1}").scale(zero=False),
             alt.Y(f"{col2}:O", sort='-x', title=col2)
         )
@@ -1199,7 +1189,7 @@ def numeric_categorical_plots(df, col1, col2):
         non_numeric_col = col1
         
         # MULTI BOXPLOT
-        multi_box = alt.Chart(source).mark_boxplot(size=40).encode(
+        multi_box = alt.Chart(source, title=f"Boxplot Distributions of {col2} by {col1}").mark_boxplot(size=40).encode(
             x = alt.X(f"{col1}:N", sort='-y', title=col1),
             y = alt.Y(f"{col2}:Q", title=col2),
             color = alt.Color(f"{col1}:N", title=col1, legend=None, scale=alt.Scale(scheme='category20')),
@@ -1207,7 +1197,7 @@ def numeric_categorical_plots(df, col1, col2):
         )
 
         # CONFIDENCE INTERVALS WITH MEANS
-        error_bars = alt.Chart(source).mark_errorbar(extent='ci').encode(
+        error_bars = alt.Chart(source, title=f"95% Confidence Intervals of {col2} by {col1}").mark_errorbar(extent='ci').encode(
             alt.X(f"{col2}").scale(zero=False),
             alt.Y(f"{col1}:O", sort='-x', title=col1)
         )
@@ -1230,13 +1220,9 @@ def display_numeric_categorical_plots(df, numeric_col, non_numeric_col, multi_bo
     Display the boxplot and confidence interval plot 
     if both a numeric and categorical variable are selected.
     """
-    
     # Display the boxplot
-    st.subheader(f"Distribution of {numeric_col} by {non_numeric_col}")
     st.altair_chart(multi_box, use_container_width=True)
-    
     # Display the confidence interval plot
-    st.subheader(f"95% Confidence Interval of {numeric_col} by {non_numeric_col}")
     st.altair_chart(confint_plot, use_container_width=True)
 
 
@@ -1264,7 +1250,7 @@ def categorical_categorical_plots(df, col1, col2):
     format_dict = {col: "{:.1f}%" for col in freq_table.columns if pd.api.types.is_numeric_dtype(freq_table[col])}
 
     # HEATMAP
-    heatmap = alt.Chart(source).mark_rect().encode(
+    heatmap = alt.Chart(source, title=f"Heatmap Table of {col1} and {col2}").mark_rect().encode(
         x=f'{col2}:O',
         y=f'{col1}:O',
         color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange')),
@@ -1272,7 +1258,7 @@ def categorical_categorical_plots(df, col1, col2):
     )
         
     # STACKED BAR CHARTS
-    stacked_bar = alt.Chart(source).mark_bar().encode(
+    stacked_bar = alt.Chart(source, title=f"Stacked Bar Chart of {col1} by {col2}").mark_bar().encode(
         y=alt.Y(f"{col1}:N", title=col1),
         x=alt.X('count():Q', title='Count'),
         color=alt.Color(f"{col2}:N", title=col2),
@@ -1283,7 +1269,7 @@ def categorical_categorical_plots(df, col1, col2):
     stacked_df_100 = freq_table.melt(id_vars=col1, var_name='Category', value_name='Percentage')
 
     # Altair 100% horizontal stacked bar chart
-    stacked_bar_100_pct = alt.Chart(stacked_df_100).mark_bar().encode(
+    stacked_bar_100_pct = alt.Chart(stacked_df_100, title=f"Percentage Distribution of {col2} by {col1}").mark_bar().encode(
         y=alt.Y(f'{col1}:O', title=None),
         x=alt.X('Percentage:Q', stack='normalize', title=f'{col2} Distribution'),
         color=alt.Color('Category:N'),
@@ -1308,10 +1294,8 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
         with column1:
             st.subheader(f"Frequency Table of {col1} and {col2}")
             st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
-        
         # Display the heatmap
         with column2:
-            st.subheader(f"Heatmap of {col1} and {col2}")
             st.altair_chart(heatmap, use_container_width=True)
     
     # If the number of unique values is NOT reasonable for plotting
@@ -1321,11 +1305,8 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
         st.dataframe(freq_table.style.format(format_dict, na_rep="—"), hide_index=True)
 
     # Display the stacked bar chart
-    st.subheader(f"Stacked Bar Chart of {col2} by {col1}")
     st.altair_chart(stacked_bar, use_container_width=True)
-    
     # Display the 100% stacked bar chart next to the other chart
-    st.subheader(f"100% Stacked Bar Chart of {col1} by {col2}")
     st.altair_chart(stacked_bar_100_pct, use_container_width=True)
 
 
@@ -1356,7 +1337,6 @@ def two_column_plot(df, col1, col2):
         # Return all plots
         return scatterplot, scatterplot_with_lines, heatmap
 
-
     # If NUMERIC and CATEGORICAL variables are selected
     elif ((col1_type in ['int64', 'float64'] and (col2_type == 'object' or col2_type.name == 'category')) 
     or ((col1_type == 'object' or col1_type.name == 'category') and col2_type in ['int64', 'float64'])):
@@ -1368,7 +1348,6 @@ def two_column_plot(df, col1, col2):
         # Return the plots
         return multi_box, confint_plot
         
-
     # If two CATEGORICAL variables are selected
     elif ((col1_type in ['object', 'bool'] or col1_type.name == 'category') and 
       (col2_type in ['object', 'bool'] or col2_type.name == 'category')):
@@ -1396,22 +1375,22 @@ def group_by_plot(df, num_op, num_var, grp_by):
     # Group by the "grp_by" variable using the SELECTED OPERATION
     if num_op == "Total":
         df_grouped = df_simple.groupby(by = [grp_by]).sum()
-        prefix = "total_"
+        prefix = "Total "
     elif num_op == "Average":
         df_grouped = df_simple.groupby(by = [grp_by]).mean()
-        prefix = "avg_"
+        prefix = "Average "
     elif num_op == "Median":
         df_grouped = df_simple.groupby(by = [grp_by]).median()
-        prefix = "median_"
+        prefix = "Median "
     elif num_op == "Count":
         df_grouped = df_simple.groupby(by = [grp_by]).count()
-        prefix = "count of"
+        prefix = "Count of "
     elif num_op == "Unique Count":
         df_grouped = df_simple.groupby(by = [grp_by]).nunique()
-        prefix = "unique count of"
+        prefix = "Unique Count of "
     elif num_op == "Standard Deviation":
         df_grouped = df_simple.groupby(by = [grp_by]).std()
-        prefix = "std_dev_"
+        prefix = "Standard Deviation of "
 
     # Reset the DataFrame index for plotting
     df_grouped = df_grouped.reset_index()
@@ -1422,10 +1401,9 @@ def group_by_plot(df, num_op, num_var, grp_by):
 
     # Use a select box to sort the plot (Defualt, Ascending, or Descending)
     sort_option = st.selectbox(
-        label = "",
-        options=["Default", "Ascending", "Descending"],
+        label = "Select a sort option",
+        options=["None", "Ascending", "Descending"],
         index=0,
-        label_visibility="hidden",
         key=f"{num_op}_{num_var}_{grp_by}"
     )
     
@@ -1438,17 +1416,16 @@ def group_by_plot(df, num_op, num_var, grp_by):
         sort = list(df_grouped[grp_by])
     
     # BAR CHART
-    grouped_chart = alt.Chart(df_grouped).mark_bar().encode(
+    grouped_chart = alt.Chart(df_grouped, title=f"{num_var_name} by {grp_by}").mark_bar().encode(
         x=alt.X(f'{grp_by}:N', sort=sort),
         y=alt.Y(f'{num_var_name}:Q')
     )
 
     # Display the plot
-    st.subheader("Plot")
     st.altair_chart(grouped_chart, use_container_width=True)
 
     # Display the summarized table
-    st.subheader("Table")
+    st.subheader("Summarized Table")
     st.dataframe(df_grouped)
 
     # Return the aggregated DataFrame and the corresponsing bar chart
