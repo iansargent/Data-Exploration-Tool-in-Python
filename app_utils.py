@@ -483,6 +483,7 @@ def render_comparison_table(selected_rows):
     Takes selected rows from AgGrid, creates a comparison table, and displays it.
 
     @param selected_rows: The selected rows from an AgGrid interactive table.
+    @return: The comparison table as a dataframe
     """
     if len(selected_rows) == 0:
         return
@@ -510,6 +511,20 @@ def render_comparison_table(selected_rows):
     st.subheader("District Comparisons")
     filtered_combined_df_sorted = dataframe_explorer(combined_df_sorted, case=False)
     st.dataframe(filtered_combined_df_sorted, use_container_width=True)
+
+    import io
+    from datetime import datetime
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
+
+    st.download_button(
+        label="Export Comparison Table to Excel",
+        data= (lambda buf=io.BytesIO(): (filtered_combined_df_sorted.to_excel(buf, index=False, engine="openpyxl"), buf.seek(0), buf)[2])(),
+        file_name=f"comparison_table_{timestamp}.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    return combined_df_sorted
 
 
 def filter_zoning_data(gdf, county, jurisdiction, districts):
@@ -595,8 +610,11 @@ def render_zoning_layer(map):
         dt = f["properties"].get("District Type", "")
         return {"color": "navy", "weight": 0.3, "fillColor": color_map.get(dt, "gray"), "fillOpacity": 0.4}
 
+    info_cols = ["Jurisdiction District Name", "Abbreviated District Name", "District Type", "geometry"]
+    filtered_display = filtered_gdf[info_cols].copy()
+
     map.add_gdf(
-        filtered_gdf, 
+        filtered_display, 
         "Districts by Type", 
         style_function=style_fn, 
         info_mode="on_click", 

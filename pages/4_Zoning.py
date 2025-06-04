@@ -9,18 +9,9 @@ Zoning Page
 # Necessary imports
 import streamlit as st
 import pandas as pd
-import geopandas as gpd
 import leafmap.foliumap as leafmap
-from app_utils import (get_user_files, is_latitude_longitude, 
-                       convert_all_timestamps_to_str, process_uploaded_files, 
-                       render_zoning_layer, assign_layer_style, render_table,
-                       render_comparison_table, get_lat_lon_cols, load_zoning_data)
-from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
-from streamlit_extras.dataframe_explorer import dataframe_explorer 
+from app_utils import (render_zoning_layer, render_table, render_comparison_table, load_zoning_data)
 
-
-filtered_gdf = pd.DataFrame()
-vt_zoning = False
 
 def render_mapping():
     st.markdown("<h2 style='color: #4a4a4a;'>VT Zoning</h2>", unsafe_allow_html=True)
@@ -55,8 +46,8 @@ def render_mapping():
     try:
         if not selected.empty:
             render_comparison_table(selected)
-    except:
-        st.warning("No Selected Districts to Compare")
+    except Exception as e:
+        st.warning(f"No Selected Districts to Compare: {e}")
 
     return m
             
