@@ -664,6 +664,9 @@ def land_suitability_metric_cards(gdf):
 
     st.subheader("Land Suitability Overview")
 
+    # Filter GeoDataFrame by Jurisdiction HERE!
+    
+    
     # Filter by suitability categories
     total_acres = gdf["Acres"].sum()
 

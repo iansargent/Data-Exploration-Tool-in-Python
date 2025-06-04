@@ -37,21 +37,36 @@ def render_mapping():
     m = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
     m.add_basemap(selected_basemap)
 
+    column1, column2 = st.columns(2)
     rpcs = ["ACRPC", "BCRC", "CCRPC", "CVRPC", "LCPC", "MARC", "NVDA", "NWRPC", "RRPC", "TRORC", "WRC"]
     
-    selected_rpc = st.selectbox(
-        label="RPC",
-        options=rpcs,
-        index=0,
-    )
+    with column1:
+        selected_rpc = st.selectbox(
+            label="RPC",
+            options=rpcs,
+            index=0,
+        )
 
     index = rpcs.index(selected_rpc)
 
     if selected_rpc:
         land_suit_path = f'/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/WIM/{rpcs[index]}_Soil_Septic.fgb'
-
-    suit_gdf = gpd.read_file(land_suit_path)
     
+    suit_gdf = gpd.read_file(land_suit_path)
+
+    
+    jurisdictions = ["All Jurisdictions"] + suit_gdf["Jurisdiction"].unique().tolist()
+    
+    with column2:
+        selected_jurisdiction = st.multiselect(
+            label="Jurisdiction",
+            options=jurisdictions,
+            default=["All Jurisdictions"])
+    
+
+    if selected_jurisdiction and "All Jurisdictions" not in selected_jurisdiction:
+        suit_gdf = suit_gdf[suit_gdf["Jurisdiction"].isin(selected_jurisdiction)]
+
     # Define your specific colors explicitly
     category_colors = {
         "Well Suited": "#2ca02c",       # green
