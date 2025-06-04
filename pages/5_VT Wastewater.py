@@ -3,7 +3,7 @@ Ian Sargent
 ORCA
 Streamlit Data Visualization App
 
-Mapping Page
+Wastewater Page
 """
 
 # Necessary imports
@@ -23,7 +23,7 @@ filtered_gdf = pd.DataFrame()
 vt_zoning = False
 
 def render_mapping():
-    st.markdown("<h2 style='color: #4a4a4a;'>Mapping</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='color: #4a4a4a;'>VT Wastewater Infrastructure</h2>", unsafe_allow_html=True)
     user_files = get_user_files()
     processed_files = process_uploaded_files(user_files)
     vt_zoning = st.toggle(label="Use the VT Zoning Data Dataset")
