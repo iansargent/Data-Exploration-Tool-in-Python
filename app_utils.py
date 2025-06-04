@@ -31,7 +31,15 @@ from streamlit_extras.dataframe_explorer import dataframe_explorer
 #--------------------------------------#
 
 def get_user_files(key="main"):
-    
+    """
+    Handles file upload interaction from the Streamlit sidebar.
+
+    Allows users to upload multiple data files via the sidebar interface, displays 
+    uploaded files, and provides an option to clear them from session state.
+
+    @param key: Optional key to uniquely identify the file uploader widget. Default is "main".
+    @return: A list of uploaded files (Streamlit UploadedFile objects).
+    """
     st.sidebar.markdown("### Upload Data")
     
     # Define a file uploader object accepting various file types
@@ -75,6 +83,9 @@ def process_uploaded_files(user_files):
     This function generates a unique hash for each file to check for duplicates.
     It also reads the data, cleans it, and returns a list of tuples containing 
     the DataFrame and the corresponding file name.
+
+    @param user_files: A list of UploadedFile objects from the file uploader.
+    @return: A list of tuples in the form of (DataFrame df, str filename).
     """
     # Create an empty set of seen hash codes
     seen_hashes = set()
@@ -131,6 +142,9 @@ def process_uploaded_files(user_files):
 def file_hash(file):
     """
     Generates a SHA-256 hash for either a Streamlit UploadedFile or a local file path (str).
+
+    @param file: File object that you would like to generate a hash code for.
+    @return: A Unique hash code.
     """
     hasher = hashlib.sha256()
     
@@ -150,6 +164,12 @@ def file_hash(file):
 
 
 def get_file_name(file):
+    """
+    Extracts the name of the file.
+
+    @param file: A FileUploader object or path-string.
+    @return: File name as a string.
+    """
     if isinstance(file, str):
         return os.path.basename(file)
     elif hasattr(file, "name"):
@@ -159,6 +179,12 @@ def get_file_name(file):
 
 
 def get_file_extension(file):
+    """
+    Extracts the extension of a file.
+
+    @param file: A FileUploader object or file path as a string.
+    @return: File extension as a string (e.g., '.csv', '.txt').
+    """
     if isinstance(file, str):
         return os.path.splitext(file)[1].lower()
     elif hasattr(file, "name"):
@@ -172,6 +198,10 @@ def get_file_extension(file):
 #--------------------------------------#
 
 def load_zoning_file():
+    """
+    Loads the Vermont Zoning Data to the app session state.
+    """
+    
     demo_path = "/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb"
     if "user_files" not in st.session_state:
         st.session_state.user_files = []
@@ -184,6 +214,9 @@ def load_zoning_file():
 def read_data(file):
     """
     Read the uploaded file and return a DataFrame or GeoDataFrame.
+
+    @param file: An UploadedFile or file path.
+    @return: The read data file as a pandas DataFrame or geopandas GeoDataFrame object.
     """
     # Get the file extension of the uploaded file
     # This will determine how the data is read
@@ -227,6 +260,9 @@ def read_data(file):
 def get_columns(df):
     """
     Get the column names from the DataFrame as a list.
+
+    @param df: A pandas DataFrame object.
+    @return: A list of column names in the dataframe (string).
     """
     columns = df.columns.tolist()
     
@@ -236,6 +272,10 @@ def get_columns(df):
 def get_column_type(df, column_name):
     """
     Get the data type of a specific column in the DataFrame.
+
+    @param df: A pandas Dataframe object.
+    @param column_name: The name of the column in the dataframe (string).
+    @return: The pandas data type of the column (dtype).
     """
     column_type = df[column_name].dtype
     
@@ -245,6 +285,9 @@ def get_column_type(df, column_name):
 def is_latitude_longitude(df):
     """
     Check if the DataFrame contains latitude and longitude columns.
+
+    @param df: A pandas DataFrame object.
+    @return: A boolean value of if latitude and longitude columns are found.
     """
     # Get the column names from the DataFrame
     df_columns = [col.strip().lower() for col in get_columns(df)]
@@ -262,6 +305,13 @@ def is_latitude_longitude(df):
 
 
 def get_lat_lon_cols(df):
+    """
+    Extracts the latitude and longitude columns in a dataframe.
+
+    @param df: A pandas DataFrame.
+    @return: The latitude and longitude columns respectfully.
+    """
+    
     candidates_lat = ["latitude", "lat", "internal point (latitude)"]
     candidates_lon = ["longitude", "lon", "lng", "long", "internal point (longitude)"]
 
@@ -277,6 +327,9 @@ def month_name_to_num(month_name):
     """
     Convert string-type month names into corresponding integers
     to make it easier to convert into datetime-type columns.
+
+    @param month_name: The full name or abbrievation of a month (string).
+    @return: The corresponding month number (int).
     """
     # Try to convert month string (like "May", "5", "05") to number 1-12
     if pd.isna(month_name):
@@ -306,6 +359,9 @@ def clean_data(df):
     """
     Clean the column types of the DataFrame.
     Convert binary numeric columns to boolean and parse datetime columns based on column name.
+
+    @param df: A pandas DataFrame.
+    @return: The cleaned pandas DataFrame.
     """
     # Replace "." name spacers with "_"
     df.columns = df.columns.str.replace('.', '_', regex=False)
@@ -354,6 +410,9 @@ def convert_all_timestamps_to_str(gdf):
     """
     Converts all timestamp columns in a GeoDataFrame 
     into strings for mapping purposes.
+
+    @param gdf: A pandas DataFrame or GeoDataFrame object.
+    @return: The DataFrame.
     """
     # Convert all datetime columns to strings
     for col, dtype in gdf.dtypes.items():
@@ -370,14 +429,23 @@ def convert_all_timestamps_to_str(gdf):
 
 
 def load_zoning_data():
+    """
+    Loads the Vermont Zoning dataset as a GeoDataFrame.
+
+    @return: The geopandas zoning dataset as a GeoDataFrame object.
+    """
     path = '/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb'
     gdf = gpd.read_file(path)
+    
     return gdf.drop(columns=["Bylaw Date"], errors="ignore")
 
 
 def render_table(gdf):
     """
     Displays an interactive AgGrid table and returns selected rows.
+
+    @param gdf: A GeoDataFrame.
+    @return: The selected rows in the AgGrid Table.
     """
     
     df = gdf.copy()
@@ -413,6 +481,8 @@ def render_table(gdf):
 def render_comparison_table(selected_rows):
     """
     Takes selected rows from AgGrid, creates a comparison table, and displays it.
+
+    @param selected_rows: The selected rows from an AgGrid interactive table.
     """
     if len(selected_rows) == 0:
         return
@@ -443,6 +513,15 @@ def render_comparison_table(selected_rows):
 
 
 def filter_zoning_data(gdf, county, jurisdiction, districts):
+    """
+    Filters the zoning GeoDataFrame based on selected county, jurisdiction, and districts.
+
+    @param gdf: The original GeoDataFrame containing zoning data.
+    @param county: Selected county name as a string, or "All Counties" for no filter.
+    @param jurisdiction: Selected jurisdiction name as a string, or "All Jurisdictions" for no filter.
+    @param districts: List of selected district names, or a list containing "All Districts" for no filter.
+    @return: A filtered GeoDataFrame based on the specified criteria.
+    """
     df = gdf.copy()
     if county != "All Counties":
         df = df[df["County"] == county]
@@ -450,10 +529,17 @@ def filter_zoning_data(gdf, county, jurisdiction, districts):
         df = df[df["Jurisdiction"] == jurisdiction]
     if "All Districts" not in districts:
         df = df[df["District Name"].isin(districts)]
+    
     return df
 
 
 def generate_district_color_map(gdf):
+    """
+    Generates a color map assigning a unique color to each district type.
+
+    @param gdf: A GeoDataFrame containing a 'District Type' column.
+    @return: A dictionary mapping each unique district type to a hex color code.
+    """
     district_types = gdf["District Type"].dropna()
     # Ensure valid string keys, strip whitespace, remove "None" as string if present
     unique_types = sorted(set(str(dt).strip() for dt in district_types if str(dt).strip().lower() != "none"))
@@ -465,6 +551,16 @@ def generate_district_color_map(gdf):
 
 
 def render_zoning_layer(map):
+    """
+    Renders the zoning layer on a Leafmap map object based on user-selected filters.
+
+    Displays dropdown filters in the Streamlit sidebar to filter by county, jurisdiction,
+    and district(s), then styles and displays the filtered zoning districts on the map.
+
+    @param map: A Leafmap Map object used to display the zoning layer.
+    @return: A tuple containing the updated map and the filtered GeoDataFrame.
+    """
+    
     zoning_gdf = load_zoning_data()
 
     col1, col2, col3 = st.columns(3)
@@ -512,6 +608,14 @@ def render_zoning_layer(map):
 
 
 def assign_layer_style(filename):
+    """
+    Assigns a style dictionary for rendering a map layer based on the filename.
+    Matches keywords in the filename to predefined styles for color and line weight.
+
+    @param filename: The name of the file as a string.
+    @return: A dictionary specifying style properties for rendering (e.g., color, weight, fillOpacity).
+    """
+
     if "border" in filename:
         style = {"color": "dodgerblue", "weight": 2}
     elif "linearfeatures" in filename:
@@ -535,6 +639,13 @@ def assign_layer_style(filename):
 #--------------------------------------#
 
 def get_dimensions(df):
+    """
+    Determines the numnber of rows and columns in the dataset.
+
+    @param df: A pandas DataFrame object.
+    @return: Number of columns (int), Number of rows (int) respectfully.
+    """
+    
     # Find the number of columns
     num_columns = len(get_columns(df))
     # Find the number of rows
@@ -548,10 +659,9 @@ def get_skew(df, variable):
     """
     Computes the sample skewness of a numeric variable in a DataFrame.
     
-    @param df: the DataFrame
-    @param variable: the column name of the numeric variable
-    
-    @return: the skewness (float)
+    @param df: A pandas DataFrame object.
+    @param variable: The column name of the numeric variable (string).
+    @return: The computed skewness metric (float).
     """
     import numpy as np
 
@@ -572,6 +682,9 @@ def data_snapshot(df, filename):
     """
     Reports the overall structure of the dataset, including
     dimensions and the dataframe type.
+
+    @param df: A pandas DataFrame object.
+    @param filename: The name of the file (string)
     """
     # Add spacer between different files
     st.markdown("---")
@@ -626,6 +739,9 @@ def generate_exploratory_report(df):
     """
     Generate a tailored exploratory profile report 
     given a DataFrame using the ydata-profiling package.
+
+    @param df: A pandas DataFrame object.
+    @return: An exploratory ydata-profiling ProfileReport object.
     """
     # Get the number of columns in the dataframe
     df_columns = get_columns(df)
@@ -659,6 +775,9 @@ def generate_quality_report(df):
     """
     Generate a tailored data quality profile report 
     given a DataFrame using the ydata-profiling package.
+
+    @param df: A pandas DataFrame object.
+    @return: A data quality ydata-profiling ProfileReport object.
     """
     report = ProfileReport(
             df,
@@ -675,6 +794,9 @@ def generate_comparison_report(dfs):
     """
     Generates a comparison report given a list of 
     uploaded dataframes
+
+    @param dfs: A list of pandas DataFrame objects.
+    @return: A ydata-profiling comparison report.
     """
     
     from ydata_profiling import ProfileReport, compare
@@ -688,8 +810,6 @@ def generate_comparison_report(dfs):
         reports.append(report)
     
     comparison_report = compare(reports)
-    # Obtain merged statistics
-    # statistics = comparison_report.get_description()
 
     return comparison_report
 
@@ -703,6 +823,10 @@ def single_column_plot(df, selected_column):
     """
     Create a single column plot based on the data type of the selected column.
     The plot type is determined by the data type of the column.
+
+    @param df: A pandas DataFrame object.
+    @param selected_column: The name of the column in the DataFrame (string).
+    @return: The Altair plot objects associated with the data type of the column.
     """
     # Define the plotting source as the one selected column without missing values
     source = df[[selected_column]].dropna()
@@ -880,6 +1004,11 @@ def numeric_numeric_plots(df, col1, col2):
     Create a scatterplot with regression line and heatmap 
     if two numeric variables are selected. Add a group by option
     for the scatterplots and use color as the grouping variable.
+
+    @param df: A pandas DataFrame object.
+    @param col1: The name of the first numeric column (string).
+    @param col2: The name of the second numeric column (string).
+    @return: Altair scatterplot, scatterplot with lines, residual plot, and heatmap (Chart type).
     """
     from sklearn.linear_model import LinearRegression
 
@@ -1027,7 +1156,11 @@ def regression_metric_cards(df, col1, col2):
     """
     Calculates and displays regression metrics to a page. Metrics include
     sample size, correlation, R-squared, model strength, MAE, and p-value 
-    (F statistic)
+    (F statistic).
+
+    @param df: A pandas DataFrame object.
+    @param col1: The name of the first numeric column (string).
+    @param col2: The name of the second numeric column (string).
     """
 
     from sklearn.linear_model import LinearRegression
@@ -1117,6 +1250,14 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, scatterplot_with_
     """
     Display a scatterplot, regression line, heatmap, and correlation coefficient
     if two numeric variables are selected.
+
+    @param df: A pandas DataFrame object.
+    @param col1: The name of the first numeric column.
+    @param col2: The name of the second numeric column.
+    @param scatterplot: Altair scatterplot (Chart type).
+    @param scatterplot_with_lines: Altair scatterplot with loess and linreg lines (Chart type).
+    @param resid_plot: Altair residual plot (Chart type).
+    @param heatmap: Altair heatmap (Chart type).
     """  
     # Define the plotting source
     source = df[[col1, col2]].dropna()
@@ -1162,6 +1303,11 @@ def numeric_categorical_plots(df, col1, col2):
     """
     Create a boxplot and confidence interval plot 
     if both a numeric and categorical variable are selected.
+
+    @param df: A pandas DataFrame object.
+    @param col1: The name of the first column (string).
+    @param col2: The name of the second column (string).
+    @return: Boxplot (Chart), Confidence Interval Plot (Chart), numeric column name, and categorical column name.
     """
     # Get the needed columns from the DataFrame and drop missing values
     source = df[[col1, col2]].dropna()
@@ -1239,6 +1385,12 @@ def display_numeric_categorical_plots(df, numeric_col, non_numeric_col, multi_bo
     """
     Display the boxplot and confidence interval plot 
     if both a numeric and categorical variable are selected.
+
+    @param df: A pandas DataFrame object.
+    @param numeric_col: The name of the numeric column.
+    @param non_numeric_col: The name of the categorical column.
+    @param multi_box: Altair boxplot grouped by category (Chart type).
+    @param confint_plot: Altair chart showing mean with confidence interval bars (Chart type).
     """
     # Display the boxplot
     st.altair_chart(multi_box, use_container_width=True)
@@ -1250,6 +1402,11 @@ def categorical_categorical_plots(df, col1, col2):
     """
     Create a crosstab with raw counts and percentages for two categorical variables 
     if two categorical variables are selected.
+
+    @param df: A pandas DataFrame object.
+    @param col1: The name of the first categorical column (string).
+    @param col2: The name of the second categorical column (string).
+    @return: Frequency table, format dictionary, Altair heatmap, stacked bar chart, and 100% stacked bar chart.
     """
     # Define the plotting source
     source = df[[col1, col2]].dropna()
@@ -1304,6 +1461,15 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
     """
     Display the crosstab, heatmap, and stacked bar charts 
     if two categorical variables are selected.
+
+    @param df: A pandas DataFrame object.
+    @param col1: The name of the first categorical column.
+    @param col2: The name of the second categorical column.
+    @param freq_table: Crosstab table showing frequency counts (DataFrame or displayable object).
+    @param format_dict: A dictionary used to format the frequency table display.
+    @param heatmap: Altair heatmap of joint frequencies (Chart type).
+    @param stacked_bar: Altair stacked bar chart showing counts (Chart type).
+    @param stacked_bar_100_pct: Altair 100% stacked bar chart showing proportions (Chart type).
     """
     
     # If the number of unique values of the two columns are reasonable for plotting
@@ -1333,6 +1499,11 @@ def display_categorical_categorical_plots(df, col1, col2, freq_table, format_dic
 def two_column_plot(df, col1, col2):
     """
     Create a series of two-variable plots based on the data types of each selected column.
+
+    @param df: A pandas DataFrame object.
+    @param col1: The first column to plot.
+    @param col2: The second column to plot.
+    @return: Respective combination of plots based on datatypes.
     """
     # Create a copy of the original dataset
     df = df.copy()
@@ -1388,7 +1559,16 @@ def two_column_plot(df, col1, col2):
 
 
 def group_by_plot(df, num_op, num_var, grp_by):
-    
+    """
+    Groups data by a categorical variable and summarizes a numeric variable using a selected operation.
+    Displays a corresponding bar chart and summary table.
+
+    @param df: A pandas DataFrame object.
+    @param num_op: The aggregation operation to apply ("Total", "Average", "Median", "Count", "Unique Count", or "Standard Deviation").
+    @param num_var: The name of the numeric column to aggregate.
+    @param grp_by: The name of the categorical column to group by.
+    @return: A tuple containing the grouped DataFrame and the Altair bar chart.
+    """
     # Create a new simple DataFrame with the two columns of interest
     df_simple = df[[grp_by, num_var]]
 
