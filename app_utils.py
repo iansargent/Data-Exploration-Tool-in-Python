@@ -678,21 +678,21 @@ def land_suitability_metric_cards(gdf):
 
     # Layout: 2 rows with 2 columns each
     col1, col2 = st.columns(2)
-    col3, col4 = st.columns(2)
 
-    col1.metric(label="% Well Suited Land", value=f"{well_pct:.1f}%")
-    col2.metric(label="Well Suited Acreage", value=f"{well_acres:,.0f} acres")
+    col1.metric(label="**Well Suited** Land", value=f"{well_pct:.1f}%")
+    col2.metric(label="**Well Suited Acreage**", value=f"{well_acres:,.0f} acres")
 
-    col3.metric(label="% Moderately Suited Land", value=f"{mod_pct:.1f}%")
-    col4.metric(label="Moderately Suited Acreage", value=f"{mod_acres:,.0f} acres")
-
-    # Metric card customizations
     style_metric_cards(
         background_color="whitesmoke",
-        border_left_color="mediumseagreen",
+        border_left_color="#2ca02c",
         box_shadow=True,
         border_size_px=0.5
     )
+    
+    col3, col4 = st.columns(2)
+    
+    col3.metric(label="**Moderately Suited** Land", value=f"{mod_pct:.1f}%")
+    col4.metric(label="**Moderately Suited Acreage**", value=f"{mod_acres:,.0f} acres")
 
 
 #--------------------------------------#
