@@ -11,22 +11,15 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
-from app_utils import (get_user_files, is_latitude_longitude, 
-                       convert_all_timestamps_to_str, process_uploaded_files, 
-                       render_zoning_layer, assign_layer_style, render_table,
-                       render_comparison_table, get_lat_lon_cols, load_zoning_data)
-from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
-from streamlit_extras.dataframe_explorer import dataframe_explorer 
+from app_utils import (get_user_files, 
+                       convert_all_timestamps_to_str, process_uploaded_files,
+                       land_suitability_metric_cards)
 
-
-filtered_gdf = pd.DataFrame()
-vt_zoning = False
 
 def render_mapping():
     st.markdown("<h2 style='color: #4a4a4a;'>VT Wastewater Infrastructure</h2>", unsafe_allow_html=True)
     user_files = get_user_files()
     processed_files = process_uploaded_files(user_files)
-    vt_zoning = st.toggle(label="Use the VT Zoning Data Dataset")
 
     basemaps = {
         "Light": "CartoDB.Positron",
@@ -44,62 +37,67 @@ def render_mapping():
     m = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
     m.add_basemap(selected_basemap)
 
-    # Add uploaded user files layers (both GeoDataFrames and lat/lon heatmaps)
-    for df, filename in processed_files:
-        df = convert_all_timestamps_to_str(df)
-        style = assign_layer_style(filename)
+    rpcs = ["ACRPC", "BCRC", "CCRPC", "CVRPC", "LCPC", "MARC", "NVDA", "NWRPC", "RRPC", "TRORC", "WRC"]
+    
+    selected_rpc = st.selectbox(
+        label="RPC",
+        options=rpcs,
+        index=0,
+    )
 
-        if isinstance(df, gpd.GeoDataFrame) and not is_latitude_longitude(df):
-            m.add_gdf(df, layer_name=filename, style=style, info_mode='on_click', zoom_to_layer=True)
+    index = rpcs.index(selected_rpc)
 
-        elif is_latitude_longitude(df):
-            lat_col, lon_col = get_lat_lon_cols(df)
-            if not lat_col or not lon_col:
-                st.warning(f"Could not identify lat/lon columns in {filename}. Skipping heatmap.")
-                continue
+    if selected_rpc:
+        land_suit_path = f'/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/WIM/{rpcs[index]}_Soil_Septic.fgb'
 
-            numeric_cols = df.select_dtypes(include="number").columns.tolist()
-            circle_var = st.selectbox(f"Select a variable to plot from {filename}", numeric_cols, index=0, key=f"{filename}_circle_var")
+    suit_gdf = gpd.read_file(land_suit_path)
+    
+    # Define your specific colors explicitly
+    category_colors = {
+        "Well Suited": "#2ca02c",       # green
+        "Moderately Suited": "#ffcc00", # yellow
+    }
 
-            circle_df = df[[lat_col, lon_col, circle_var]].dropna()
+    def style_function(feature):
+        rating = feature["properties"]["Suitability"]
+        if rating in category_colors:
+            return {
+                "fillColor": category_colors[rating],
+                "color": "navy",
+                "weight": 0.1,
+                "fillOpacity": 0.8,
+            }
+        else:
+            # Make features transparent (or don't show)
+            return {
+                "fillColor": "#00000000",  # fully transparent
+                "color": "#02010100",
+                "weight": 0,
+                "fillOpacity": 0,
+            }
 
-            from sklearn.preprocessing import MinMaxScaler
-            
-            scaler = MinMaxScaler(feature_range=(0.5, 10))
-            scaled_values = scaler.fit_transform(circle_df[[circle_var]])
-            circle_df["scaled_radius"] = scaled_values.flatten()
+    suit_gdf = convert_all_timestamps_to_str(suit_gdf)
 
-            for _, row in circle_df.iterrows():
-                m.add_circle_markers_from_xy(
-                    data=pd.DataFrame([row]),
-                    x=lon_col,
-                    y=lat_col,
-                    radius=row["scaled_radius"],
-                    fill_color="mediumseagreen",
-                    tooltip=[circle_var]
-                )
+    # Optional: filter the df to only include the two categories
+    df_filtered = suit_gdf[suit_gdf["Suitability"].isin(category_colors.keys())]
+    df_filtered = df_filtered.drop(columns=["OBJECTID_1", "Shape_Length", "Shape_Area"])
 
-            min_lat, max_lat = circle_df[lat_col].min(), circle_df[lat_col].max()
-            min_lon, max_lon = circle_df[lon_col].min(), circle_df[lon_col].max()
-            m.fit_bounds([[min_lat, min_lon], [max_lat, max_lon]])
+    m.add_gdf(
+        df_filtered,
+        layer_name="Land Suitability",
+        style_function=style_function,
+        info_mode="on_click",
+        zoom_to_layer=True
+    )
+    
+    # Add legend once for all layers
+    m.add_legend(title="Land Suitability", legend_dict=category_colors)
 
-        # --- Add Zoning File if Toggle is ON ---
-    if vt_zoning:
-        zoning_gdf = load_zoning_data()
-        _, filtered_gdf = render_zoning_layer(m)
-
-    # --- Always Show the Map ---
+    # Show the map
     m.to_streamlit(height=600)
 
-    # --- Zoning Table and Comparison Below ---
-    if vt_zoning:
-        st.markdown("### Zoning Districts Table")
-        selected = render_table(filtered_gdf)
-        try:
-            if not selected.empty:
-                render_comparison_table(selected)
-        except:
-            st.warning("No Selected Districts to Compare")
+    land_suitability_metric_cards(suit_gdf)
+
 
     return m
             
@@ -140,7 +138,7 @@ def show_mapping():
     """, unsafe_allow_html=True)
         
     # Display the page
-    map = render_mapping()
+    render_mapping()
 
 
 if __name__ == "__main__":
