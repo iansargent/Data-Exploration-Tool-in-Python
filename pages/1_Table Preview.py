@@ -10,7 +10,7 @@ Table Preview Page
 import streamlit as st
 from st_aggrid import AgGrid, ColumnsAutoSizeMode
 from streamlit_extras.metric_cards import style_metric_cards 
-from app_utils import get_user_files, process_uploaded_files, data_snapshot, load_zoning_file
+from app_utils import get_user_files, process_uploaded_files, data_snapshot, load_zoning_file, get_columns
 import geopandas as gpd
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
@@ -28,32 +28,26 @@ def render_table_preview():
     # Get the uploaded files and process them
     user_files = get_user_files()
     processed = process_uploaded_files(user_files)
-    
-    # Define the divider colors for each file uploaded
-    # dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
-    
+        
     # For each uploaded file
     for i, (df, filename) in enumerate(processed):
         # Data information (dimensions and filename)
         data_snapshot(df, filename)
-        
         # If the dataframe is a GeoDataFrame, drop the geometry column in order to display the table
         if isinstance(df, gpd.GeoDataFrame):
             # Drop the geometry column
-            df_geo_aggrid = df.drop(columns=["geometry"]).reset_index(drop=True)
-            # Display the table using AgGrid
-            AgGrid(df_geo_aggrid, theme="material", 
-                columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
+            df = df.drop(columns=["geometry"]).reset_index(drop=True)
         
-        # If it is NOT a GeoDataFrame, no further cleaning is necessary
-        else:
-            if df is not None:
-                # Display the table using AgGrid
-                # AgGrid(df, theme="material", columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS)
-
-                # Display a filterable table using dataframe_explorer
-                filtered_df = dataframe_explorer(df, case=False)
-                st.dataframe(filtered_df, use_container_width=True)
+        column_selection = st.multiselect(
+            label="Select columns to include in the table",
+            options=["All Columns"] + get_columns(df),
+            default="All Columns")
+        
+        if "All Columns" not in column_selection:
+            df=df[column_selection]
+        
+        filtered_df = dataframe_explorer(df, case=False)
+        st.dataframe(filtered_df, use_container_width=True)
 
 
 def show_preview():

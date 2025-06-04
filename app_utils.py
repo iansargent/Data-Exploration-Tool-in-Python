@@ -640,15 +640,15 @@ def generate_exploratory_report(df):
             minimal=True,
             correlations=None,
             interactions=None,
-            samples=None
-        )
+            samples=None,
+            missing_diagrams={"bar": False, "matrix": False, "dendrogram": False, "heatmap": False})
     # If there are less than 30 columns
     else:
         report = ProfileReport(
             df,
             title="Exploratory Report",
             explorative=True,
-            missing_diagrams={"bar": False, "matrix": False, "dendrogram": False},
+            missing_diagrams={"bar": False, "matrix": False, "dendrogram": False, "heatmap": False},
             samples=None)
     
     # Return the ydata-profiling report
@@ -756,10 +756,15 @@ def single_column_plot(df, selected_column):
         # Display variable descriptive statistics
         column1, column2 = st.columns(2) 
         column3, column4 = st.columns(2)
-        column1.metric(label="Mean", value = f"{var_mean:,.2f}")
-        column2.metric(label="Median", value = f"{var_med:,.2f}")
-        column3.metric(label="Standard Deviation", value = f"{var_std_dev:,.3f}")
-        column4.metric(label="95% Confidence Interval", value = f"[{ci_low:,.1f}  -  {ci_high:,.1f}]")
+        column1.metric(label="**Mean**", value = f"{var_mean:,.2f}", help="The *average* of the sample.")
+        column2.metric(label="**Median**", value = f"{var_med:,.2f}", help="The *middle value* of the sample.")
+        column3.metric(label="**Standard Deviation**", value = f"{var_std_dev:,.3f}", 
+                       help="The average amount that each observation differs from the sample mean. " \
+                       "Standard deviation also measures the overall spread of the sample for a given variable.")
+        column4.metric(label="**95% Confidence Interval**", value = f"[{ci_low:,.1f}  -  {ci_high:,.1f}]",
+                       help="The range of values in which we are 95% confident the variable's population " \
+                       "mean falls into. In other words, if we repeatedly sampled this population, our " \
+                       "sample means would fall within this interval 95% of the time.")
 
         style_metric_cards(
             background_color="whitesmoke",
@@ -833,7 +838,7 @@ def single_column_plot(df, selected_column):
         y_column = st.selectbox("Select a column to plot over time:", numeric_cols)
 
         # Create the LINE CHART
-        chart = alt.Chart(df, title=f"Plot of {selected_column} Over Time").mark_line().encode(
+        chart = alt.Chart(df, title=f"Plot of {y_column} Over Time").mark_line().encode(
             x=alt.X(f"{selected_column}:T", title="Time"),
             y=alt.Y(f"{y_column}:Q", title=y_column),
             color = alt.value("dodgerblue"),
@@ -950,14 +955,14 @@ def numeric_numeric_plots(df, col1, col2):
 
     # Add predictions and residuals to the DataFrame
     resid_df = pd.DataFrame({
-        'y_pred' : y_pred,
-        'residuals' : residuals
+        f'Predicted {col2}' : y_pred,
+        'Prediction Error' : residuals
     })
     
     resids = alt.Chart(resid_df, title=f"Residual Plot of {col2} Predictions").mark_square(color = "tomato").encode(
-        x = alt.X('y_pred', title = 'Predicted'),
-        y = alt.Y('residuals', title = 'Residual'),
-        tooltip=['y_pred', 'residuals']).interactive()
+        x = alt.X(f'Predicted {col2}', title = 'Predicted'),
+        y = alt.Y('Prediction Error', title = 'Residual'),
+        tooltip=[f'Predicted {col2}', 'Prediction Error']).interactive()
 
     # Optional horizontal zero line
     zero_line = alt.Chart(pd.DataFrame({'y': [0]})).mark_rule(color = 'black').encode(y='y')
@@ -1066,7 +1071,7 @@ def regression_metric_cards(df, col1, col2):
     mae = mean_absolute_error(y, y_pred)
 
     ## OVERALL MODEL P-VALUE
-    F_stat, p = f_regression(X, y)
+    _, p = f_regression(X, y)
     p_value = round(p[0], 4)
     # If the rounded p-value is still zero, display it as less than 0.0001
     display_value = f"{p_value:.4f}" if p_value > 0 else "p < 0.0001"
@@ -1078,12 +1083,26 @@ def regression_metric_cards(df, col1, col2):
     column6, column7, column8 = st.columns(3)
     
     # Use metric cards to display each metric
-    column3.metric(label="**Sample Size (N)**", value = f"{sample_size}")
-    column4.metric(label="**Correlation (R)**", value=f"{correlation:.2f}")
-    column5.metric(label="**Model Strength**", value = f"{model_str}")    
-    column6.metric(label="**R-Squared**", value = f"{r_squared * 100:.0f}%")    
-    column7.metric(label="**Mean Absolute Error**", value = f"{mae:.2f}")
-    column8.metric(label="**Model Significance**", value = display_value)
+    column3.metric(label="**Sample Size (N)**", value = f"{sample_size}", 
+                   help="This is the number of observations in the sample. Typically, " \
+                   "a larger sample size leads to more accurate results.")
+    column4.metric(label="**Correlation (R)**", value=f"{correlation:.2f}", 
+                   help="This value shows the strength and direction of the relationship between " \
+                   "two variables. +1 indicates a perfect positive correlation, 0 indicates no " \
+                   "correlation, and -1 indicates a perfect negative correlation.")
+    column5.metric(label="**Model Strength**", value = f"{model_str}", 
+                   help="Based on the correlation, we've determined to general stength of the relationship here.\n\n" \
+                   "**Note**: Model strength is highly contextual and required further investigation.")    
+    column6.metric(label="**R-Squared**", value = f"{r_squared * 100:.0f}%", 
+                   help="This value shows the percent of variation seen in one variable that can be " \
+                   "attributed to the other.")    
+    column7.metric(label="**Mean Absolute Error**", value = f"{mae:,.2f}", 
+                   help="On average, this is the margin that the linear model's predictions differ " \
+                   "from the actual observations.")
+    column8.metric(label="**Model Significance**", value = display_value, 
+                   help="Generally, this value helps determine if there is any relationship between the two " \
+                   "variables being investigated. If p < 0.05, we conclude that it is likely that there " \
+                   "is some sort of relationship (at a 5% significance level).")
 
     # Metric card customizations
     style_metric_cards(
@@ -1103,7 +1122,7 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, scatterplot_with_
     source = df[[col1, col2]].dropna()
     
     # Set title for scatterplots
-    st.subheader(f"Scatterplots")
+    st.subheader(f"Scatterplots", help="HELLO!")
     # Formatting plot output with two columns
     column1, column2 = st.columns(2)  
     # First, show the scatterplot
@@ -1135,6 +1154,7 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, scatterplot_with_
             )
         # Display the heatmap
         with col_heatmap:
+            st.subheader("Heatmap")
             st.altair_chart(heatmap, use_container_width=True)
 
 
