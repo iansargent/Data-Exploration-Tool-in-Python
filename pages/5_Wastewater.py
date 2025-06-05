@@ -67,9 +67,8 @@ def render_mapping():
     # WRC_point_response.raise_for_status()
     # WRC_point_gdf = gpd.read_file(BytesIO(WRC_point_response.content))
 
-    
     jurisdictions = ["All Jurisdictions"] + suit_gdf["Jurisdiction"].unique().tolist()
-    
+
     with column2:
         selected_jurisdiction = st.multiselect(
             label="Jurisdiction",

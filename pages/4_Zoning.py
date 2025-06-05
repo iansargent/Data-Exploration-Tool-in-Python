@@ -11,6 +11,10 @@ import streamlit as st
 import pandas as pd
 import leafmap.foliumap as leafmap
 from app_utils import (render_zoning_layer, render_table, render_comparison_table, load_zoning_data)
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+import numpy as np
 
 
 def render_mapping():
@@ -37,6 +41,28 @@ def render_mapping():
     zoning_gdf = load_zoning_data()
     _, filtered_gdf = render_zoning_layer(m)
 
+    housing_gdf = gpd.read_file("/Users/iansargent/Desktop/ORCA/house_geo_update.fgb")
+    
+    numeric_cols = [col for col in housing_gdf.columns if housing_gdf[col].dtype in ['int64', 'float64']]
+    housing_variable = st.selectbox("Select a Housing variable", numeric_cols)
+
+    housing_gdf = housing_gdf[["NAME.y", housing_variable, "geometry"]].dropna()
+
+
+    def style_function(feature):
+        return {
+            "fillOpacity": 0.2,
+            "weight": 0.5,
+            "color": "black",
+            "fillColor": "#2171b5"  # Default fill color (can be dynamic)
+        }
+    m.add_data(
+        housing_gdf,
+        column=housing_variable,
+        scheme="NaturalBreaks",
+        cmap="Blues",
+        legend_title="Housing")
+        
     # --- Always Show the Map ---
     m.to_streamlit(height=600)
 
