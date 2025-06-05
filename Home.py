@@ -12,7 +12,6 @@ streamlit run Home.py
 
 # Necessary imports
 import streamlit as st
-from streamlit_navigation_bar import st_navbar
 from app_utils import get_user_files, process_uploaded_files, load_zoning_file
 
 

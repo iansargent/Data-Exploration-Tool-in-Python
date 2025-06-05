@@ -435,8 +435,17 @@ def load_zoning_data():
 
     @return: The geopandas zoning dataset as a GeoDataFrame object.
     """
-    path = '/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb'
-    gdf = gpd.read_file(path)
+
+    from io import BytesIO
+    import requests
+    
+    zoning_url = 'https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/data/vt-zoning-update.fgb'
+
+    # Stream download to avoid issues with large files
+    response = requests.get(zoning_url)
+    response.raise_for_status()  # raises an error if download failed
+
+    gdf = gpd.read_file(BytesIO(response.content))
     
     return gdf.drop(columns=["Bylaw Date"], errors="ignore")
 
@@ -900,7 +909,8 @@ def single_column_plot(df, selected_column):
     # If the column is categorical (object type)
     if column_type == 'object':
         # Create a sorted BAR CHART using Altair (descending)
-        bar_chart = alt.Chart(source, title=f"Bar Chart of {selected_column}").mark_bar().encode(
+        bar_title = alt.TitleParams(f"Bar Chart of {selected_column}", anchor='middle', dy=15, fontSize=18, font='Helvetica', fontWeight="bold")
+        bar_chart = alt.Chart(source, title=bar_title).mark_bar().encode(
             x=alt.X(f"{selected_column}:N", sort='-y'),
             y='count()',
             tooltip=['count()']
@@ -962,7 +972,7 @@ def single_column_plot(df, selected_column):
         
         # Slider for number of bins in the histogram
         bin_slider = st.slider(
-            "Select the Level of Detail", 
+            "**Select the Level of Detail**", 
             min_value=2, 
             max_value=min(len(np.unique(source[selected_column])) // 2, 100), 
             value=30,
@@ -971,17 +981,16 @@ def single_column_plot(df, selected_column):
         )
 
         # Histogram
-        histogram = alt.Chart(source, title=f"Histogram Distribution of {selected_column}").mark_bar().encode(
+        hist_title = alt.TitleParams(f"Histogram Distribution of {selected_column}", anchor='start', dy=15, fontSize=18, font='Helvetica', fontWeight="bold")
+        histogram = alt.Chart(source, title=hist_title).mark_bar().encode(
             x=alt.X(f"{selected_column}:Q", bin=alt.Bin(maxbins=bin_slider), title=selected_column),
             y=alt.Y('count():Q', title='Count'),
             tooltip=[alt.Tooltip('count()', title='Count')]
-        ).properties(
-            width=400,
-            height=300
-        )
+        ).properties(height=450)
 
         # Density Plot
-        density = alt.Chart(source, title=f"Density Distribution of {selected_column}").transform_density(
+        dens_title = alt.TitleParams(f"Density Distribution of {selected_column}", anchor='start', dy=15, fontSize=18, font='Helvetica', fontWeight="bold")
+        density = alt.Chart(source, title=dens_title).transform_density(
             f"{selected_column}",
             as_=[f"{selected_column}", "density"],
             extent=[source[selected_column].min(), source[selected_column].max()]
@@ -991,10 +1000,11 @@ def single_column_plot(df, selected_column):
         ).interactive()
 
         # Boxplot
-        boxplot = alt.Chart(source, title=f"Boxplot Distribution of {selected_column}").mark_boxplot(color='dodgerblue').encode(
+        box_title = alt.TitleParams(f"Boxplot Distribution of {selected_column}", anchor='start', dy=15, fontSize=18, font='Helvetica', fontWeight="bold")
+        boxplot = alt.Chart(source, title=box_title).mark_boxplot(color='dodgerblue').encode(
             x=alt.X(f"{selected_column}:Q", title=selected_column)
         ).configure_mark().configure_boxplot(size=160
-        ).properties(width=400, height=300)
+        ).properties(width=400, height=400)
 
         # Display the histogram
         st.altair_chart(histogram, use_container_width=True)
@@ -1026,7 +1036,8 @@ def single_column_plot(df, selected_column):
         y_column = st.selectbox("Select a column to plot over time:", numeric_cols)
 
         # Create the LINE CHART
-        chart = alt.Chart(df, title=f"Plot of {y_column} Over Time").mark_line().encode(
+        line_title = alt.TitleParams(f"Plot of {y_column} Over Time", anchor='start', dy=15, fontSize=18, font='Helvetica', fontWeight="bold")
+        chart = alt.Chart(df, title=line_title).mark_line().encode(
             x=alt.X(f"{selected_column}:T", title="Time"),
             y=alt.Y(f"{y_column}:Q", title=y_column),
             color = alt.value("dodgerblue"),
@@ -1046,7 +1057,8 @@ def single_column_plot(df, selected_column):
     # If the column is boolean
     elif column_type == 'bool':
         # Create a pie chart using Altair
-        pie_chart = alt.Chart(source, title=f"Pie Chart of {selected_column}").mark_arc().encode(
+        pie_title = alt.TitleParams("Pie Chart of {selected_column}", anchor='middle', dy=15, fontSize=18, font='Helvetica', fontWeight="bold")
+        pie_chart = alt.Chart(source, title=pie_title).mark_arc().encode(
             theta='count()',
             color=alt.Color(f"{selected_column}:N"),
             tooltip=[alt.Tooltip(f"{selected_column}:N", title="Category"),
@@ -1108,7 +1120,8 @@ def numeric_numeric_plots(df, col1, col2):
         color = alt.value("mediumseagreen")
 
     # SCATTERPLOT
-    scatterplot = alt.Chart(source, title=f"Scatterplot of {col1} v.s. {col2}").mark_square(
+    scatter_title = alt.TitleParams(f"Scatterplot of {col1} v.s. {col2}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+    scatterplot = alt.Chart(source, title=scatter_title).mark_square(
         opacity = 0.7
     ).encode(
         x = alt.X(f"{col1}:Q", title=col1).scale(zero=False),
@@ -1152,7 +1165,8 @@ def numeric_numeric_plots(df, col1, col2):
         'Prediction Error' : residuals
     })
     
-    resids = alt.Chart(resid_df, title=f"Residual Plot of {col2} Predictions").mark_square(color = "tomato").encode(
+    resids_title = alt.TitleParams(f"Residual Plot of {col2} Predictions", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+    resids = alt.Chart(resid_df, title=resids_title).mark_square(color = "tomato").encode(
         x = alt.X(f'Predicted {col2}', title = 'Predicted'),
         y = alt.Y('Prediction Error', title = 'Residual'),
         tooltip=[f'Predicted {col2}', 'Prediction Error']).interactive()
@@ -1200,7 +1214,8 @@ def numeric_numeric_plots(df, col1, col2):
     df['y_bin'] = df['y_bin'].astype(str)
 
     # Altair heatmap
-    heatmap = alt.Chart(df, title=f"Heatmap Distribution of {col1} v.s. {col2}").mark_rect().encode(
+    heatmap_title = alt.TitleParams(f"Heatmap Distribution of {col1} v.s. {col2}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+    heatmap = alt.Chart(df, title=heatmap_title).mark_rect().encode(
         x=alt.X('x_bin:O', sort=[str(c) for c in x_order], title=col1),
         y=alt.Y('y_bin:O', sort=[str(c) for c in reversed(y_order)], title=col2),
         color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange'), title="Count"),
@@ -1341,6 +1356,7 @@ def display_numeric_numeric_plots(df, col1, col2, scatterplot, scatterplot_with_
     regression_metric_cards(df, col1, col2)
 
     with st.container():
+        st.subheader("Residuals")
         st.altair_chart(resid_plot, use_container_width=True)
 
     # Below the regression metrics, display the table and the heatmap
@@ -1386,7 +1402,8 @@ def numeric_categorical_plots(df, col1, col2):
         non_numeric_col = col2
             
         # MULTI BOXPLOT
-        multi_box = alt.Chart(source, title=f"Boxplot Distributions of {col1} by {col2}").mark_boxplot(size=40).encode(
+        mbox_title1 = alt.TitleParams(f"Boxplot Distributions of {col1} by {col2}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+        multi_box = alt.Chart(source, title=mbox_title1).mark_boxplot(size=40).encode(
             x = alt.X(f"{col2}:N", sort='-y', title=col2),
             y = alt.Y(f"{col1}:Q", title=col1),
             color = alt.Color(f"{col2}:N", title=col2, legend=None, scale=alt.Scale(scheme='category20')),
@@ -1394,7 +1411,8 @@ def numeric_categorical_plots(df, col1, col2):
         )
 
         # CONFIDENCE INTERVALS WITH MEANS
-        error_bars = alt.Chart(source, title=f"95% Confidence Intervals of {col1} by {col2}").mark_errorbar(extent='ci').encode(
+        error_title1 = alt.TitleParams(f"95% Confidence Intervals of {col1} by {col2}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+        error_bars = alt.Chart(source, title=error_title1).mark_errorbar(extent='ci').encode(
             alt.X(f"{col1}").scale(zero=False),
             alt.Y(f"{col2}:O", sort='-x', title=col2)
         )
@@ -1419,7 +1437,8 @@ def numeric_categorical_plots(df, col1, col2):
         non_numeric_col = col1
         
         # MULTI BOXPLOT
-        multi_box = alt.Chart(source, title=f"Boxplot Distributions of {col2} by {col1}").mark_boxplot(size=40).encode(
+        mbox_title2 = alt.TitleParams(f"Boxplot Distributions of {col2} by {col1}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+        multi_box = alt.Chart(source, title=mbox_title2).mark_boxplot(size=40).encode(
             x = alt.X(f"{col1}:N", sort='-y', title=col1),
             y = alt.Y(f"{col2}:Q", title=col2),
             color = alt.Color(f"{col1}:N", title=col1, legend=None, scale=alt.Scale(scheme='category20')),
@@ -1427,7 +1446,8 @@ def numeric_categorical_plots(df, col1, col2):
         )
 
         # CONFIDENCE INTERVALS WITH MEANS
-        error_bars = alt.Chart(source, title=f"95% Confidence Intervals of {col2} by {col1}").mark_errorbar(extent='ci').encode(
+        error_title2 = alt.TitleParams(f"95% Confidence Intervals of {col2} by {col1}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+        error_bars = alt.Chart(source, title=error_title2).mark_errorbar(extent='ci').encode(
             alt.X(f"{col2}").scale(zero=False),
             alt.Y(f"{col1}:O", sort='-x', title=col1)
         )
@@ -1457,8 +1477,10 @@ def display_numeric_categorical_plots(df, numeric_col, non_numeric_col, multi_bo
     @param confint_plot: Altair chart showing mean with confidence interval bars (Chart type).
     """
     # Display the boxplot
+    st.subheader("Boxplots")
     st.altair_chart(multi_box, use_container_width=True)
     # Display the confidence interval plot
+    st.subheader("Confidence Intervals")
     st.altair_chart(confint_plot, use_container_width=True)
 
 
@@ -1491,7 +1513,8 @@ def categorical_categorical_plots(df, col1, col2):
     format_dict = {col: "{:.1f}%" for col in freq_table.columns if pd.api.types.is_numeric_dtype(freq_table[col])}
 
     # HEATMAP
-    heatmap = alt.Chart(source, title=f"Heatmap Table of {col1} and {col2}").mark_rect().encode(
+    heat_title = alt.TitleParams(f"Heatmap Table of {col1} and {col2}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+    heatmap = alt.Chart(source, title=heat_title).mark_rect().encode(
         x=f'{col2}:O',
         y=f'{col1}:O',
         color=alt.Color('count():Q', scale=alt.Scale(scheme='blueorange')),
@@ -1499,7 +1522,8 @@ def categorical_categorical_plots(df, col1, col2):
     )
         
     # STACKED BAR CHARTS
-    stacked_bar = alt.Chart(source, title=f"Stacked Bar Chart of {col1} by {col2}").mark_bar().encode(
+    stacked_title = alt.TitleParams(f"Stacked Bar Chart of {col1} by {col2}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+    stacked_bar = alt.Chart(source, title=stacked_title).mark_bar().encode(
         y=alt.Y(f"{col1}:N", title=col1),
         x=alt.X('count():Q', title='Count'),
         color=alt.Color(f"{col2}:N", title=col2),
@@ -1510,7 +1534,8 @@ def categorical_categorical_plots(df, col1, col2):
     stacked_df_100 = freq_table.melt(id_vars=col1, var_name='Category', value_name='Percentage')
 
     # Altair 100% horizontal stacked bar chart
-    stacked_bar_100_pct = alt.Chart(stacked_df_100, title=f"Percentage Distribution of {col2} by {col1}").mark_bar().encode(
+    stacked_100_title = alt.TitleParams(f"Percentage Distribution of {col2} by {col1}", anchor='start', dy=15, fontSize=15, font='Helvetica', fontWeight="bold")
+    stacked_bar_100_pct = alt.Chart(stacked_df_100, title=stacked_100_title).mark_bar().encode(
         y=alt.Y(f'{col1}:O', title=None),
         x=alt.X('Percentage:Q', stack='normalize', title=f'{col2} Distribution'),
         color=alt.Color('Category:N'),

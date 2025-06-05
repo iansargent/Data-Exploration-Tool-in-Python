@@ -10,32 +10,20 @@ Wastewater Page
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
-import leafmap.foliumap as leafmap
-from app_utils import (get_user_files, 
-                       convert_all_timestamps_to_str, process_uploaded_files,
-                       land_suitability_metric_cards)
+import leafmap.foliumap as flm
+import leafmap as leafmap
+from app_utils import (convert_all_timestamps_to_str, land_suitability_metric_cards)
+
+import requests
+from io import BytesIO
 
 
 def render_mapping():
+    
     st.markdown("<h2 style='color: #4a4a4a;'>VT Wastewater Infrastructure</h2>", unsafe_allow_html=True)
-    user_files = get_user_files()
-    processed_files = process_uploaded_files(user_files)
 
-    basemaps = {
-        "Light": "CartoDB.Positron",
-        "Standard": "OpenStreetMap",
-        "Satellite": "Esri.WorldImagery",
-        "Elevation": "OpenTopoMap",
-        "Shaded Relief Map": "Esri.WorldShadedRelief",
-        "Hillshade Map": "Esri.WorldHillshade",
-        "National Geographic": "Esri.NatGeoWorldMap",
-        "World Street Map": "Esri.WorldStreetMap"
-    }
-    basemap_select_box = st.selectbox("**Basemap**", list(basemaps.keys()), index=0)
-    selected_basemap = basemaps[basemap_select_box]
-
-    m = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
-    m.add_basemap(selected_basemap)
+    m = flm.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
+    m.add_basemap("CartoDB.Positron")
 
     column1, column2 = st.columns(2)
     rpcs = ["ACRPC", "BCRC", "CCRPC", "CVRPC", "LCPC", "MARC", "NVDA", "NWRPC", "RRPC", "TRORC", "WRC"]
@@ -46,13 +34,38 @@ def render_mapping():
             options=rpcs,
             index=0,
         )
+    i = rpcs.index(selected_rpc)
 
-    index = rpcs.index(selected_rpc)
+    # LAND SUITABILITY
+    land_suit_url = f"https://github.com/VERSO-UVM/Vermont-Livability-Map/raw/main/data/{rpcs[i]}_Soil_Septic.fgb"
+    # Stream download to avoid issues with large files
+    suit_response = requests.get(land_suit_url)
+    suit_response.raise_for_status()  # raises an error if download failed
+    suit_gdf = gpd.read_file(BytesIO(suit_response.content))
 
-    if selected_rpc:
-        land_suit_path = f'/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/WIM/{rpcs[index]}_Soil_Septic.fgb'
+    # LINEAR FEATURES
+    linear_url = "https://raw.githubusercontent.com/VERSO-UVM/Wastewater-Infrastructure-Mapping/main/MappingTemplate/LinearFeatures2025.02.geojson"
+    linear_response = requests.get(linear_url)
+    linear_response.raise_for_status()
+    linear_gdf = gpd.read_file(BytesIO(linear_response.content))
+
+    # WASTEWATER TREATMENT FACILITIES
+    # NOTE: File sizes are too large (915.6 MB) Needs to be more compressed
+    # WWTF_url = "https://raw.githubusercontent.com/VERSO-UVM/Wastewater-Infrastructure-Mapping/main/data/VermontWWTF.geojson"
+    # WWTF_response = requests.get(WWTF_url)
+    # WWTF_response.raise_for_status()
+    # WWTF_gdf = gpd.read_file(BytesIO(WWTF_response.content))
     
-    suit_gdf = gpd.read_file(land_suit_path)
+    # POINT FEATURES
+    # NOTE: File sizes are too large (915.6 MB) Needs to be more compressed
+    # NVDA_point_url = "https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/Viz%20geojsons/NVDA_Point.geojson"
+    # NVDA_point_response = requests.get(NVDA_point_url)
+    # NVDA_point_response.raise_for_status()
+    # NVDA_point_gdf = gpd.read_file(BytesIO(NVDA_point_response.content))
+    # WRC_point_url = "https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/Viz%20geojsons/WRC_Point.geojson"
+    # WRC_point_response = requests.get(WRC_point_url)
+    # WRC_point_response.raise_for_status()
+    # WRC_point_gdf = gpd.read_file(BytesIO(WRC_point_response.content))
 
     
     jurisdictions = ["All Jurisdictions"] + suit_gdf["Jurisdiction"].unique().tolist()
@@ -97,61 +110,20 @@ def render_mapping():
     df_filtered = suit_gdf[suit_gdf["Suitability"].isin(category_colors.keys())]
     df_filtered = df_filtered.drop(columns=["OBJECTID_1", "Shape_Length", "Shape_Area"])
 
-    m.add_gdf(
-        df_filtered,
-        layer_name="Land Suitability",
-        style_function=style_function,
-        info_mode="on_click",
-        zoom_to_layer=True
-    )
+    m.add_gdf(df_filtered, layer_name="Land Suitability", style_function=style_function, info_mode="on_click", zoom_to_layer=True)
+    m.add_gdf(linear_gdf, layer_name="Linear Features", info_mode="on_click", zoom_to_layer=True)
+    # m.add_gdf(WWTF_gdf, layer_name="Linear Features", info_mode="on_click", zoom_to_layer=True)
     
     # Add legend once for all layers
     m.add_legend(title="Land Suitability", legend_dict=category_colors)
 
-    # Show the map
+    # Show the map and metric cards
     m.to_streamlit(height=600)
-
     land_suitability_metric_cards(suit_gdf)
-
 
     return m
             
-def show_mapping():
-    
-    # Apply a background color to the page
-    st.markdown(
-    """
-    <style>
-    html, body, [class*="css"]  {
-        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
-    }
-    [data-testid="stAppViewContainer"] {
-        background-image: url("https://t3.ftcdn.net/jpg/01/99/28/98/360_F_199289808_twlKOyrViuqfzyV5JFmYdly2GHihxqEh.jpg");
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-position: center;
-    }
-    [data-testid="stHeader"] {
-        background: rgba(255, 255, 255, 0.0);
-    }
-    [data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.5);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Set the global fonts 
-    st.markdown(
-    """
-    <style>
-    /* Set Helvetica (fallback to Arial, sans-serif) globally */
-    html, body, [class*="css"]  {
-        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-        
+def show_mapping(): 
     # Display the page
     render_mapping()
 
