@@ -42,7 +42,10 @@ def render_mapping():
     _, filtered_gdf = render_zoning_layer(m)
 
     housing_gdf = gpd.read_file("/Users/iansargent/Desktop/ORCA/house_geo_update.fgb")
-    
+    SQ_METERS_TO_SQ_MILES = 1 / 2589988.11 
+    housing_gdf['square_miles'] = housing_gdf['ALAND'] * SQ_METERS_TO_SQ_MILES 
+
+
     numeric_cols = [col for col in housing_gdf.columns if housing_gdf[col].dtype in ['int64', 'float64']]
     housing_variable = st.selectbox("Select a Housing variable", numeric_cols)
 
