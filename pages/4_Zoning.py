@@ -46,7 +46,7 @@ def render_mapping():
     numeric_cols = [col for col in housing_gdf.columns if housing_gdf[col].dtype in ['int64', 'float64']]
     housing_variable = st.selectbox("Select a Housing variable", numeric_cols)
 
-    housing_gdf = housing_gdf[["NAME.y", housing_variable, "geometry"]].dropna()
+    housing_gdf_map = housing_gdf[["NAME.y", housing_variable, "geometry"]].dropna()
 
 
     def style_function(feature):
@@ -57,11 +57,12 @@ def render_mapping():
             "fillColor": "#2171b5"  # Default fill color (can be dynamic)
         }
     m.add_data(
-        housing_gdf,
+        housing_gdf_map,
         column=housing_variable,
         scheme="NaturalBreaks",
         cmap="Blues",
-        legend_title="Housing")
+        legend_title="Housing",
+        layer_name="Housing")
         
     # --- Always Show the Map ---
     m.to_streamlit(height=600)
@@ -74,6 +75,9 @@ def render_mapping():
             render_comparison_table(selected)
     except Exception as e:
         st.warning(f"No Selected Districts to Compare: {e}")
+    
+    st.subheader("Housing Data")
+    st.dataframe(housing_gdf[["NAME.y", housing_variable]])
 
     return m
             
