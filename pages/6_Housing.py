@@ -22,7 +22,7 @@ def render_mapping():
     m = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
     m.add_basemap("CartoDB.Positron")
 
-    housing_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL2.fgb')
+    housing_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL.fgb')
 
     numeric_cols = [col for col in housing_gdf.columns if housing_gdf[col].dtype in ['int64', 'float64']]
     housing_variable = st.selectbox("Select a Housing variable", numeric_cols)
@@ -33,9 +33,10 @@ def render_mapping():
         housing_gdf_map,
         column=housing_variable,
         scheme="NaturalBreaks",
-        cmap="Blues",
+        cmap="Reds",
         legend_title=housing_variable,
-        layer_name="Housing")
+        layer_name="Housing",
+        color = "pink")
 
     # --- Always Show the Map ---
     m.to_streamlit(height=600)

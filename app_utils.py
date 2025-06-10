@@ -826,8 +826,6 @@ def generate_exploratory_report(df):
         report = ProfileReport(
             df,
             title="Exploratory Report",
-            minimal=True,
-            correlations=None,
             interactions=None,
             samples=None,
             missing_diagrams={"bar": False, "matrix": False, "dendrogram": False, "heatmap": False})
@@ -885,6 +883,33 @@ def generate_comparison_report(dfs):
     comparison_report = compare(reports)
 
     return comparison_report
+
+
+def parcel_flood_metrics():
+    parcel_gdf = gpd.read_file("/Users/iansargent/Desktop/ORCA/Steamlit App Testing/VT_Parcel.geojson")
+    
+    parcel_gdf = parcel_gdf[["GIS SPAN", "PARCEL ID", "TOWN", "Grand-List Town-Name", 
+                             "Property Description", "Category (Real Estate only)", 
+                             "Resident Ownership Code", "Total Acres", "Listed Real Value (Full)",
+                             "Non-Residential Value (Full)", "Listed Value of Land", "Housesite Value",
+                             "Shape_Area", "Shape_Length"]]
+    
+    flood_gdf = gpd.read_file("/Users/iansargent/Desktop/ORCA/Steamlit App Testing/VT_Flood_Hazard.geojson")
+
+
+    projected_crs = 'EPSG:3857' 
+
+    parcels_proj = parcel_gdf.to_crs(projected_crs)
+    flood_proj = flood_gdf.to_crs(projected_crs)
+
+    parcel_flood = gpd.sjoin(parcels_proj, flood_proj, how='inner', predicate='within')  
+    
+     
+
+
+
+
+
 
 
 #--------------------------------------#
@@ -1134,7 +1159,7 @@ def numeric_numeric_plots(df, col1, col2):
     regression_line = scatterplot.transform_regression(
         f"{col1}", f"{col2}"
     ).mark_line().encode(
-        color=alt.value("tomato"),
+        color=alt.value("cornflowerblue"),
         size=alt.value(1.5)
     )
 
@@ -1142,7 +1167,7 @@ def numeric_numeric_plots(df, col1, col2):
     loess_line = scatterplot.transform_loess(
         f"{col1}", f"{col2}"
     ).mark_line().encode(
-        color=alt.value("steelblue"),
+        color=alt.value("tomato"),
         size=alt.value(1.5)
     )
 
@@ -1319,7 +1344,7 @@ def regression_metric_cards(df, col1, col2):
     # Metric card customizations
     style_metric_cards(
         background_color="whitesmoke",
-        border_left_color="mediumseagreen",
+        border_left_color="cornflowerblue",
         box_shadow=True,
         border_size_px=0.5
     )

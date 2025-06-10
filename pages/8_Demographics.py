@@ -19,7 +19,7 @@ def render_mapping():
     m = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
     m.add_basemap("CartoDB.Positron")
 
-    demographic_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/demographics_geo_update.fgb')
+    demographic_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_DEMOGRAPHIC_ALL.fgb')
 
     numeric_cols = [col for col in demographic_gdf.columns if demographic_gdf[col].dtype in ['int64', 'float64']]
     demographic_variable = st.selectbox("Select a Demographic variable", numeric_cols)
@@ -32,7 +32,8 @@ def render_mapping():
         scheme="NaturalBreaks",
         cmap="Blues",
         legend_title=demographic_variable,
-        layer_name="Demographics")
+        layer_name="Demographics",
+        color="lightblue")
 
     # --- Always Show the Map ---
     m.to_streamlit(height=600)

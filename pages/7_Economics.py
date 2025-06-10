@@ -19,30 +19,27 @@ def render_mapping():
     m = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
     m.add_basemap("CartoDB.Positron")
 
-    econ_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/econ_geo_update.fgb')
-    SQ_METERS_TO_SQ_MILES = 1 / 2589988.11 
-    econ_gdf["ALAND"] = econ_gdf["ALAND"] * SQ_METERS_TO_SQ_MILES
-    econ_gdf["AWATER"] = econ_gdf["AWATER"] * SQ_METERS_TO_SQ_MILES
-    econ_gdf = econ_gdf.rename(columns={"ALAND": "Land_Square_Miles", "AWATER": "Water_Square_Miles"})
+    econ_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_ECONOMIC_ALL.fgb')
 
     numeric_cols = [col for col in econ_gdf.columns if econ_gdf[col].dtype in ['int64', 'float64']]
     econ_variable = st.selectbox("Select an economic variable", numeric_cols)
 
-    econ_gdf_map = econ_gdf[["NAME.y", econ_variable, "geometry"]].dropna()
+    econ_gdf_map = econ_gdf[["NAME", econ_variable, "geometry"]].dropna()
 
     m.add_data(
         econ_gdf_map,
         column=econ_variable,
         scheme="NaturalBreaks",
-        cmap="Blues",
+        cmap="Greens",
         legend_title=econ_variable,
-        layer_name="Economics")
+        layer_name="Economics",
+        color="palegreen")
 
     # --- Always Show the Map ---
     m.to_streamlit(height=600)
 
     st.subheader("Economic Data")
-    st.dataframe(econ_gdf[["NAME.y", econ_variable]])
+    st.dataframe(econ_gdf[["NAME", econ_variable]])
 
     return m
             
