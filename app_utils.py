@@ -923,13 +923,6 @@ def parcel_flood_metrics():
     parcel_flood = gpd.sjoin(parcels_proj, flood_proj, how='inner', predicate='within')  
 
 
-
-
-
-
-
-
-
 #--------------------------------------#
 ###   Plotting and Displaying Data   ###
 #--------------------------------------#
