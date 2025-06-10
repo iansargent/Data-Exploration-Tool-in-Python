@@ -424,6 +424,24 @@ def convert_all_timestamps_to_str(gdf):
     return gdf
 
 
+def split_name_col(census_gdf):
+    """
+    Splits the "NAME" columns in the census datasets into 
+    "Jurisdiction" and "County" columns.
+
+    @param census_gdf: A census style GeoDataFrame with a "NAME" column.
+    @return: The cleaned dataset with the split "NAME" column.
+    """
+
+    # Split the NAME column
+    census_gdf[['Jurisdiction', 'County']] = census_gdf['NAME'].str.extract(r'^(.*?),\s*(.*?) County,')
+
+    # Drop the original NAME column if desired
+    census_gdf = census_gdf.drop(columns='NAME')
+
+    return census_gdf
+
+
 #--------------------------------------#
 #                Mapping               #
 #--------------------------------------#
@@ -903,8 +921,8 @@ def parcel_flood_metrics():
     flood_proj = flood_gdf.to_crs(projected_crs)
 
     parcel_flood = gpd.sjoin(parcels_proj, flood_proj, how='inner', predicate='within')  
-    
-     
+
+
 
 
 

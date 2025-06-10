@@ -14,6 +14,7 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
+from app_utils import split_name_col
 
 
 def render_mapping():
@@ -23,11 +24,12 @@ def render_mapping():
     m.add_basemap("CartoDB.Positron")
 
     housing_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL.fgb')
-
+    housing_gdf = split_name_col(housing_gdf)
+    
     numeric_cols = [col for col in housing_gdf.columns if housing_gdf[col].dtype in ['int64', 'float64']]
     housing_variable = st.selectbox("Select a Housing variable", numeric_cols)
 
-    housing_gdf_map = housing_gdf[["NAME", housing_variable, "geometry"]].dropna()
+    housing_gdf_map = housing_gdf[["County", "Jurisdiction", housing_variable, "geometry"]].dropna()
 
     m.add_data(
         housing_gdf_map,
@@ -42,7 +44,7 @@ def render_mapping():
     m.to_streamlit(height=600)
 
     st.subheader("Housing Data")
-    st.dataframe(housing_gdf[["NAME", housing_variable]])
+    st.dataframe(housing_gdf_map[["County", "Jurisdiction", housing_variable]])
 
     return m
 
