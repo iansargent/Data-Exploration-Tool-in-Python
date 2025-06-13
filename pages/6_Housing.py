@@ -5,8 +5,6 @@ Streamlit Data Visualization App
 
 Housing Page (Census)
 
-This data was extracted from the DP04 
-"Selected Housing Variables" Dataset
 """
 
 # Necessary imports
@@ -39,7 +37,7 @@ def census_housing():
     housing_gdf_map = housing_gdf[["County", "Jurisdiction", housing_variable, "geometry"]].dropna()
 
     # Add the data to the map (Chloropleth) with a red color scheme
-    # NOTE: Using the "NaturalBreaks" system to define color categories. Subjective decision
+    # NOTE: Using the "NaturalBreaks" system to define color categories (A subjective decision)
     map.add_data(
         housing_gdf_map,
         column=housing_variable,

@@ -1960,42 +1960,42 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
     
     # Define a list of housing counts for each year range
     raw_housing_counts = [
-        filtered_gdf_pop["DP04_0026E"].sum(),
-        filtered_gdf_pop["DP04_0025E"].sum(),
-        filtered_gdf_pop["DP04_0024E"].sum(),
-        filtered_gdf_pop["DP04_0023E"].sum(),
-        filtered_gdf_pop["DP04_0022E"].sum(),
-        filtered_gdf_pop["DP04_0021E"].sum(),
-        filtered_gdf_pop["DP04_0020E"].sum(),
-        filtered_gdf_pop["DP04_0019E"].sum(),
-        filtered_gdf_pop["DP04_0018E"].sum(),
-        filtered_gdf_pop["DP04_0017E"].sum()
+        filtered_gdf_pop["DP04_0026E"].sum(), # Total units built 1939 or earlier
+        filtered_gdf_pop["DP04_0025E"].sum(), # Total units built 1940-1949
+        filtered_gdf_pop["DP04_0024E"].sum(), # Total units built 1950-1959
+        filtered_gdf_pop["DP04_0023E"].sum(), # Total units built 1960-1969
+        filtered_gdf_pop["DP04_0022E"].sum(), # Total units built 1970-1979
+        filtered_gdf_pop["DP04_0021E"].sum(), # Total units built 1980-1989
+        filtered_gdf_pop["DP04_0020E"].sum(), # Total units built 1990-1999
+        filtered_gdf_pop["DP04_0019E"].sum(), # Total units built 2000-2009
+        filtered_gdf_pop["DP04_0018E"].sum(), # Total units built 2010-2019
+        filtered_gdf_pop["DP04_0017E"].sum()  # Total units built 2020 or later
     ]
-    # Calculate the cumulative sum to plot total progression over time
+    # Calculate the cumulative sum (as a list) to plot total progression over time
     cumulative_housing_counts = pd.Series(raw_housing_counts).cumsum().tolist()
 
     # From the population dataset, gather tract-level population data for the respective years
     population_counts = [
-        filtered_gdf_pop["year1930"].sum(),
-        filtered_gdf_pop["year1940"].sum(),
-        filtered_gdf_pop["year1950"].sum(),
-        filtered_gdf_pop["year1960"].sum(),
-        filtered_gdf_pop["year1970"].sum(),
-        filtered_gdf_pop["year1980"].sum(),
-        filtered_gdf_pop["year1990"].sum(),
-        filtered_gdf_pop["year2000"].sum(),
-        filtered_gdf_pop["year2010"].sum(),
-        filtered_gdf_pop["year2020"].sum(),
+        filtered_gdf_pop["year1930"].sum(), # Total Population in 1930
+        filtered_gdf_pop["year1940"].sum(), # Total Population in 1940
+        filtered_gdf_pop["year1950"].sum(), # Total Population in 1950
+        filtered_gdf_pop["year1960"].sum(), # Total Population in 1960
+        filtered_gdf_pop["year1970"].sum(), # Total Population in 1970
+        filtered_gdf_pop["year1980"].sum(), # Total Population in 1980
+        filtered_gdf_pop["year1990"].sum(), # Total Population in 1990
+        filtered_gdf_pop["year2000"].sum(), # Total Population in 2000
+        filtered_gdf_pop["year2010"].sum(), # Total Population in 2010
+        filtered_gdf_pop["year2020"].sum()  # Total Population in 2020
     ]
 
-    # Gather all data into one dataframe
+    # Gather population and housing data into one dataframe
     house_pop_plot_df = pd.DataFrame({
         "Year Range": year_bins,
         "Census Year": [1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020],
         "Population": population_counts,
         "Total Housing Units": cumulative_housing_counts,
         "New Housing Units": raw_housing_counts
-    }).melt( # Melt / transpose the dataset (long format) for better time-series plotting
+    }).melt( # Melt / transpose the dataset (long format) for time-series plotting
         id_vars=['Year Range', 'Census Year'],
         value_vars=['Population', 'Total Housing Units', 'New Housing Units'],
         var_name='Metric',
