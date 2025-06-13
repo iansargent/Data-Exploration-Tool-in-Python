@@ -1756,3 +1756,264 @@ def group_by_plot(df, num_op, num_var, grp_by):
     # Return the aggregated DataFrame and the corresponsing bar chart
     return df_grouped, grouped_chart
 
+
+#--------------------------------------#
+###           Census Data            ###
+#--------------------------------------#
+
+def housing_metrics(housing_gdf, filtered_gdf):
+    # Renter Occupied Section
+    st.subheader("Rented Units")
+    c9, c10 = st.columns(2)
+    st.markdown("---")
+
+    # Housing Units Section
+    st.subheader("Housing Units")
+    c1 = st.container()
+    c2, c3 = st.columns(2)
+
+    # Total units
+    c1.metric(
+        label="**Total** Housing Units", 
+        value=f"{filtered_gdf['DP04_0001E'].sum():,.0f}"
+    )
+
+    # Vacant Units  
+    pct_vac = (filtered_gdf['DP04_0003E'].sum() / filtered_gdf['DP04_0001E'].sum()) * 100
+    state_pct_vac = (housing_gdf['DP04_0003E'].sum() / housing_gdf['DP04_0001E'].sum()) * 100
+    pct_vac_delta = pct_vac - state_pct_vac
+    c2.metric(
+        label="**Vacant** Units", 
+        value=f"{filtered_gdf['DP04_0003E'].sum():,.0f}"
+    )
+    # Vacant Units %
+    c2.metric(
+        label="**Vacant** Units (%)", 
+        value=f"{pct_vac:.1f}%",
+        delta=f"{pct_vac_delta:.1f}%"
+    )
+    
+    # Occupied Units
+    pct_occ = (filtered_gdf['DP04_0002E'].sum() / filtered_gdf['DP04_0001E'].sum()) * 100
+    state_pct_occ = (housing_gdf['DP04_0002E'].sum() / housing_gdf['DP04_0001E'].sum()) * 100
+    pct_occ_delta = pct_occ - state_pct_occ
+    c3.metric(
+        label="**Occupied** Units", 
+        value=f"{filtered_gdf['DP04_0002E'].sum():,.0f}"
+    ) 
+    # Occupied Units (%)
+    c3.metric(
+        label="**Occupied** Units (%)", 
+        value=f"{pct_occ:.1f}%",
+        delta=f"{pct_occ_delta:.1f}%"
+    )   
+
+    st.markdown("---")
+    
+    # HOUSING TENURE SECTION
+    st.subheader("Occupied Housing Tenure")
+    c4, c5, c6 = st.columns(3)
+    st.markdown("---")
+    
+    # Units Owned
+    state_pct_own = (housing_gdf['DP04_0046E'].sum() / housing_gdf['DP04_0002E'].sum()) * 100
+    pct_own = (filtered_gdf['DP04_0046E'].sum() / filtered_gdf['DP04_0002E'].sum()) * 100
+    pct_own_delta = pct_own - state_pct_own
+    c4.metric(
+        label="**Owned**", 
+        value=f"{filtered_gdf['DP04_0046E'].sum():,.0f}"
+    )
+    # Units Owned (%)
+    c4.metric(
+        label="**Owned** (%)", 
+        value=f"{pct_own:.1f}%",
+        delta=f"{pct_own_delta:.1f}%"
+    )
+    
+    # Units Rented
+    state_pct_rent = (housing_gdf['DP04_0047E'].sum() / housing_gdf['DP04_0002E'].sum()) * 100
+    pct_rent = (filtered_gdf['DP04_0047E'].sum() / filtered_gdf['DP04_0002E'].sum()) * 100
+    pct_rent_delta = pct_rent - state_pct_rent
+    c5.metric(
+        label="**Rented**", 
+        value=f"{filtered_gdf['DP04_0047E'].sum():,.0f}"
+    )
+    # Units Rented (%)
+    c5.metric(
+        label="**Rented** (%)", 
+        value=f"{pct_rent:.1f}%",
+        delta=f"{pct_rent_delta:.1f}%"
+    )
+
+    # Units Lacking Complete Plumbing
+    state_pct_lack_plumbing = (housing_gdf['DP04_0073E'].sum() / housing_gdf['DP04_0002E'].sum()) * 100
+    pct_lack_plumbing = (filtered_gdf['DP04_0073E'].sum() / filtered_gdf['DP04_0002E'].sum()) * 100
+    pct_lack_plumbing_delta = pct_lack_plumbing - state_pct_lack_plumbing
+    c6.metric(
+        label="Units **Lacking Plumbing**", 
+        value=f"{filtered_gdf['DP04_0073E'].sum():,.0f}"
+    )
+    # Units with Lack of Complete Plumbing (%)
+    c6.metric(
+        label="Units **Lacking Plumbing** (%)", 
+        value=f"{pct_lack_plumbing:.1f}%",
+        delta=f"{pct_lack_plumbing_delta:.1f}%",
+        delta_color="inverse"
+    )
+    
+    st.markdown("---")
+
+    # OWNER-OCCUPIED SECTION
+    st.subheader("Owner Occupied Units")
+    c7, c8 = st.columns(2)
+    
+    # Average Median Home Value
+    state_avg_med_val = housing_gdf['DP04_0089E'].mean()
+    avg_med_val = filtered_gdf['DP04_0089E'].mean()
+    avg_med_val_delta = avg_med_val - state_avg_med_val
+    c7.metric(
+        label="(Average) Median **Home Value**", 
+        value=f"${avg_med_val:,.2f}",
+        delta=f"{avg_med_val_delta:,.2f}",
+        delta_color="inverse"
+    )
+    
+    # Average Median Mortgage Payment
+    state_avg_med_mort = housing_gdf['DP04_0101E'].mean()
+    avg_med_mort = filtered_gdf['DP04_0101E'].mean()
+    avg_med_mort_delta = avg_med_mort - state_avg_med_mort
+    c8.metric(
+        label="(Average) Median **Mortgage Payment**", 
+        value=f"${avg_med_mort:,.2f}",
+        delta=f"{avg_med_mort_delta:,.2f}",
+        delta_color="inverse"
+    )
+
+    st.markdown("---")
+
+    # RENTER-OCCUPIED SECTION
+    st.subheader("Rented Units")
+    c9, c10 = st.columns(2)
+    
+    # Average Median Gross Rent
+    state_avg_med_gross_rent = housing_gdf['DP04_0134E'].mean()
+    avg_med_gross_rent = filtered_gdf['DP04_0134E'].mean()
+    avg_med_gross_rent_delta = avg_med_gross_rent - state_avg_med_gross_rent
+    c9.metric(
+        label="(Average) Median **Gross Rent**", 
+        value=f"${avg_med_gross_rent:,.2f}",
+        delta=f"{avg_med_gross_rent_delta:,.2f}",
+        delta_color="inverse"
+    )
+    
+    # Households where rent takes up 35% or more of their household income
+    state_rent_burden_pct = (housing_gdf['DP04_0142E'].sum() / housing_gdf['DP04_0126E'].sum()) * 100
+    rent_burden_pct = (filtered_gdf['DP04_0142E'].sum() / filtered_gdf['DP04_0126E'].sum()) * 100
+    rent_burden_pct_delta = rent_burden_pct - state_rent_burden_pct
+    c10.metric(
+        label="Occupied Units paying 35%+ of Income on Rent", 
+        value=f"{filtered_gdf['DP04_0142E'].sum():,.0f}"
+    )
+    # Percentage of households where rent takes up 35% or more of their household income
+    c10.metric(
+        label="Occupied Units paying 35%+ of Income on Rent", 
+        value=f"{rent_burden_pct:.1f}%",
+        delta=f"{rent_burden_pct_delta:.1f}%",
+        delta_color="inverse"
+    )
+
+    st.markdown("---")
+
+    # Style the metric cards
+    style_metric_cards(
+        background_color="whitesmoke",
+        border_left_color="thistle",
+        box_shadow=True,
+        border_size_px=0.5
+    )
+
+
+def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
+    # --- Map housing bins to corresponding decades ---
+    year_bins = [
+        "1939 and Prior", "1940 - 1949", "1950 - 1959", "1960 - 1969",
+        "1970 - 1979", "1980 - 1989", "1990 - 1999", "2000 - 2009",
+        "2010 - 2019", "2020 - Present"
+    ]
+
+    filtered_gdf["GEOID"] = filtered_gdf["GEOID"].astype("string")
+    filtered_gdf["GEOID"] = filtered_gdf["GEOID"].str.strip()
+    
+    pop_df["_geoid"] = pop_df["_geoid"].astype("string")
+    pop_df["_geoid"] = pop_df["_geoid"].str.strip()
+    
+    filtered_gdf_pop = pd.merge(left=filtered_gdf, right=pop_df, how="left", left_on="GEOID", right_on="_geoid")
+    
+    if county == "All Counties":
+        title_geo = "Vermont (Statewide)"
+    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
+        title_geo = f"{county} County"
+    elif jurisdiction != "All Jurisdictions":
+        title_geo = f"{jurisdiction}, Vermont"
+    
+    # --- Get housing unit counts ---
+    raw_housing_counts = [
+        filtered_gdf_pop["DP04_0026E"].sum(),
+        filtered_gdf_pop["DP04_0025E"].sum(),
+        filtered_gdf_pop["DP04_0024E"].sum(),
+        filtered_gdf_pop["DP04_0023E"].sum(),
+        filtered_gdf_pop["DP04_0022E"].sum(),
+        filtered_gdf_pop["DP04_0021E"].sum(),
+        filtered_gdf_pop["DP04_0020E"].sum(),
+        filtered_gdf_pop["DP04_0019E"].sum(),
+        filtered_gdf_pop["DP04_0018E"].sum(),
+        filtered_gdf_pop["DP04_0017E"].sum()
+    ]
+    cumulative_housing_counts = pd.Series(raw_housing_counts).cumsum().tolist()
+
+    population_counts = [
+        filtered_gdf_pop["year1930"].sum(),
+        filtered_gdf_pop["year1940"].sum(),
+        filtered_gdf_pop["year1950"].sum(),
+        filtered_gdf_pop["year1960"].sum(),
+        filtered_gdf_pop["year1970"].sum(),
+        filtered_gdf_pop["year1980"].sum(),
+        filtered_gdf_pop["year1990"].sum(),
+        filtered_gdf_pop["year2000"].sum(),
+        filtered_gdf_pop["year2010"].sum(),
+        filtered_gdf_pop["year2020"].sum(),
+    ]
+
+    house_pop_plot_df = pd.DataFrame({
+        "Year Range": year_bins,
+        "Census Year": [1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020],
+        "Population": population_counts,
+        "Total Housing Units": cumulative_housing_counts,
+        "New Housing Units": raw_housing_counts
+    }).melt(
+        id_vars=['Year Range', 'Census Year'],
+        value_vars=['Population', 'Total Housing Units', 'New Housing Units'],
+        var_name='Metric',
+        value_name='Value'
+    )
+
+    selection = alt.selection_point(fields=['Metric'], bind='legend')
+    base = alt.Chart(house_pop_plot_df).encode(
+        x=alt.X('Year Range:N', title="Year", axis=alt.Axis(labelAngle=-45)),
+        color=alt.Color('Metric:N', legend=alt.Legend(
+            title="", orient="top-left", direction='horizontal', offset=-38)),
+        tooltip=[alt.Tooltip('Metric'), alt.Tooltip('Value', title="Count")],
+        opacity=alt.when(selection).then(alt.value(1)).otherwise(alt.value(0.2))
+    ).add_params(selection)
+
+    line = base.mark_line().encode(
+        y=alt.Y('Value:Q', title='')
+    )
+    points = base.mark_point(filled=True, size=100).encode(
+        y='Value:Q',
+    )
+    chart = alt.layer(line, points).properties(
+        title=f"Housing Units vs Population Over Time for {title_geo}",
+        height=600).configure_title(fontSize=19,offset=45).interactive()
+
+    st.altair_chart(chart, use_container_width=True)
