@@ -1761,11 +1761,7 @@ def group_by_plot(df, num_op, num_var, grp_by):
 ###           Census Data            ###
 #--------------------------------------#
 
-def housing_metrics(housing_gdf, filtered_gdf):
-    # Renter Occupied Section
-    st.subheader("Rented Units")
-    c9, c10 = st.columns(2)
-    st.markdown("---")
+def housing_metrics_vs_statewide(housing_gdf, filtered_gdf):
 
     # Housing Units Section
     st.subheader("Housing Units")
@@ -1812,9 +1808,7 @@ def housing_metrics(housing_gdf, filtered_gdf):
     
     # HOUSING TENURE SECTION
     st.subheader("Occupied Housing Tenure")
-    c4, c5, c6 = st.columns(3)
-    st.markdown("---")
-    
+    c4, c5, c6 = st.columns(3)    
     # Units Owned
     state_pct_own = (housing_gdf['DP04_0046E'].sum() / housing_gdf['DP04_0002E'].sum()) * 100
     pct_own = (filtered_gdf['DP04_0046E'].sum() / filtered_gdf['DP04_0002E'].sum()) * 100
@@ -1931,6 +1925,211 @@ def housing_metrics(housing_gdf, filtered_gdf):
         box_shadow=True,
         border_size_px=0.5
     )
+
+
+def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
+        
+    # Housing Units Section
+    st.subheader("Housing Units")
+    c1 = st.container()
+    c2, c3 = st.columns(2)
+
+    total_units_2023 = filtered_gdf_2023['DP04_0001E'].sum()
+    total_units_2013 = filtered_gdf_2013['DP04_0001E'].sum()
+    total_units_delta = total_units_2023 - total_units_2013
+    # Total units
+    c1.metric(
+        label="**Total** Housing Units", 
+        value=f"{total_units_2023:,.0f}",
+        delta=f"{total_units_delta:,.0f}"
+    )
+
+    # Vacant Units  
+    vacant_units_2023 = filtered_gdf_2023['DP04_0003E'].sum()
+    vacant_units_2013 = filtered_gdf_2013['DP04_0003E'].sum()
+    pct_vac_2023 = (vacant_units_2023 / total_units_2023) * 100
+    pct_vac_2013 = (vacant_units_2013 / total_units_2013) * 100
+    pct_vac_delta = pct_vac_2023 - pct_vac_2013
+    c2.metric(
+        label="**Vacant** Units", 
+        value=f"{vacant_units_2023:,.0f}",
+        delta=f"{vacant_units_2023 - vacant_units_2013:,.0f}"
+    )
+    # Vacant Units %
+    c2.metric(
+        label="**Vacant** Units (%)", 
+        value=f"{pct_vac_2023:.1f}%",
+        delta=f"{pct_vac_delta:.1f}%"
+    )
+    
+    # Occupied Units
+    occupied_units_2023 = filtered_gdf_2023['DP04_0002E'].sum()
+    occupied_units_2013 = filtered_gdf_2013['DP04_0002E'].sum()
+    pct_occ_2023 = (occupied_units_2023 / total_units_2023) * 100
+    pct_occ_2013 = (occupied_units_2013 / total_units_2013) * 100
+    pct_occ_delta = pct_occ_2023 - pct_occ_2013
+    c3.metric(
+        label="**Occupied** Units", 
+        value=f"{occupied_units_2023:,.0f}",
+        delta=f"{occupied_units_2023 - occupied_units_2013:,.0f}"
+    ) 
+    # Occupied Units (%)
+    c3.metric(
+        label="**Occupied** Units (%)", 
+        value=f"{pct_occ_2023:.1f}%",
+        delta=f"{pct_occ_delta:.1f}%"
+    )
+
+    st.markdown("---")
+    
+    # HOUSING TENURE SECTION
+    st.subheader("Housing Tenure")
+    c4, c5, c6 = st.columns(3)
+    
+    # Owner-Occupied Units
+    owned_units_2023 = filtered_gdf_2023['DP04_0046E'].sum()
+    owned_units_2013 = filtered_gdf_2013['DP04_0045E'].sum()
+    pct_own_2023 = (owned_units_2023 / total_units_2023) * 100
+    pct_own_2013 = (owned_units_2013 / total_units_2013) * 100
+    pct_own_delta = pct_own_2023 - pct_own_2013
+    c4.metric(
+        label="**Owner-Occupied**", 
+        value=f"{owned_units_2023:,.0f}",
+        delta=f"{owned_units_2023 - owned_units_2013:,.0f}"
+    )
+    # Units Owned (%)
+    c4.metric(
+        label="**Owner-Occupied** (%)", 
+        value=f"{pct_own_2023:.1f}%",
+        delta=f"{pct_own_delta:.1f}%"
+    )
+    
+    # Units Rented
+    rented_units_2023 = filtered_gdf_2023['DP04_0047E'].sum()
+    rented_units_2013 = filtered_gdf_2013['DP04_0046E'].sum()
+    pct_rent_2023 = (rented_units_2023 / total_units_2023) * 100
+    pct_rent_2013 = (rented_units_2013 / total_units_2013) * 100
+    pct_rent_delta = pct_rent_2023 - pct_rent_2013
+    c5.metric(
+        label="**Renter-Occupied**", 
+        value=f"{rented_units_2023:,.0f}",
+        delta=f"{rented_units_2023 - rented_units_2013:,.0f}"
+    )
+    # Units Rented (%)
+    c5.metric(
+        label="**Renter-Occupied** (%)", 
+        value=f"{pct_rent_2023:.1f}%",
+        delta=f"{pct_rent_delta:.1f}%"
+    )
+
+    # Units Lacking Complete Plumbing
+    lack_plumbing_2023 = filtered_gdf_2023['DP04_0073E'].sum()
+    lack_plumbing_2013 = filtered_gdf_2013['DP04_0072E'].sum()
+    pct_lack_plumbing_2023 = (lack_plumbing_2023 / total_units_2023) * 100
+    pct_lack_plumbing_2013 = (lack_plumbing_2013 / total_units_2013) * 100
+    pct_lack_plumbing_delta = pct_lack_plumbing_2023 - pct_lack_plumbing_2013
+    c6.metric(
+        label="Units **Lacking Plumbing**", 
+        value=f"{lack_plumbing_2023:,.0f}",
+        delta=f"{lack_plumbing_2023 - lack_plumbing_2013:,.0f}",
+        delta_color="inverse"
+    )
+    # Units with Lack of Complete Plumbing (%)
+    c6.metric(
+        label="Units **Lacking Plumbing** (%)", 
+        value=f"{pct_lack_plumbing_2023:.1f}%",
+        delta=f"{pct_lack_plumbing_delta:.1f}%",
+        delta_color="inverse"
+    )
+    
+    st.markdown("---")
+    
+    # OWNER-OCCUPIED SECTION
+    st.subheader("Owner Occupied Units")
+    c7, c8, c8_2 = st.columns(3)
+    
+    # Average Median Home Value
+    avg_med_val_2023 = filtered_gdf_2023['DP04_0089E'].mean()
+    avg_med_val_2013 = filtered_gdf_2013['DP04_0088E'].mean()
+    avg_med_val_delta = avg_med_val_2023 - avg_med_val_2013
+    c7.metric(
+        label="(Average) Median **Home Value**", 
+        value=f"${avg_med_val_2023:,.2f}",
+        delta=f"{avg_med_val_delta:,.2f}",
+        delta_color="off"
+    )
+    
+    # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
+    avg_med_SMOC_2023 = filtered_gdf_2023['DP04_0101E'].mean()
+    avg_med_SMOC_2013 = filtered_gdf_2013['DP04_0100E'].mean()
+    avg_med_SMOC_delta = avg_med_SMOC_2023 - avg_med_SMOC_2013
+    c8.metric(
+        label="Selected Monthly **Owner Costs** for *mortgaged* units",
+        value=f"${avg_med_SMOC_2023:,.2f}",
+        delta=f"{avg_med_SMOC_delta:,.2f}",
+        delta_color="inverse"
+    )
+
+    # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
+    avg_med_SMOC2_2023 = filtered_gdf_2023['DP04_0109E'].mean()
+    avg_med_SMOC2_2013 = filtered_gdf_2013['DP04_0107E'].mean()
+    avg_med_SMOC2_delta = avg_med_SMOC2_2023 - avg_med_SMOC2_2013
+    c8_2.metric(
+        label="Selected Monthly **Owner Costs** for *non-mortgaged* units",
+        value=f"${avg_med_SMOC2_2023:,.2f}",
+        delta=f"{avg_med_SMOC2_delta:,.2f}",
+        delta_color="inverse"
+    )
+
+    st.markdown("---")
+
+    # RENTER-OCCUPIED SECTION
+    st.subheader("Rented Units")
+    c9, c10 = st.columns(2)
+    
+    # Average Median Gross Rent
+    avg_med_gross_rent_2023 = filtered_gdf_2023['DP04_0134E'].mean()
+    avg_med_gross_rent_2013 = filtered_gdf_2013['DP04_0132E'].mean()
+    avg_med_gross_rent_delta = avg_med_gross_rent_2023 - avg_med_gross_rent_2013
+    c9.metric(
+        label="(Average) Median **Gross Rent**", 
+        value=f"${avg_med_gross_rent_2023:,.2f}",
+        delta=f"{avg_med_gross_rent_delta:,.2f}",
+        delta_color="inverse"
+    )
+    
+    # Count of Households where rent takes up 35% or more of their household income
+    units_paying_rent_2023 = filtered_gdf_2023['DP04_0126E'].sum()
+    units_paying_rent_2013 = filtered_gdf_2013['DP04_0124E'].sum()
+    rent_burden35_2023 = filtered_gdf_2023['DP04_0142E'].sum()
+    rent_burden35_2013 = filtered_gdf_2013['DP04_0140E'].sum()
+    rent_burden35_pct_2023 = (rent_burden35_2023 / units_paying_rent_2023) * 100
+    rent_burden35_pct_2013 = (rent_burden35_2013 / units_paying_rent_2013) * 100
+    rent_burden35_pct_delta = rent_burden35_pct_2023 - rent_burden35_pct_2013
+    c10.metric(
+        label="Occupied Units paying 35%+ of Income on Rent", 
+        value=f"{rent_burden35_2023:,.0f}",
+        delta=rent_burden35_2023 - rent_burden35_2013,
+        delta_color="inverse"
+    )
+    # Percentage of households where rent takes up 35% or more of their household income
+    c10.metric(
+        label="% Occupied Units paying 35%+ of Income on Rent", 
+        value=f"{rent_burden35_pct_2023:.1f}%",
+        delta=f"{rent_burden35_pct_delta:.1f}%",
+        delta_color="inverse"
+    )
+
+    st.markdown("---")
+
+    # Style the metric cards
+    style_metric_cards(
+        background_color="whitesmoke",
+        border_left_color="thistle",
+        box_shadow=True,
+        border_size_px=0.5
+    )
+
 
 
 def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):

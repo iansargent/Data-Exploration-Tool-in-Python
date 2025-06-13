@@ -12,7 +12,7 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
-from app_utils import split_name_col, housing_metrics, housing_pop_plot
+from app_utils import split_name_col, housing_metrics_vs_statewide, housing_pop_plot, housing_metrics_vs_10yr
 
 
 def census_housing():
@@ -25,8 +25,11 @@ def census_housing():
 
     # Read the Census DP04 Housing Characteristics Dataset
     housing_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL.fgb')
+    housing_2013 = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL_2013.fgb')
+
     # Split the "name" column into separate "County" and "Jurisdiction" columns
     housing_gdf = split_name_col(housing_gdf)
+    housing_2013 = split_name_col(housing_2013)
 
     # Define the numerical columns in the GeoDataFrame for mapping
     numeric_cols = [col for col in housing_gdf.columns if housing_gdf[col].dtype in ['int64', 'float64']]
@@ -60,7 +63,7 @@ def census_housing():
     st.markdown("*Note*: The displayed deviations in the metric cards are comparing values to VT statewide averages.")
 
     # Allow user to filter on the county and jurisdiction level for tailored reports 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         county = st.selectbox("**County**", ["All Counties"] + sorted(housing_gdf["County"].dropna().unique()))
     with col2:
@@ -76,16 +79,37 @@ def census_housing():
         filtered_gdf = filtered_gdf[filtered_gdf["County"] == county]
     if jurisdiction != "All Jurisdictions":
         filtered_gdf = filtered_gdf[filtered_gdf["Jurisdiction"] == jurisdiction]
-    st.markdown("---")
 
-    # Display formatted housing metrics (metric cards)
-    housing_metrics(housing_gdf, filtered_gdf)
+    filtered_gdf_2013 = housing_2013.copy()
+    if county != "All Counties":
+        filtered_gdf_2013 = filtered_gdf_2013[filtered_gdf_2013["County"] == county]
+    if jurisdiction != "All Jurisdictions":
+        filtered_gdf_2013 = filtered_gdf_2013[filtered_gdf_2013["Jurisdiction"] == jurisdiction]
+    
+    with col3:
+        # Add a selection for the baseline metrics to compare to
+        compare_to = st.selectbox(
+            label = "**Compared to**",
+            options = ["10 Years Ago", "2023 Statewide Averages"],
+            index=0
+        )
+
+    # If comparison to 10 years ago
+    if compare_to == "10 Years Ago":
+        # Display formatted housing metrics vs statewide averages
+        housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf)
+    # If comparison to current statewide averages
+    elif compare_to == "2023 Statewide Averages":
+        # Display formatted housing metrics vs statewide averages
+        housing_metrics_vs_statewide(housing_gdf, filtered_gdf)
 
     # Read in VT historical population data on the census tract level
     # NOTE: Include a source for this as well (VT Open Data Portal)
     pop_df = pd.read_csv('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_Municipal_Pop.csv')
+    
     # Display the time series plot of population, housing units, and new housing units
     housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df)
+    
     st.markdown("---")
 
 def main():
