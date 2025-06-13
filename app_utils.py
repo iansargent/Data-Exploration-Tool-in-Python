@@ -1934,21 +1934,23 @@ def housing_metrics(housing_gdf, filtered_gdf):
 
 
 def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
-    # --- Map housing bins to corresponding decades ---
+    # Define a set of year ranges corresponding to new unit construction data
     year_bins = [
         "1939 and Prior", "1940 - 1949", "1950 - 1959", "1960 - 1969",
         "1970 - 1979", "1980 - 1989", "1990 - 1999", "2000 - 2009",
         "2010 - 2019", "2020 - Present"
     ]
 
+    # Convert the "Geo-ID" column in both datasets to string type
     filtered_gdf["GEOID"] = filtered_gdf["GEOID"].astype("string")
     filtered_gdf["GEOID"] = filtered_gdf["GEOID"].str.strip()
-    
     pop_df["_geoid"] = pop_df["_geoid"].astype("string")
     pop_df["_geoid"] = pop_df["_geoid"].str.strip()
     
+    # Perform a left join on the two dataframes, joining on the respective "Geo-ID" column
     filtered_gdf_pop = pd.merge(left=filtered_gdf, right=pop_df, how="left", left_on="GEOID", right_on="_geoid")
     
+    # For the plot title, dynamically change the area of interest based on user filter selections
     if county == "All Counties":
         title_geo = "Vermont (Statewide)"
     elif county != "All Counties" and jurisdiction == "All Jurisdictions":
@@ -1956,7 +1958,7 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
     elif jurisdiction != "All Jurisdictions":
         title_geo = f"{jurisdiction}, Vermont"
     
-    # --- Get housing unit counts ---
+    # Define a list of housing counts for each year range
     raw_housing_counts = [
         filtered_gdf_pop["DP04_0026E"].sum(),
         filtered_gdf_pop["DP04_0025E"].sum(),
@@ -1969,8 +1971,10 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
         filtered_gdf_pop["DP04_0018E"].sum(),
         filtered_gdf_pop["DP04_0017E"].sum()
     ]
+    # Calculate the cumulative sum to plot total progression over time
     cumulative_housing_counts = pd.Series(raw_housing_counts).cumsum().tolist()
 
+    # From the population dataset, gather tract-level population data for the respective years
     population_counts = [
         filtered_gdf_pop["year1930"].sum(),
         filtered_gdf_pop["year1940"].sum(),
@@ -1984,20 +1988,23 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
         filtered_gdf_pop["year2020"].sum(),
     ]
 
+    # Gather all data into one dataframe
     house_pop_plot_df = pd.DataFrame({
         "Year Range": year_bins,
         "Census Year": [1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020],
         "Population": population_counts,
         "Total Housing Units": cumulative_housing_counts,
         "New Housing Units": raw_housing_counts
-    }).melt(
+    }).melt( # Melt / transpose the dataset (long format) for better time-series plotting
         id_vars=['Year Range', 'Census Year'],
         value_vars=['Population', 'Total Housing Units', 'New Housing Units'],
         var_name='Metric',
         value_name='Value'
     )
 
+    # Define an interactive selection feature to the plot
     selection = alt.selection_point(fields=['Metric'], bind='legend')
+    # The base plot with 3 lines, one for each metric
     base = alt.Chart(house_pop_plot_df).encode(
         x=alt.X('Year Range:N', title="Year", axis=alt.Axis(labelAngle=-45)),
         color=alt.Color('Metric:N', legend=alt.Legend(
@@ -2006,14 +2013,18 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
         opacity=alt.when(selection).then(alt.value(1)).otherwise(alt.value(0.2))
     ).add_params(selection)
 
+    # Add the line markings with tooltip support
     line = base.mark_line().encode(
         y=alt.Y('Value:Q', title='')
     )
+    # Add the points on the lines for better visibility
     points = base.mark_point(filled=True, size=100).encode(
         y='Value:Q',
     )
+    # Layer all the features into one plot with a title
     chart = alt.layer(line, points).properties(
         title=f"Housing Units vs Population Over Time for {title_geo}",
         height=600).configure_title(fontSize=19,offset=45).interactive()
 
+    # Display the plot on the page
     st.altair_chart(chart, use_container_width=True)
