@@ -76,7 +76,6 @@ def main():
 
     processed_files = process_uploaded_files(user_files)
 
-
     navigation_placeholder = "Placeholder for app navigation / directions"
 
     with st.container():        

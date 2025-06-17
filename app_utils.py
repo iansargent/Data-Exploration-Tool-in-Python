@@ -1930,123 +1930,133 @@ def housing_metrics_vs_statewide(housing_gdf, filtered_gdf):
 def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         
     # Housing Units Section
-    st.subheader("Housing Units")
-    c1 = st.container()
-    c2, c3 = st.columns(2)
-
-    total_units_2023 = filtered_gdf_2023['DP04_0001E'].sum()
-    total_units_2013 = filtered_gdf_2013['DP04_0001E'].sum()
-    total_units_delta = total_units_2023 - total_units_2013
-    # Total units
-    c1.metric(
-        label="**Total** Housing Units", 
-        value=f"{total_units_2023:,.0f}",
-        delta=f"{total_units_delta:,.0f}"
-    )
-
-    # Vacant Units  
-    vacant_units_2023 = filtered_gdf_2023['DP04_0003E'].sum()
-    vacant_units_2013 = filtered_gdf_2013['DP04_0003E'].sum()
-    pct_vac_2023 = (vacant_units_2023 / total_units_2023) * 100
-    pct_vac_2013 = (vacant_units_2013 / total_units_2013) * 100
-    pct_vac_delta = pct_vac_2023 - pct_vac_2013
-    c2.metric(
-        label="**Vacant** Units", 
-        value=f"{vacant_units_2023:,.0f}",
-        delta=f"{vacant_units_2023 - vacant_units_2013:,.0f}"
-    )
-    # Vacant Units %
-    c2.metric(
-        label="**Vacant** Units (%)", 
-        value=f"{pct_vac_2023:.1f}%",
-        delta=f"{pct_vac_delta:.1f}%"
-    )
+    st.subheader("Occupancy")
+    left_col1, right_col2 = st.columns(2)
     
-    # Occupied Units
-    occupied_units_2023 = filtered_gdf_2023['DP04_0002E'].sum()
-    occupied_units_2013 = filtered_gdf_2013['DP04_0002E'].sum()
-    pct_occ_2023 = (occupied_units_2023 / total_units_2023) * 100
-    pct_occ_2013 = (occupied_units_2013 / total_units_2013) * 100
-    pct_occ_delta = pct_occ_2023 - pct_occ_2013
-    c3.metric(
-        label="**Occupied** Units", 
-        value=f"{occupied_units_2023:,.0f}",
-        delta=f"{occupied_units_2023 - occupied_units_2013:,.0f}"
-    ) 
-    # Occupied Units (%)
-    c3.metric(
-        label="**Occupied** Units (%)", 
-        value=f"{pct_occ_2023:.1f}%",
-        delta=f"{pct_occ_delta:.1f}%"
-    )
+    with left_col1:
+        
+        total_units_2023 = filtered_gdf_2023['DP04_0001E'].sum()
+        total_units_2013 = filtered_gdf_2013['DP04_0001E'].sum()
+        total_units_delta = total_units_2023 - total_units_2013
 
+        vacant_units_2023 = filtered_gdf_2023['DP04_0003E'].sum()
+        vacant_units_2013 = filtered_gdf_2013['DP04_0003E'].sum()
+        pct_vac_2023 = (vacant_units_2023 / total_units_2023) * 100
+        pct_vac_2013 = (vacant_units_2013 / total_units_2013) * 100
+        pct_vac_delta = pct_vac_2023 - pct_vac_2013
+
+        occupied_units_2023 = filtered_gdf_2023['DP04_0002E'].sum()
+        occupied_units_2013 = filtered_gdf_2013['DP04_0002E'].sum()
+        pct_occ_2023 = (occupied_units_2023 / total_units_2023) * 100
+        pct_occ_2013 = (occupied_units_2013 / total_units_2013) * 100
+        pct_occ_delta = pct_occ_2023 - pct_occ_2013
+
+        # Top metric: Total units
+        st.metric(
+            label="**Total Housing Units**", 
+            value=f"{total_units_2023:,.0f}",
+            delta=f"{total_units_delta:,.0f}"
+        )
+
+        # Below: split metrics for vacant and occupied
+        subcol1, subcol2 = st.columns(2)
+
+        with subcol1:
+            st.metric("**Occupied Units**", f"{occupied_units_2023:,.0f}", f"{occupied_units_2023 - occupied_units_2013:,.0f}")
+            st.metric("**Occupied Units (%)**", f"{pct_occ_2023:.1f}%", f"{pct_occ_delta:.1f}%")
+
+        with subcol2:
+            st.metric("**Vacant Units**", f"{vacant_units_2023:,.0f}", f"{vacant_units_2023 - vacant_units_2013:,.0f}")
+            st.metric("**Vacant Units (%)**", f"{pct_vac_2023:.1f}%", f"{pct_vac_delta:.1f}%")
+
+
+    with right_col2:
+        
+        pie_df = pd.DataFrame({
+            'Status': ['Occupied', 'Vacant'],
+            'Units': [occupied_units_2023, vacant_units_2023]
+        })
+
+        pie_chart = alt.Chart(pie_df).mark_arc(innerRadius=130).encode(
+            theta=alt.Theta(field="Units", type="quantitative", aggregate="sum"),
+            color=alt.Color(field="Status", type="nominal", scale=alt.Scale(
+                domain=["Occupied", "Vacant"],
+                range=["cornflowerblue", "whitesmoke"])),
+                tooltip=[alt.Tooltip("Status:N"), alt.Tooltip("Units")]
+        ).properties(width=300, height=440).configure_legend(orient='top-left')
+
+        st.altair_chart(pie_chart, use_container_width=True)
+
+    # Divider
     st.markdown("---")
+    st.subheader("Housing Tenure")
+    
+    left_col2, right_col2 = st.columns(2)
     
     # HOUSING TENURE SECTION
-    st.subheader("Housing Tenure")
-    c4, c5, c6 = st.columns(3)
+    with right_col2:
+        c4, c5 = st.columns(2)
+        
+        # Owner-Occupied Units
+        owned_units_2023 = filtered_gdf_2023['DP04_0046E'].sum()
+        owned_units_2013 = filtered_gdf_2013['DP04_0045E'].sum()
+        pct_own_2023 = (owned_units_2023 / occupied_units_2023) * 100
+        pct_own_2013 = (owned_units_2013 / occupied_units_2013) * 100
+        pct_own_delta = pct_own_2023 - pct_own_2013
+        c4.metric(
+            label="**Owner-Occupied**", 
+            value=f"{owned_units_2023:,.0f}",
+            delta=f"{owned_units_2023 - owned_units_2013:,.0f}"
+        )
+        # Units Owned (%)
+        c4.metric(
+            label="**Owner-Occupied** (%)", 
+            value=f"{pct_own_2023:.1f}%",
+            delta=f"{pct_own_delta:.1f}%"
+        )
     
-    # Owner-Occupied Units
-    owned_units_2023 = filtered_gdf_2023['DP04_0046E'].sum()
-    owned_units_2013 = filtered_gdf_2013['DP04_0045E'].sum()
-    pct_own_2023 = (owned_units_2023 / total_units_2023) * 100
-    pct_own_2013 = (owned_units_2013 / total_units_2013) * 100
-    pct_own_delta = pct_own_2023 - pct_own_2013
-    c4.metric(
-        label="**Owner-Occupied**", 
-        value=f"{owned_units_2023:,.0f}",
-        delta=f"{owned_units_2023 - owned_units_2013:,.0f}"
-    )
-    # Units Owned (%)
-    c4.metric(
-        label="**Owner-Occupied** (%)", 
-        value=f"{pct_own_2023:.1f}%",
-        delta=f"{pct_own_delta:.1f}%"
-    )
-    
-    # Units Rented
-    rented_units_2023 = filtered_gdf_2023['DP04_0047E'].sum()
-    rented_units_2013 = filtered_gdf_2013['DP04_0046E'].sum()
-    pct_rent_2023 = (rented_units_2023 / total_units_2023) * 100
-    pct_rent_2013 = (rented_units_2013 / total_units_2013) * 100
-    pct_rent_delta = pct_rent_2023 - pct_rent_2013
-    c5.metric(
-        label="**Renter-Occupied**", 
-        value=f"{rented_units_2023:,.0f}",
-        delta=f"{rented_units_2023 - rented_units_2013:,.0f}"
-    )
-    # Units Rented (%)
-    c5.metric(
-        label="**Renter-Occupied** (%)", 
-        value=f"{pct_rent_2023:.1f}%",
-        delta=f"{pct_rent_delta:.1f}%"
-    )
+        # Renter-Occupied Units
+        rented_units_2023 = filtered_gdf_2023['DP04_0047E'].sum()
+        rented_units_2013 = filtered_gdf_2013['DP04_0046E'].sum()
+        pct_rent_2023 = (rented_units_2023 / occupied_units_2023) * 100
+        pct_rent_2013 = (rented_units_2013 / occupied_units_2013) * 100
+        pct_rent_delta = pct_rent_2023 - pct_rent_2013
+        c5.metric(
+            label="**Renter-Occupied**", 
+            value=f"{rented_units_2023:,.0f}",
+            delta=f"{rented_units_2023 - rented_units_2013:,.0f}"
+        )
+        # Units Rented (%)
+        c5.metric(
+            label="**Renter-Occupied** (%)", 
+            value=f"{pct_rent_2023:.1f}%",
+            delta=f"{pct_rent_delta:.1f}%"
+        )
 
-    # Units Lacking Complete Plumbing
-    lack_plumbing_2023 = filtered_gdf_2023['DP04_0073E'].sum()
-    lack_plumbing_2013 = filtered_gdf_2013['DP04_0072E'].sum()
-    pct_lack_plumbing_2023 = (lack_plumbing_2023 / total_units_2023) * 100
-    pct_lack_plumbing_2013 = (lack_plumbing_2013 / total_units_2013) * 100
-    pct_lack_plumbing_delta = pct_lack_plumbing_2023 - pct_lack_plumbing_2013
-    c6.metric(
-        label="Units **Lacking Plumbing**", 
-        value=f"{lack_plumbing_2023:,.0f}",
-        delta=f"{lack_plumbing_2023 - lack_plumbing_2013:,.0f}",
-        delta_color="inverse"
-    )
-    # Units with Lack of Complete Plumbing (%)
-    c6.metric(
-        label="Units **Lacking Plumbing** (%)", 
-        value=f"{pct_lack_plumbing_2023:.1f}%",
-        delta=f"{pct_lack_plumbing_delta:.1f}%",
-        delta_color="inverse"
-    )
+    with left_col2:
+        # Pie chart for Housing Tenure
+        pie_df = pd.DataFrame({
+            'Occupied Tenure': ['Owner', 'Renter'],
+            'Units': [owned_units_2023, rented_units_2023]
+        })
+
+        pie_chart = alt.Chart(pie_df).mark_arc(innerRadius=75).encode(
+            theta=alt.Theta(field="Units", type="quantitative", aggregate="sum"),
+            color=alt.Color(field="Occupied Tenure", scale=alt.Scale(
+                domain=["Owner", "Renter"],
+                range=['cornflowerblue', 'whitesmoke'])), 
+                tooltip=[alt.Tooltip("Occupied Tenure:N"), alt.Tooltip("Units")]
+                ).properties(width=250, height=300).configure_legend(orient="top-left")
+        
+        st.altair_chart(pie_chart)
     
     st.markdown("---")
     
     # OWNER-OCCUPIED SECTION
-    st.subheader("Owner Occupied Units")
-    c7, c8, c8_2 = st.columns(3)
+    st.subheader("Owner-Occupied Units")
+    c7 = st.container()
+    st.subheader("Monthly Owner Costs")
+    c8, c8_2 = st.columns(2)
     
     # Average Median Home Value
     avg_med_val_2023 = filtered_gdf_2023['DP04_0089E'].mean()
@@ -2058,7 +2068,27 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         delta=f"{avg_med_val_delta:,.2f}",
         delta_color="off"
     )
-    
+
+    with c7:
+        # Bar chart for Median Home Value
+        bar_chart_df = pd.DataFrame({
+            'Year': ['2013', '2023'],
+            'Median Home Value': [avg_med_val_2013, avg_med_val_2023]
+        })
+
+        bar_chart = alt.Chart(bar_chart_df).mark_bar().encode(
+            x=alt.X('Year:N', title='Year'),
+            y=alt.Y('Median Home Value:Q', title='Median Home Value ($)'),
+            color=alt.Color('Year:N'),
+            tooltip=[alt.Tooltip('Year:N'), alt.Tooltip('Median Home Value:Q')]
+        ).properties(
+            title="Median Home Value Comparison (2013 vs 2023)",
+            height=550, width=600)
+
+        st.altair_chart(bar_chart)
+        
+
+
     # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
     avg_med_SMOC_2023 = filtered_gdf_2023['DP04_0101E'].mean()
     avg_med_SMOC_2013 = filtered_gdf_2013['DP04_0100E'].mean()
@@ -2081,10 +2111,44 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         delta_color="inverse"
     )
 
+    
+    con = st.container()
+    con.markdown(
+        "***Note***: The Selected Monthly Owner Costs (SMOC) include costs such as mortgage," \
+        " property taxes, insurance, and utilities. "
+        "The values for 2013 are adjusted for inflation to 2023 dollars." \
+        "The SMOC for non-mortgaged units includes costs such as property taxes, insurance, and utilities.")
+    
+    # Create a chart for the SMOC comparison
+    with con:
+
+        mort_nonmort = st.selectbox(
+            label="Select SMOC Type",
+            options=['Mortgaged', 'Non-Mortgaged'],
+            index=0)
+
+        SMOC_bar_df = pd.DataFrame({
+            'Year': ['2013', '2023'],
+            'Median SMOC (Mortgaged)': [avg_med_SMOC_2013, avg_med_SMOC_2023],
+            'Median SMOC (Non-Mortgaged)': [avg_med_SMOC2_2013, avg_med_SMOC2_2023]
+        })
+
+        SMOC_bar_chart = alt.Chart(SMOC_bar_df).mark_bar().encode(
+            x=alt.X('Year:N', title='Year'),
+            y=alt.Y(f'Median SMOC ({mort_nonmort}):Q', title=f'Median SMOC ($)'),
+            color=alt.Color('Year:N'),
+            tooltip=[alt.Tooltip('Year:N'), alt.Tooltip(f'Median SMOC ({mort_nonmort}):Q')]
+        ).properties(
+            title=f"Median SMOC Comparison for {mort_nonmort} Units (2013 vs 2023)",
+            height=550, width=600
+        )
+
+        st.altair_chart(SMOC_bar_chart)
+
     st.markdown("---")
 
     # RENTER-OCCUPIED SECTION
-    st.subheader("Rented Units")
+    st.subheader("Renter-Occupied Units")
     c9, c10 = st.columns(2)
     
     # Average Median Gross Rent
@@ -2092,7 +2156,7 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
     avg_med_gross_rent_2013 = filtered_gdf_2013['DP04_0132E'].mean()
     avg_med_gross_rent_delta = avg_med_gross_rent_2023 - avg_med_gross_rent_2013
     c9.metric(
-        label="(Average) Median **Gross Rent**", 
+        label="Median **Gross Rent**", 
         value=f"${avg_med_gross_rent_2023:,.2f}",
         delta=f"{avg_med_gross_rent_delta:,.2f}",
         delta_color="inverse"
@@ -2125,11 +2189,10 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
     # Style the metric cards
     style_metric_cards(
         background_color="whitesmoke",
-        border_left_color="thistle",
+        border_left_color="whitesmoke",
         box_shadow=True,
         border_size_px=0.5
     )
-
 
 
 def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):

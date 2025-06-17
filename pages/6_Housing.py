@@ -51,7 +51,7 @@ def census_housing():
         color = "pink")
 
     # Display the map to the page
-    map.to_streamlit(height=600)
+    ############################# map.to_streamlit(height=600)
 
     # Census Snapshot section (Housing)
     st.header("Housing Snapshot")
@@ -59,9 +59,7 @@ def census_housing():
     st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP04: Selected Housing Characteristics - " \
     "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
     "Retrieved June 11, 2025, from https://data.census.gov/")
-    # Remind user that delta values are compared to statewide averages
-    st.markdown("*Note*: The displayed deviations in the metric cards are comparing values to VT statewide averages.")
-
+    
     # Allow user to filter on the county and jurisdiction level for tailored reports 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -89,17 +87,23 @@ def census_housing():
     with col3:
         # Add a selection for the baseline metrics to compare to
         compare_to = st.selectbox(
-            label = "**Compared to**",
-            options = ["10 Years Ago", "2023 Statewide Averages"],
-            index=0
-        )
+            label = "**Comparison Basis**",
+            options = ["2013 Local Data (10-Year Change)", "2023 Vermont Statewide Averages"],
+            index=0)
 
     # If comparison to 10 years ago
-    if compare_to == "10 Years Ago":
+    if compare_to == "2013 Local Data (10-Year Change)":
+        st.markdown("***Data Source***: U.S. Census Bureau. (2013). DP04: Selected Housing Characteristics - " \
+    "County Subdivisions, Vermont. 2009-2013 American Community Survey 5-Year Estimates. " \
+    "Retrieved June 13, 2025, from https://data.census.gov/")
+        # Remind user that delta values are compared to 2013 Census data
+        st.markdown("*Note*: The displayed deviations in the metric cards are comparing values to 2013 Census Data.")
         # Display formatted housing metrics vs statewide averages
         housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf)
     # If comparison to current statewide averages
-    elif compare_to == "2023 Statewide Averages":
+    elif compare_to == "2023 Vermont Statewide Averages":
+        # Remind user that delta values are compared to statewide averages
+        st.markdown("*Note*: The displayed deviations in the metric cards are comparing values to VT statewide averages.")
         # Display formatted housing metrics vs statewide averages
         housing_metrics_vs_statewide(housing_gdf, filtered_gdf)
 
