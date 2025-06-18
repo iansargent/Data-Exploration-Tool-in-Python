@@ -51,7 +51,7 @@ def census_housing():
         color = "pink")
 
     # Display the map to the page
-    ############################# map.to_streamlit(height=600)
+    map.to_streamlit(height=600)
 
     # Census Snapshot section (Housing)
     st.header("Housing Snapshot")
