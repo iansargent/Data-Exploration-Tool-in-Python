@@ -91,6 +91,12 @@ def census_housing():
             options = ["2013 Local Data (10-Year Change)", "2023 Vermont Statewide Averages"],
             index=0)
 
+    # Read in VT historical population data on the census tract level
+    # NOTE: Include a source for this as well (VT Open Data Portal)
+    pop_df = pd.read_csv('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_Municipal_Pop.csv')
+    
+    # Display the time series plot of population, housing units, and new housing units
+    housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df)
     # If comparison to 10 years ago
     if compare_to == "2013 Local Data (10-Year Change)":
         st.markdown("***Data Source***: U.S. Census Bureau. (2013). DP04: Selected Housing Characteristics - " \
@@ -106,15 +112,7 @@ def census_housing():
         st.markdown("*Note*: The displayed deviations in the metric cards are comparing values to VT statewide averages.")
         # Display formatted housing metrics vs statewide averages
         housing_metrics_vs_statewide(housing_gdf, filtered_gdf)
-
-    # Read in VT historical population data on the census tract level
-    # NOTE: Include a source for this as well (VT Open Data Portal)
-    pop_df = pd.read_csv('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_Municipal_Pop.csv')
     
-    # Display the time series plot of population, housing units, and new housing units
-    housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df)
-    
-    st.markdown("---")
 
 def main():
     # Display the page

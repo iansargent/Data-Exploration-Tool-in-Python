@@ -44,10 +44,10 @@ def render_mapping():
     suit_gdf = gpd.read_file(BytesIO(suit_response.content))
 
     # LINEAR FEATURES
-    linear_url = "https://raw.githubusercontent.com/VERSO-UVM/Wastewater-Infrastructure-Mapping/main/MappingTemplate/LinearFeatures2025.02.geojson"
-    linear_response = requests.get(linear_url)
-    linear_response.raise_for_status()
-    linear_gdf = gpd.read_file(BytesIO(linear_response.content))
+    # linear_url = "https://raw.githubusercontent.com/VERSO-UVM/Wastewater-Infrastructure-Mapping/main/MappingTemplate/LinearFeatures2025.02.geojson"
+    # linear_response = requests.get(linear_url)
+    # linear_response.raise_for_status()
+    # linear_gdf = gpd.read_file(BytesIO(linear_response.content))
 
     # WASTEWATER TREATMENT FACILITIES
     # NOTE: File sizes are too large (915.6 MB) Needs to be more compressed
@@ -67,8 +67,7 @@ def render_mapping():
     # WRC_point_response.raise_for_status()
     # WRC_point_gdf = gpd.read_file(BytesIO(WRC_point_response.content))
 
-    jurisdictions = ["All Jurisdictions"] + suit_gdf["Jurisdiction"].unique().tolist()
-
+    jurisdictions = ["All Jurisdictions"] + sorted(suit_gdf["Jurisdiction"].unique().tolist())
     with column2:
         selected_jurisdiction = st.multiselect(
             label="Jurisdiction",
@@ -110,7 +109,7 @@ def render_mapping():
     df_filtered = df_filtered.drop(columns=["OBJECTID_1", "Shape_Length", "Shape_Area"])
 
     m.add_gdf(df_filtered, layer_name="Land Suitability", style_function=style_function, info_mode="on_click", zoom_to_layer=True)
-    m.add_gdf(linear_gdf, layer_name="Linear Features", info_mode="on_click", zoom_to_layer=True)
+    # m.add_gdf(linear_gdf, layer_name="Linear Features", info_mode="on_click", zoom_to_layer=True)
     # m.add_gdf(WWTF_gdf, layer_name="Linear Features", info_mode="on_click", zoom_to_layer=True)
     
     # Add legend once for all layers

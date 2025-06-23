@@ -75,7 +75,7 @@ def main():
         user_files = st.session_state["user_files"]
 
     processed_files = process_uploaded_files(user_files)
-
+    
     navigation_placeholder = "Placeholder for app navigation / directions"
 
     with st.container():        

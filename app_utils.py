@@ -1866,7 +1866,7 @@ def housing_metrics_vs_statewide(housing_gdf, filtered_gdf):
     avg_med_val = filtered_gdf['DP04_0089E'].mean()
     avg_med_val_delta = avg_med_val - state_avg_med_val
     c7.metric(
-        label="(Average) Median **Home Value**", 
+        label="Median **Home Value**", 
         value=f"${avg_med_val:,.2f}",
         delta=f"{avg_med_val_delta:,.2f}",
         delta_color="inverse"
@@ -1931,10 +1931,12 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         
     # Housing Units Section
     st.subheader("Occupancy")
+    # Split section into two colunms
     left_col1, right_col2 = st.columns(2)
-    
+    # In the left column, show the metrics
     with left_col1:
         
+        # Caclulate total units, vacant units, and occupied units (2013 + 2023) with percentages
         total_units_2023 = filtered_gdf_2023['DP04_0001E'].sum()
         total_units_2013 = filtered_gdf_2013['DP04_0001E'].sum()
         total_units_delta = total_units_2023 - total_units_2013
@@ -1951,46 +1953,46 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         pct_occ_2013 = (occupied_units_2013 / total_units_2013) * 100
         pct_occ_delta = pct_occ_2023 - pct_occ_2013
 
-        # Top metric: Total units
+        # Total units
         st.metric(
             label="**Total Housing Units**", 
             value=f"{total_units_2023:,.0f}",
             delta=f"{total_units_delta:,.0f}",
-            help="Hi"
+            help="Total number of housing units in the selected geography for 2023 compared to 2013."
         )
 
-        # Below: split metrics for vacant and occupied
+        # Split metrics for vacant and occupied
         subcol1, subcol2 = st.columns(2)
-
+        # Occupied Units metric card with %
         with subcol1:
             st.metric(
                 label="**Occupied Units**", 
                 value=f"{occupied_units_2023:,.0f}", 
                 delta=f"{occupied_units_2023 - occupied_units_2013:,.0f}",
-                help="Hi"
+                help="Total number of occupied housing units in the selected geography."
             )
             st.metric(
                 label="**Occupied Units (%)**", 
                 value=f"{pct_occ_2023:.1f}%", 
                 delta=f"{pct_occ_delta:.1f}%",
-                help="Hi"
+                help="Percentage of units that are occupied in the selected geography."
             )
-
+        # Vacant Units metric card with %
         with subcol2:
             st.metric(
                 label="**Vacant Units**", 
                 value=f"{vacant_units_2023:,.0f}", 
                 delta=f"{vacant_units_2023 - vacant_units_2013:,.0f}",
-                help="Hi"
+                help="Total number of vacant housing units in the selected geography."
             )
             st.metric(
                 label="**Vacant Units (%)**", 
                 value=f"{pct_vac_2023:.1f}%", 
                 delta=f"{pct_vac_delta:.1f}%",
-                help="Hi"
+                help="Percentage of units that are vacant in the selected geography."
             )
 
-
+    # In the right column, show the pie chart distribution of occupied vs vacant units
     with right_col2:
         pie_df = pd.DataFrame({
             'Status': ['Occupied', 'Vacant'],
@@ -2004,17 +2006,18 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
                 range=["cornflowerblue", "whitesmoke"])),
                 tooltip=[alt.Tooltip("Status:N"), alt.Tooltip("Units")]
         ).properties(width=300, height=440).configure_legend(orient='top-left')
-
+        
+        # Display the pie chart
         st.altair_chart(pie_chart, use_container_width=True)
 
     # Divider
     st.markdown("---")
     
+    # HOUSING TENURE SECTION
     st.subheader("Housing Tenure")
     
     left_col2, right_col2 = st.columns(2)
     
-    # HOUSING TENURE SECTION
     with right_col2:
         c4, c5 = st.columns(2)
         
@@ -2028,14 +2031,14 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
             label="**Owner-Occupied**", 
             value=f"{owned_units_2023:,.0f}",
             delta=f"{owned_units_2023 - owned_units_2013:,.0f}",
-            help="Hi"
+            help="Total number of owner-occupied housing units in the selected geography."
         )
         # Units Owned (%)
         c4.metric(
             label="**Owner-Occupied** (%)", 
             value=f"{pct_own_2023:.1f}%",
             delta=f"{pct_own_delta:.1f}%",
-            help="Hi"
+            help="Percentage of occupied units that are owner-occupied in the selected geography."
         )
     
         # Renter-Occupied Units
@@ -2048,14 +2051,14 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
             label="**Renter-Occupied**", 
             value=f"{rented_units_2023:,.0f}",
             delta=f"{rented_units_2023 - rented_units_2013:,.0f}",
-            help="Hi"
+            help="Total number of renter-occupied housing units in the selected geography."
         )
         # Units Rented (%)
         c5.metric(
             label="**Renter-Occupied** (%)", 
             value=f"{pct_rent_2023:.1f}%",
             delta=f"{pct_rent_delta:.1f}%",
-            help="Hi"
+            help="Percentage of occupied units that are renter-occupied in the selected geography."
         )
 
     with left_col2:
@@ -2088,11 +2091,11 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
     avg_med_val_2013 = filtered_gdf_2013['DP04_0088E'].mean()
     avg_med_val_delta = avg_med_val_2023 - avg_med_val_2013
     c7.metric(
-        label="(Average) Median **Home Value**", 
+        label="Median **Home Value**", 
         value=f"${avg_med_val_2023:,.2f}",
         delta=f"{avg_med_val_delta:,.2f}",
         delta_color="off",
-        help="Hi"
+        help="Average median home value in the selected geography for 2023 compared to 2013."
     )
 
     with c7:
@@ -2113,8 +2116,6 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
 
         st.altair_chart(bar_chart)
         
-
-
     # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
     avg_med_SMOC_2023 = filtered_gdf_2023['DP04_0101E'].mean()
     avg_med_SMOC_2013 = filtered_gdf_2013['DP04_0100E'].mean()
@@ -2124,7 +2125,7 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         value=f"${avg_med_SMOC_2023:,.2f}",
         delta=f"{avg_med_SMOC_delta:,.2f}",
         delta_color="inverse",
-        help="Hi"
+        help="Average monthly owner costs for ***mortgaged*** units in the selected geography for 2023 compared to 2013."
     )
 
     # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
@@ -2136,7 +2137,7 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         value=f"${avg_med_SMOC2_2023:,.2f}",
         delta=f"{avg_med_SMOC2_delta:,.2f}",
         delta_color="inverse",
-        help="Hi"
+        help="Average monthly owner costs for ***non-mortgaged*** units in the selected geography for 2023 compared to 2013."
     )
 
     
@@ -2188,7 +2189,7 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         value=f"${avg_med_gross_rent_2023:,.2f}",
         delta=f"{avg_med_gross_rent_delta:,.2f}",
         delta_color="inverse",
-        help="Hi"
+        help="Average median gross rent in the selected geography for 2023 compared to 2013."
     )
     
     # Count of Households where rent takes up 35% or more of their household income
@@ -2204,7 +2205,7 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         value=f"{rent_burden35_2023:,.0f}",
         delta=rent_burden35_2023 - rent_burden35_2013,
         delta_color="inverse",
-        help="Hi"
+        help="Count of households where rent takes up 35% or more of their household income in the selected geography for 2023 compared to 2013."
     )
     # Percentage of households where rent takes up 35% or more of their household income
     c10.metric(
@@ -2212,7 +2213,7 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
         value=f"{rent_burden35_pct_2023:.1f}%",
         delta=f"{rent_burden35_pct_delta:.1f}%",
         delta_color="inverse",
-        help="Hi"
+        help="Percentage of households where rent takes up 35% or more of their household income in the selected geography for 2023 compared to 2013."
     )
 
     st.markdown("---")
@@ -2220,7 +2221,7 @@ def housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf_2023):
     # Style the metric cards
     style_metric_cards(
         background_color="whitesmoke",
-        border_left_color="whitesmoke",
+        border_left_color="cornflowerblue",
         box_shadow=True,
         border_size_px=0.5
     )
