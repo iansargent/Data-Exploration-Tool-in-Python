@@ -1761,170 +1761,318 @@ def group_by_plot(df, num_op, num_var, grp_by):
 ###           Census Data            ###
 #--------------------------------------#
 
-def housing_metrics_vs_statewide(housing_gdf, filtered_gdf):
-
-    # Housing Units Section
-    st.subheader("Housing Units")
-    c1 = st.container()
-    c2, c3 = st.columns(2)
-
-    # Total units
-    c1.metric(
-        label="**Total** Housing Units", 
-        value=f"{filtered_gdf['DP04_0001E'].sum():,.0f}"
-    )
-
-    # Vacant Units  
-    pct_vac = (filtered_gdf['DP04_0003E'].sum() / filtered_gdf['DP04_0001E'].sum()) * 100
-    state_pct_vac = (housing_gdf['DP04_0003E'].sum() / housing_gdf['DP04_0001E'].sum()) * 100
-    pct_vac_delta = pct_vac - state_pct_vac
-    c2.metric(
-        label="**Vacant** Units", 
-        value=f"{filtered_gdf['DP04_0003E'].sum():,.0f}"
-    )
-    # Vacant Units %
-    c2.metric(
-        label="**Vacant** Units (%)", 
-        value=f"{pct_vac:.1f}%",
-        delta=f"{pct_vac_delta:.1f}%"
-    )
+def housing_metrics_vs_statewide(county, jurisdiction, housing_gdf, filtered_gdf):
+    # For the plot title, dynamically change the area of interest based on user filter selections
+    if county == "All Counties":
+        title_geo = "Vermont (Statewide)"
+        plot_geo = "Vermont (Statewide)"
+    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
+        title_geo = f"{county} County"
+        plot_geo = f"{county} County"
+    elif jurisdiction != "All Jurisdictions":
+        title_geo = f"{jurisdiction}"
+        plot_geo = f"{jurisdiction}"
     
-    # Occupied Units
-    pct_occ = (filtered_gdf['DP04_0002E'].sum() / filtered_gdf['DP04_0001E'].sum()) * 100
-    state_pct_occ = (housing_gdf['DP04_0002E'].sum() / housing_gdf['DP04_0001E'].sum()) * 100
-    pct_occ_delta = pct_occ - state_pct_occ
-    c3.metric(
-        label="**Occupied** Units", 
-        value=f"{filtered_gdf['DP04_0002E'].sum():,.0f}"
-    ) 
-    # Occupied Units (%)
-    c3.metric(
-        label="**Occupied** Units (%)", 
-        value=f"{pct_occ:.1f}%",
-        delta=f"{pct_occ_delta:.1f}%"
-    )   
+    # Housing Units Section
+    st.subheader("Occupancy")
+    # Split section into two colunms
+    left_col1, right_col2 = st.columns(2)
+    # In the left column, show the metrics
+    with left_col1:
+        # Caclulate total units, vacant units, and occupied units (State + 2023) with percentages
+        total_units_2023 = filtered_gdf['DP04_0001E'].sum()
+        total_units_state = housing_gdf['DP04_0001E'].sum()
 
+        occupied_units_2023 = filtered_gdf['DP04_0002E'].sum()
+        occupied_units_state = housing_gdf['DP04_0002E'].sum()
+        pct_occ_2023 = (occupied_units_2023 / total_units_2023) * 100
+        pct_occ_state = (occupied_units_state / total_units_state) * 100
+        pct_occ_delta = pct_occ_2023 - pct_occ_state
+        
+        vacant_units_2023 = filtered_gdf['DP04_0003E'].sum()
+        pct_vac_2023 = (vacant_units_2023 / total_units_2023) * 100
+        vacant_units_state = housing_gdf['DP04_0003E'].sum()
+        pct_vac_state = (vacant_units_state / total_units_state) * 100
+        pct_vac_delta = pct_vac_2023 - pct_vac_state
+
+        # Total units
+        st.metric(label="**Total Housing Units**", value=f"{total_units_2023:,.0f}",
+            help="Total number of housing units in the selected geography for 2023.")
+
+        # Split metrics for vacant and occupied
+        subcol1, subcol2 = st.columns(2)
+        # Occupied Units metric card with %
+        with subcol1:
+            st.metric(label="**Occupied Units**", value=f"{occupied_units_2023:,.0f}", 
+                help="Total number of occupied housing units in the selected geography.")
+            st.metric(label="**Occupied Units (%)**", value=f"{pct_occ_2023:.1f}%", 
+                delta=f"{pct_occ_delta:.1f}%", help="Percentage of units that are occupied in the selected geography.")
+        # Vacant Units metric card with %
+        with subcol2:
+            st.metric(label="**Vacant Units**", value=f"{vacant_units_2023:,.0f}", 
+                help="Total number of vacant housing units in the selected geography.")
+            st.metric(label="**Vacant Units (%)**", value=f"{pct_vac_2023:.1f}%", 
+                delta=f"{pct_vac_delta:.1f}%",
+                help="Percentage of units that are vacant in the selected geography.")
+
+    # In the right column, show the pie chart distribution of occupied vs vacant units
+    with right_col2:
+        pie_df = pd.DataFrame({
+            'Status': ['Occupied', 'Vacant'],
+            'Units': [occupied_units_2023, vacant_units_2023]
+        })
+
+        pie_chart = alt.Chart(pie_df).mark_arc(innerRadius=130).encode(
+            theta=alt.Theta(field="Units", type="quantitative", aggregate="sum"),
+            color=alt.Color(field="Status", type="nominal", scale=alt.Scale(
+                domain=["Occupied", "Vacant"],
+                range=["cornflowerblue", "whitesmoke"])),
+                tooltip=[alt.Tooltip("Status:N"), alt.Tooltip("Units")]
+        ).properties(width=300, height=440).configure_legend(orient='top-left')
+        
+        # Display the pie chart
+        st.altair_chart(pie_chart, use_container_width=True)
+
+    # Divider
     st.markdown("---")
     
     # HOUSING TENURE SECTION
-    st.subheader("Occupied Housing Tenure")
-    c4, c5, c6 = st.columns(3)    
-    # Units Owned
-    state_pct_own = (housing_gdf['DP04_0046E'].sum() / housing_gdf['DP04_0002E'].sum()) * 100
-    pct_own = (filtered_gdf['DP04_0046E'].sum() / filtered_gdf['DP04_0002E'].sum()) * 100
-    pct_own_delta = pct_own - state_pct_own
-    c4.metric(
-        label="**Owned**", 
-        value=f"{filtered_gdf['DP04_0046E'].sum():,.0f}"
-    )
-    # Units Owned (%)
-    c4.metric(
-        label="**Owned** (%)", 
-        value=f"{pct_own:.1f}%",
-        delta=f"{pct_own_delta:.1f}%"
-    )
+    st.subheader("Housing Tenure")
+    left_col2, right_col2 = st.columns(2)
     
-    # Units Rented
-    state_pct_rent = (housing_gdf['DP04_0047E'].sum() / housing_gdf['DP04_0002E'].sum()) * 100
-    pct_rent = (filtered_gdf['DP04_0047E'].sum() / filtered_gdf['DP04_0002E'].sum()) * 100
-    pct_rent_delta = pct_rent - state_pct_rent
-    c5.metric(
-        label="**Rented**", 
-        value=f"{filtered_gdf['DP04_0047E'].sum():,.0f}"
-    )
-    # Units Rented (%)
-    c5.metric(
-        label="**Rented** (%)", 
-        value=f"{pct_rent:.1f}%",
-        delta=f"{pct_rent_delta:.1f}%"
-    )
+    with right_col2:
+        c4, c5 = st.columns(2)
+        # Owner-Occupied Units
+        owned_units_2023 = filtered_gdf['DP04_0046E'].sum()
+        owned_units_state = housing_gdf['DP04_0046E'].sum()
+        pct_own_2023 = (owned_units_2023 / occupied_units_2023) * 100
+        pct_own_state = (owned_units_state / occupied_units_state) * 100
+        pct_own_delta = pct_own_2023 - pct_own_state
+        c4.metric(
+            label="**Owner-Occupied**", value=f"{owned_units_2023:,.0f}",
+            help="Total number of owner-occupied housing units in the selected geography.")
+        # Units Owned (%)
+        c4.metric(label="**Owner-Occupied** (%)", value=f"{pct_own_2023:.1f}%",
+            delta=f"{pct_own_delta:.1f}%", help="Percentage of occupied units that are owner-occupied in the selected geography.")
+    
+        # Renter-Occupied Units
+        rented_units_2023 = filtered_gdf['DP04_0047E'].sum()
+        rented_units_state = housing_gdf['DP04_0047E'].sum()
+        pct_rent_2023 = (rented_units_2023 / occupied_units_2023) * 100
+        pct_rent_state = (rented_units_state / occupied_units_state) * 100
+        pct_rent_delta = pct_rent_2023 - pct_rent_state
+        c5.metric(label="**Renter-Occupied**", value=f"{rented_units_2023:,.0f}",
+            help="Total number of renter-occupied housing units in the selected geography.")
+        # Units Rented (%)
+        c5.metric(label="**Renter-Occupied** (%)", value=f"{pct_rent_2023:.1f}%",
+            delta=f"{pct_rent_delta:.1f}%",
+            help="Percentage of occupied units that are renter-occupied in the selected geography."
+        )
 
-    # Units Lacking Complete Plumbing
-    state_pct_lack_plumbing = (housing_gdf['DP04_0073E'].sum() / housing_gdf['DP04_0002E'].sum()) * 100
-    pct_lack_plumbing = (filtered_gdf['DP04_0073E'].sum() / filtered_gdf['DP04_0002E'].sum()) * 100
-    pct_lack_plumbing_delta = pct_lack_plumbing - state_pct_lack_plumbing
-    c6.metric(
-        label="Units **Lacking Plumbing**", 
-        value=f"{filtered_gdf['DP04_0073E'].sum():,.0f}"
-    )
-    # Units with Lack of Complete Plumbing (%)
-    c6.metric(
-        label="Units **Lacking Plumbing** (%)", 
-        value=f"{pct_lack_plumbing:.1f}%",
-        delta=f"{pct_lack_plumbing_delta:.1f}%",
-        delta_color="inverse"
-    )
+    with left_col2:
+        # Pie chart for Housing Tenure
+        pie_df = pd.DataFrame({
+            'Occupied Tenure': ['Owner', 'Renter'],
+            'Units': [owned_units_2023, rented_units_2023]
+        })
+
+        pie_chart = alt.Chart(pie_df).mark_arc(innerRadius=75).encode(
+            theta=alt.Theta(field="Units", type="quantitative", aggregate="sum"),
+            color=alt.Color(field="Occupied Tenure", scale=alt.Scale(
+                domain=["Owner", "Renter"],
+                range=['cornflowerblue', 'whitesmoke'])), 
+                tooltip=[alt.Tooltip("Occupied Tenure:N"), alt.Tooltip("Units")]
+                ).properties(width=250, height=300).configure_legend(orient="top-left")
+        
+        st.altair_chart(pie_chart)
     
     st.markdown("---")
-
+    
     # OWNER-OCCUPIED SECTION
-    st.subheader("Owner Occupied Units")
-    c7, c8 = st.columns(2)
+    st.subheader("Owner-Occupied Units")
+    c7 = st.container()
+    st.subheader("Monthly Owner Costs")
+    c8, c8_2 = st.columns(2)
     
     # Average Median Home Value
-    state_avg_med_val = housing_gdf['DP04_0089E'].mean()
-    avg_med_val = filtered_gdf['DP04_0089E'].mean()
-    avg_med_val_delta = avg_med_val - state_avg_med_val
-    c7.metric(
-        label="Median **Home Value**", 
-        value=f"${avg_med_val:,.2f}",
-        delta=f"{avg_med_val_delta:,.2f}",
-        delta_color="inverse"
+    avg_med_val_2023 = filtered_gdf['DP04_0089E'].mean()
+    avg_med_val_state = housing_gdf['DP04_0089E'].mean()
+    avg_med_val_delta = avg_med_val_2023 - avg_med_val_state
+    c7.metric(label="Median **Home Value**", value=f"${avg_med_val_2023:,.2f}",
+        delta=f"{avg_med_val_delta:,.2f}", delta_color="off",
+        help="Average median home value in the selected geography for 2023 compared to the statewide average."
     )
+
+    with c7:
+        # Bar chart for Median Home Value
+        bar_chart_df = pd.DataFrame({
+            'Location': ['Statewide', plot_geo],
+            'Median Home Value': [avg_med_val_state, avg_med_val_2023]
+        })
+
+        bar_chart = alt.Chart(bar_chart_df).mark_bar().encode(
+            x=alt.X('Location:N', title='Location'),
+            y=alt.Y('Median Home Value:Q', title='Median Home Value ($)'),
+            tooltip=[alt.Tooltip('Location:N'), alt.Tooltip('Median Home Value:Q')]
+        ).properties(
+            title="Median Home Value Comparison",
+            height=550, width=600)
+
+        st.altair_chart(bar_chart)
+        
+    # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
+    avg_med_SMOC_2023 = filtered_gdf['DP04_0101E'].mean()
+    avg_med_SMOC_state = housing_gdf['DP04_0101E'].mean()
+    avg_med_SMOC_delta = avg_med_SMOC_2023 - avg_med_SMOC_state
+    c8.metric(label="Selected Monthly **Owner Costs** for *mortgaged* units", value=f"${avg_med_SMOC_2023:,.2f}",
+        delta=f"{avg_med_SMOC_delta:,.2f}", delta_color="inverse",
+        help="Average monthly owner costs for ***mortgaged*** units in the selected geography for 2023 vs statewide average."
+    )
+
+    # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
+    avg_med_SMOC2_2023 = filtered_gdf['DP04_0109E'].mean()
+    avg_med_SMOC2_state = housing_gdf['DP04_0109E'].mean()
+    avg_med_SMOC2_delta = avg_med_SMOC2_2023 - avg_med_SMOC2_state
+    c8_2.metric(label="Selected Monthly **Owner Costs** for *non-mortgaged* units", value=f"${avg_med_SMOC2_2023:,.2f}",
+        delta=f"{avg_med_SMOC2_delta:,.2f}", delta_color="inverse",
+        help="Average monthly owner costs for ***non-mortgaged*** units in the selected geography for 2023."
+    )
+
     
-    # Average Median Mortgage Payment
-    state_avg_med_mort = housing_gdf['DP04_0101E'].mean()
-    avg_med_mort = filtered_gdf['DP04_0101E'].mean()
-    avg_med_mort_delta = avg_med_mort - state_avg_med_mort
-    c8.metric(
-        label="(Average) Median **Mortgage Payment**", 
-        value=f"${avg_med_mort:,.2f}",
-        delta=f"{avg_med_mort_delta:,.2f}",
-        delta_color="inverse"
-    )
+    con = st.container()
+    con.markdown(
+        "***Note***: The Selected Monthly Owner Costs (SMOC) include costs such as mortgage," \
+        " property taxes, insurance, and utilities. "
+        "The SMOC for non-mortgaged units includes costs such as property taxes, insurance, and utilities.")
+    
+    # Create a chart for the SMOC comparison
+    with con:
+        mort_nonmort = st.selectbox(label="Select Monthly Cost Category", options=['Mortgaged', 'Non-Mortgaged'], index=0)
+
+        SMOC_bar_df = pd.DataFrame({
+            'Location': ['Statewide', plot_geo],
+            'Median SMOC (Mortgaged)': [avg_med_SMOC_state, avg_med_SMOC_2023],
+            'Median SMOC (Non-Mortgaged)': [avg_med_SMOC2_state, avg_med_SMOC2_2023]
+        })
+
+        SMOC_bar_chart = alt.Chart(SMOC_bar_df).mark_bar().encode(
+            x=alt.X('Location:N', title=""),
+            y=alt.Y(f'Median SMOC ({mort_nonmort}):Q', title=f'Median SMOC ($)'),
+            tooltip=[alt.Tooltip('Location:N'), alt.Tooltip(f'Median SMOC ({mort_nonmort}):Q')]
+        ).properties(
+            title=f"Median SMOC Comparison for {mort_nonmort} Units (2023)",
+            height=550, width=600
+        )
+
+        st.altair_chart(SMOC_bar_chart)
 
     st.markdown("---")
 
     # RENTER-OCCUPIED SECTION
-    st.subheader("Rented Units")
-    c9, c10 = st.columns(2)
+    st.subheader("Renter-Occupied Units")
+    c9 = st.container()
+    c10, c11 = st.columns(2)
     
     # Average Median Gross Rent
-    state_avg_med_gross_rent = housing_gdf['DP04_0134E'].mean()
-    avg_med_gross_rent = filtered_gdf['DP04_0134E'].mean()
-    avg_med_gross_rent_delta = avg_med_gross_rent - state_avg_med_gross_rent
-    c9.metric(
-        label="(Average) Median **Gross Rent**", 
-        value=f"${avg_med_gross_rent:,.2f}",
-        delta=f"{avg_med_gross_rent_delta:,.2f}",
-        delta_color="inverse"
+    avg_med_gross_rent_2023 = filtered_gdf['DP04_0134E'].mean()
+    avg_med_gross_rent_state = housing_gdf['DP04_0134E'].mean()
+    avg_med_gross_rent_delta = avg_med_gross_rent_2023 - avg_med_gross_rent_state
+    c9.metric(label="Median **Gross Rent**", value=f"${avg_med_gross_rent_2023:,.2f}",
+        delta=f"{avg_med_gross_rent_delta:,.2f}", delta_color="inverse",
+        help="Average median gross rent in the selected geography for 2023."
     )
     
-    # Households where rent takes up 35% or more of their household income
-    state_rent_burden_pct = (housing_gdf['DP04_0142E'].sum() / housing_gdf['DP04_0126E'].sum()) * 100
-    rent_burden_pct = (filtered_gdf['DP04_0142E'].sum() / filtered_gdf['DP04_0126E'].sum()) * 100
-    rent_burden_pct_delta = rent_burden_pct - state_rent_burden_pct
-    c10.metric(
-        label="Occupied Units paying 35%+ of Income on Rent", 
-        value=f"{filtered_gdf['DP04_0142E'].sum():,.0f}"
-    )
+    # Count of Households where rent takes up 35% or more of their household income
+    units_paying_rent_2023 = filtered_gdf['DP04_0126E'].sum()
+    units_paying_rent_state = housing_gdf['DP04_0126E'].sum()
+    rent_burden35_2023 = filtered_gdf['DP04_0142E'].sum()
+    rent_burden35_state = housing_gdf['DP04_0142E'].sum()
+    rent_burden35_pct_2023 = (rent_burden35_2023 / units_paying_rent_2023) * 100
+    rent_burden35_pct_state = (rent_burden35_state / units_paying_rent_state) * 100
+    rent_burden35_pct_delta = rent_burden35_pct_2023 - rent_burden35_pct_state
+    c10.metric(label="Occupied Units paying 35%+ of Income on Rent", value=f"{rent_burden35_2023:,.0f}",
+        help="Count of households where rent takes up 35% or more of their household income in the selected geography for 2023.")
     # Percentage of households where rent takes up 35% or more of their household income
-    c10.metric(
-        label="Occupied Units paying 35%+ of Income on Rent", 
-        value=f"{rent_burden_pct:.1f}%",
-        delta=f"{rent_burden_pct_delta:.1f}%",
-        delta_color="inverse"
-    )
+    c11.metric(label="% Occupied Units paying 35%+ of Income on Rent", value=f"{rent_burden35_pct_2023:.1f}%",
+        delta=f"{rent_burden35_pct_delta:.1f}%", delta_color="inverse",
+        help="Percentage of households where rent takes up 35% or more of their household income in the selected geography for 2023.")
 
     st.markdown("---")
 
+    # UNITS IN STRUCTURE SECTION
+
+    # Calculate metrics for bar graph distribution of units in structure
+    # One Unit Detached
+    pct_one_unit_detached_2023 = (filtered_gdf['DP04_0007E'].sum() / filtered_gdf['DP04_0006E'].sum())
+    pct_one_unit_detached_state = (housing_gdf['DP04_0007E'].sum() / housing_gdf['DP04_0006E'].sum())
+    # One Unit Attached
+    pct_one_unit_attached_2023 = (filtered_gdf['DP04_0008E'].sum() / filtered_gdf['DP04_0006E'].sum())
+    pct_one_unit_attached_state = (housing_gdf['DP04_0008E'].sum() / housing_gdf['DP04_0006E'].sum()) 
+    # Two Units
+    pct_two_units_2023 = (filtered_gdf['DP04_0009E'].sum() / filtered_gdf['DP04_0006E'].sum())
+    pct_two_units_state = (housing_gdf['DP04_0009E'].sum() / housing_gdf['DP04_0006E'].sum())
+    # Three to Four Units
+    pct_three_or_four_units_2023 = (filtered_gdf['DP04_0010E'].sum() / filtered_gdf['DP04_0006E'].sum())
+    pct_three_or_four_units_state = (housing_gdf['DP04_0010E'].sum() / housing_gdf['DP04_0006E'].sum()) 
+    # Five to Nine Units
+    pct_five_to_nine_units_2023 = (filtered_gdf['DP04_0011E'].sum() / filtered_gdf['DP04_0006E'].sum()) 
+    pct_five_to_nine_units_state = (housing_gdf['DP04_0011E'].sum() / housing_gdf['DP04_0006E'].sum())
+    # Ten to Nineteen Units
+    pct_ten_to_nineteen_units_2023 = (filtered_gdf['DP04_0012E'].sum() / filtered_gdf['DP04_0006E'].sum())
+    pct_ten_to_nineteen_units_state = (housing_gdf['DP04_0012E'].sum() / housing_gdf['DP04_0006E'].sum()) 
+    # Twenty+ Units
+    pct_twenty_or_more_units_2023 = (filtered_gdf['DP04_0013E'].sum() / filtered_gdf['DP04_0006E'].sum()) 
+    pct_twenty_or_more_units_state =(housing_gdf['DP04_0013E'].sum() / housing_gdf['DP04_0006E'].sum()) 
+    # Mobile Homes
+    pct_mobile_home_2023 = (filtered_gdf['DP04_0014E'].sum() / filtered_gdf['DP04_0006E'].sum())
+    pct_mobile_home_state = (housing_gdf['DP04_0014E'].sum() / housing_gdf['DP04_0006E'].sum())
+    # Boat/RV/Van, etc.
+    pct_boat_RV_van_etc_2023 = (filtered_gdf['DP04_0015E'].sum() / filtered_gdf['DP04_0006E'].sum())
+    pct_boat_RV_van_etc_state = (housing_gdf['DP04_0015E'].sum() / housing_gdf['DP04_0006E'].sum())
+    
+    # Create a DataFrame for a grouped bar chart
+    units_in_structure_df = pd.DataFrame({
+        'Structure Category': [
+            '1-Unit (Detached)', '1-Unit (Attached)', '2-Units',
+            '3 - 4 Units', '5 - 9 Units','10 - 19 Units', '20+ Units',
+            'Mobile Homes', 'Boat/RV/Van, etc.'],
+        f"{plot_geo}": [
+            pct_one_unit_detached_2023, pct_one_unit_attached_2023, pct_two_units_2023,
+            pct_three_or_four_units_2023, pct_five_to_nine_units_2023,
+            pct_ten_to_nineteen_units_2023, pct_twenty_or_more_units_2023,
+            pct_mobile_home_2023, pct_boat_RV_van_etc_2023],
+        'Statewide': [
+            pct_one_unit_detached_state, pct_one_unit_attached_state, pct_two_units_state,
+            pct_three_or_four_units_state, pct_five_to_nine_units_state,
+            pct_ten_to_nineteen_units_state, pct_twenty_or_more_units_state,
+            pct_mobile_home_state, pct_boat_RV_van_etc_state]})
+    # Melt the DataFrame for grouped bar plotting
+    units_in_structure_df = units_in_structure_df.melt(
+        id_vars='Structure Category',
+        value_vars=[f'{plot_geo}', 'Statewide'],
+        var_name='Location',
+        value_name='Percentage of Units'
+    )
+    units_in_structure_df['Percentage of Units'] = round(units_in_structure_df['Percentage of Units'], 3)
+    
+    # Create the grouped bar chart comparing 2023 to statewide distribution of units in structure
+    units_in_structure_chart = alt.Chart(units_in_structure_df).mark_bar().encode(
+        x=alt.X('Structure Category:N', title=None, sort='-y'),
+        y=alt.Y('Percentage of Units:Q', title='Percentage of Units').axis(format='.1%'),
+        color=alt.Color('Location:N', legend=alt.Legend(
+            direction='vertical', orient='top-right')),
+        xOffset='Location:N'
+    ).properties(title=f"Structure Category Distribution in {title_geo}", height=550)
+
+    # Display the grouped bar chart
+    st.altair_chart(units_in_structure_chart, use_container_width=True)
+    
     # Style the metric cards
     style_metric_cards(
         background_color="whitesmoke",
-        border_left_color="thistle",
+        border_left_color="cornflowerblue",
         box_shadow=True,
-        border_size_px=0.5
-    )
+        border_size_px=0.5)
 
 
 def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023):
@@ -2132,7 +2280,7 @@ def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gd
     
     # Create a chart for the SMOC comparison
     with con:
-        mort_nonmort = st.selectbox(label="Select SMOC Type", options=['Mortgaged', 'Non-Mortgaged'], index=0)
+        mort_nonmort = st.selectbox(label="Select Monthly Cost Category", options=['Mortgaged', 'Non-Mortgaged'], index=0)
 
         SMOC_bar_df = pd.DataFrame({
             'Year': ['2013', '2023'],
@@ -2156,7 +2304,8 @@ def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gd
 
     # RENTER-OCCUPIED SECTION
     st.subheader("Renter-Occupied Units")
-    c9, c10 = st.columns(2)
+    c9 = st.container()
+    c10, c11 = st.columns(2)
     
     # Average Median Gross Rent
     avg_med_gross_rent_2023 = filtered_gdf_2023['DP04_0134E'].mean()
@@ -2180,7 +2329,7 @@ def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gd
         help="Count of households where rent takes up 35% or more of their household income in the selected geography for 2023 compared to 2013."
     )
     # Percentage of households where rent takes up 35% or more of their household income
-    c10.metric(label="% Occupied Units paying 35%+ of Income on Rent", value=f"{rent_burden35_pct_2023:.1f}%",
+    c11.metric(label="% Occupied Units paying 35%+ of Income on Rent", value=f"{rent_burden35_pct_2023:.1f}%",
         delta=f"{rent_burden35_pct_delta:.1f}%", delta_color="inverse",
         help="Percentage of households where rent takes up 35% or more of their household income in the selected geography for 2023 compared to 2013."
     )
@@ -2188,7 +2337,6 @@ def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gd
     st.markdown("---")
 
     # UNITS IN STRUCTURE SECTION
-
     # Calculate metrics for bar graph distribution of units in structure
     # One Unit Detached
     one_unit_detached_2023 = filtered_gdf_2023['DP04_0007E'].sum()
@@ -2219,42 +2367,59 @@ def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gd
     boat_RV_van_etc_2013 = filtered_gdf_2013['DP04_0015E'].sum()
     
     # Create a DataFrame for a grouped bar chart
-    units_in_structure_df = pd.DataFrame({
+    units_in_structure_df1 = pd.DataFrame({
         'Structure Category': [
             '1-Unit (Detached)', '1-Unit (Attached)', '2-Units',
             '3 - 4 Units', '5 - 9 Units','10 - 19 Units', '20+ Units',
             'Mobile Homes', 'Boat/RV/Van, etc.'
         ],
-        '2023': [
+        '2023 Units': [
             one_unit_detached_2023, one_unit_attached_2023, two_units_2023,
             three_or_four_units_2023, five_to_nine_units_2023,
             ten_to_nineteen_units_2023, twenty_or_more_units_2023,
             mobile_home_2023, boat_RV_van_etc_2023
         ],
-        '2013': [
+        '2013 Units': [
             one_unit_detached_2013, one_unit_attached_2013, two_units_2013,
             three_or_four_units_2013, five_to_nine_units_2013,
             ten_to_nineteen_units_2013, twenty_or_more_units_2013,
             mobile_home_2013, boat_RV_van_etc_2013
         ]
     })
+
+    total_units_2023 = filtered_gdf_2023['DP04_0006E'].sum()
+    total_units_2013 = filtered_gdf_2013['DP04_0006E'].sum()
+    units_in_structure_df1['2023 %'] = round(units_in_structure_df1['2023 Units'] / total_units_2023, 3)
+    units_in_structure_df1['2013 %'] = round(units_in_structure_df1['2013 Units'] / total_units_2013, 3)
+    
     # Melt the DataFrame for grouped bar plotting
-    units_in_structure_df = units_in_structure_df.melt(
+    units_melted = units_in_structure_df1.melt(
         id_vars='Structure Category',
-        value_vars=['2023', '2013'],
+        value_vars=['2023 Units', '2013 Units'],
         var_name='Year',
         value_name='Units'
     )
-    # Convert the 'Year' column to string type
-    units_in_structure_df['Year'] = units_in_structure_df['Year'].astype(str)
+    pct_melted = units_in_structure_df1.melt(
+        id_vars='Structure Category',
+        value_vars=['2023 %', '2013 %'],
+        var_name='Year',
+        value_name='Proportion'
+    )
+    units_melted['Year'] = units_melted['Year'].str.extract(r'(\d{4})')
+    pct_melted['Year'] = pct_melted['Year'].str.extract(r'(\d{4})') 
     
-    # Create the grouped bar chart comparing 2023 to 2013 units in structure
+    # Merge melted DataFrames
+    units_in_structure_df = pct_melted.copy()
+    units_in_structure_df['Units'] = units_melted['Units']
+    
     units_in_structure_chart = alt.Chart(units_in_structure_df).mark_bar().encode(
-        x=alt.X('Structure Category:N', title=None, sort=None),
-        y=alt.Y('Units:Q', title='Number of Units'),
-        color=alt.Color('Year:N', scale=alt.Scale(domain=['2023', '2013'], range=['darkorange', 'moccasin'])),
-        xOffset='Year:N'
-    ).properties(title=f"Structure Category Distribution in {title_geo}", height=550)
+        x=alt.X('Structure Category:N', title=None, sort='-y'),
+        xOffset='Year:N',
+        y=alt.Y('Proportion:Q', axis=alt.Axis(format='%'), title='Share of Total Units'),
+        color=alt.Color('Year:N', scale=alt.Scale(scheme='category10'), legend=alt.Legend(
+            direction='vertical', orient='top-right')),
+        tooltip=[alt.Tooltip('Year:N'), alt.Tooltip('Units:Q', format=','), alt.Tooltip('Proportion:Q', format='.1%')]
+    ).properties(height=550, title=f"Structure Category Distribution in {title_geo}")
 
     # Display the grouped bar chart
     st.altair_chart(units_in_structure_chart, use_container_width=True)

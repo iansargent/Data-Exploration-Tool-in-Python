@@ -49,7 +49,7 @@ def census_housing():
         legend_title=housing_variable,
         layer_name="Housing",
         color = "pink")
-
+    
     # Display the map to the page
     map.to_streamlit(height=600)
 
@@ -111,7 +111,7 @@ def census_housing():
         # Remind user that delta values are compared to statewide averages
         st.markdown("*Note*: The displayed deviations in the metric cards are comparing values to VT statewide averages.")
         # Display formatted housing metrics vs statewide averages
-        housing_metrics_vs_statewide(housing_gdf, filtered_gdf)
+        housing_metrics_vs_statewide(county, jurisdiction, housing_gdf, filtered_gdf)
     
 
 def main():
