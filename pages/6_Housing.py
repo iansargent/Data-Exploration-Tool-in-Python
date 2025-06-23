@@ -105,7 +105,7 @@ def census_housing():
         # Remind user that delta values are compared to 2013 Census data
         st.markdown("*Note*: The displayed deviations in the metric cards are comparing values to 2013 Census Data.")
         # Display formatted housing metrics vs statewide averages
-        housing_metrics_vs_10yr(filtered_gdf_2013, filtered_gdf)
+        housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gdf)
     # If comparison to current statewide averages
     elif compare_to == "2023 Vermont Statewide Averages":
         # Remind user that delta values are compared to statewide averages
