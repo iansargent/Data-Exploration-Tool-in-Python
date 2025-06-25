@@ -1911,11 +1911,11 @@ def housing_metrics_vs_statewide(county, jurisdiction, housing_gdf, filtered_gdf
         })
 
         bar_chart = alt.Chart(bar_chart_df).mark_bar().encode(
-            x=alt.X('Location:N', title='Location'),
-            y=alt.Y('Median Home Value:Q', title='Median Home Value ($)'),
+            x=alt.X('Location:N', title=None),
+            y=alt.Y('Median Home Value:Q', title='Median Home Value', axis=alt.Axis(format='$,.0f')),
             tooltip=[alt.Tooltip('Location:N'), alt.Tooltip('Median Home Value:Q')]
         ).properties(
-            title="Median Home Value Comparison",
+            title=f"2023 Median Home Value Comparison ({plot_geo} vs Statewide)",
             height=550, width=600)
 
         st.altair_chart(bar_chart)
@@ -1956,8 +1956,8 @@ def housing_metrics_vs_statewide(county, jurisdiction, housing_gdf, filtered_gdf
         })
 
         SMOC_bar_chart = alt.Chart(SMOC_bar_df).mark_bar().encode(
-            x=alt.X('Location:N', title=""),
-            y=alt.Y(f'Median SMOC ({mort_nonmort}):Q', title=f'Median SMOC ($)'),
+            x=alt.X('Location:N', title=None),
+            y=alt.Y(f'Median SMOC ({mort_nonmort}):Q', title=f'Median Monthly Costs', axis=alt.Axis(format='$,.0f')),
             tooltip=[alt.Tooltip('Location:N'), alt.Tooltip(f'Median SMOC ({mort_nonmort}):Q')]
         ).properties(
             title=f"Median SMOC Comparison for {mort_nonmort} Units (2023)",
@@ -2058,8 +2058,8 @@ def housing_metrics_vs_statewide(county, jurisdiction, housing_gdf, filtered_gdf
     # Create the grouped bar chart comparing 2023 to statewide distribution of units in structure
     units_in_structure_chart = alt.Chart(units_in_structure_df).mark_bar().encode(
         x=alt.X('Structure Category:N', title=None, sort='-y'),
-        y=alt.Y('Percentage of Units:Q', title='Percentage of Units').axis(format='.1%'),
-        color=alt.Color('Location:N', legend=alt.Legend(
+        y=alt.Y('Percentage of Units:Q', title='Percentage of Units').axis(format='.0%'),
+        color=alt.Color('Location:N', title=None, legend=alt.Legend(
             direction='vertical', orient='top-right')),
         xOffset='Location:N'
     ).properties(title=f"Structure Category Distribution in {title_geo}", height=550)
@@ -2236,21 +2236,28 @@ def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gd
 
     with c7:
         # Bar chart for Median Home Value
-        bar_chart_df = pd.DataFrame({
-            'Year': ['2013', '2023'],
+        med_val_df = pd.DataFrame({
+            'Year': [2013, 2023],
             'Median Home Value': [avg_med_val_2013, avg_med_val_2023]
         })
 
-        bar_chart = alt.Chart(bar_chart_df).mark_bar().encode(
-            x=alt.X('Year:N', title='Year'),
-            y=alt.Y('Median Home Value:Q', title='Median Home Value ($)'),
-            color=alt.Color('Year:N'),
+        chart = alt.Chart(med_val_df).mark_line(point=True, color='dodgerblue').encode(
+            x=alt.X('Year:O', title='Year'),
+            y=alt.Y('Median Home Value:Q', title='Median Home Value', scale=alt.Scale(nice=True), axis=alt.Axis(format='$,.0f')),
             tooltip=[alt.Tooltip('Year:N'), alt.Tooltip('Median Home Value:Q')]
-        ).properties(
-            title="Median Home Value Comparison (2013 vs 2023)",
+        ).interactive()
+
+        text = alt.Chart(med_val_df).mark_text(
+            align='center', baseline='bottom', dy=-15,
+            fontSize=20, color='dodgerblue').encode(
+                x='Year:O', y='Median Home Value:Q',
+                text=alt.Text('Median Home Value:Q', format='$,.0f'))
+
+        med_value_chart = (chart + text).properties(
+            title=f"Median Home Value in {title_geo} (2013 vs 2023)",
             height=550, width=600)
 
-        st.altair_chart(bar_chart)
+        st.altair_chart(med_value_chart)
         
     # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
     avg_med_SMOC_2023 = filtered_gdf_2023['DP04_0101E'].mean()
@@ -2270,7 +2277,6 @@ def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gd
         help="Average monthly owner costs for ***non-mortgaged*** units in the selected geography for 2023 compared to 2013."
     )
 
-    
     con = st.container()
     con.markdown(
         "***Note***: The Selected Monthly Owner Costs (SMOC) include costs such as mortgage," \
@@ -2290,13 +2296,12 @@ def housing_metrics_vs_10yr(county, jurisdiction, filtered_gdf_2013, filtered_gd
 
         SMOC_bar_chart = alt.Chart(SMOC_bar_df).mark_bar().encode(
             x=alt.X('Year:N', title='Year'),
-            y=alt.Y(f'Median SMOC ({mort_nonmort}):Q', title=f'Median SMOC ($)'),
+            y=alt.Y(f'Median SMOC ({mort_nonmort}):Q', title='Median Selected Monthly Costs', axis=alt.Axis(format='$,.0f')),
             color=alt.Color('Year:N'),
             tooltip=[alt.Tooltip('Year:N'), alt.Tooltip(f'Median SMOC ({mort_nonmort}):Q')]
-        ).properties(
-            title=f"Median SMOC Comparison for {mort_nonmort} Units (2013 vs 2023)",
-            height=550, width=600
-        )
+        ).configure_mark(width=200).properties(
+            title=f"Median SMOC Comparison for {mort_nonmort} Units in {title_geo} (2013 vs 2023)",
+            height=550, width=600)
 
         st.altair_chart(SMOC_bar_chart)
 
