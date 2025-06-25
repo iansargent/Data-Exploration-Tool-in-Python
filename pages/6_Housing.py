@@ -53,6 +53,20 @@ def census_housing():
     # Display the map to the page
     map.to_streamlit(height=600)
 
+    housing_gdf_map_lat_lon = housing_gdf_map.copy()
+
+    housing_gdf_map_lat_lon = housing_gdf_map_lat_lon.to_crs(epsg=4326)
+    housing_gdf_map_lat_lon["lon"] = housing_gdf_map_lat_lon.geometry.centroid.x
+    housing_gdf_map_lat_lon["lat"] = housing_gdf_map_lat_lon.geometry.centroid.y
+
+    housing_gdf_map_lat_lon = housing_gdf_map_lat_lon.dropna(subset=[housing_variable, "lat", "lon"])
+    # Optional: normalize size if values are too large/small
+    housing_gdf_map_lat_lon["scaled_size"] = (housing_gdf_map_lat_lon[housing_variable] / housing_gdf_map_lat_lon[housing_variable].max()) * 10000
+
+    housing_gdf_map_lat_lon = housing_gdf_map_lat_lon.drop(columns="geometry")
+    # st.map(housing_gdf_map_lat_lon, latitude="lat", longitude="lon", size="scaled_size")
+
+
     # Census Snapshot section (Housing)
     st.header("Housing Snapshot")
     # Include a source for the dataset (Census DP04 2023 5-year estimates)

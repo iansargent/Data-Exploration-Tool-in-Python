@@ -12,6 +12,7 @@ import pandas as pd
 import leafmap.foliumap as leafmap
 from app_utils import (render_zoning_layer, render_table, render_comparison_table, load_zoning_data)
 import geopandas as gpd
+from streamlit_extras.metric_cards import style_metric_cards 
 
 
 def render_mapping():
@@ -25,6 +26,29 @@ def render_mapping():
 
     # --- Always Show the Map ---
     m.to_streamlit(height=600)
+    
+    st.header("Land Area")
+    c1 = st.container()
+    total_acre = filtered_gdf['Acres'].sum()
+    c1.metric(label="**Total Acreage**", value=f"{total_acre:,.1f}")
+    
+    st.subheader("District Type Land Distribution")
+    c2, c3, c4 = st.columns(3)
+    
+    # NOTE: Turn this section into a bar graph
+    residential_acre = filtered_gdf[filtered_gdf['District Type'] == "Primarily Residential"]['Acres'].sum()
+    c2.metric(label="**Primarily Residential**", value=f"{residential_acre:,.0f} acres")
+    c2.metric(label="**Primarily Residential** (%)", value=f"{(residential_acre/total_acre)*100:.1f}%")
+    
+    mixed_residential_acre = filtered_gdf[filtered_gdf['District Type'] == "Mixed with Residential"]['Acres'].sum()
+    c3.metric(label="**Mixed with Residential**", value=f"{mixed_residential_acre:,.0f} acres")
+    c3.metric(label="**Mixed with Residential** (%)", value=f"{(mixed_residential_acre/total_acre)*100:.1f}%")
+    
+    non_residential_acre = filtered_gdf[filtered_gdf['District Type'] == "Nonresidential"]['Acres'].sum()
+    c4.metric(label="**Nonresidential**", value=f"{non_residential_acre:,.0f} acres")
+    c4.metric(label="**Nonresidential** (%)", value=f"{(non_residential_acre/total_acre)*100:.1f}%")
+
+    style_metric_cards(background_color="whitesmoke", border_left_color="mediumseagreen",)
 
     # --- Zoning Table and Comparison Below ---
     st.markdown("### Zoning Districts Table")

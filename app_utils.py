@@ -649,7 +649,7 @@ def render_zoning_layer(map):
         zoom_to_layer=True)
     
     map.add_legend(title="District Type", legend_dict=color_map)
-    
+
     return map, filtered_gdf
 
 
