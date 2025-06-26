@@ -593,26 +593,23 @@ def generate_district_color_map(gdf):
     return dict(zip(unique_types, colors))
 
 
-def render_zoning_layer(map):
+def render_zoning_layer():
     """
-    Renders the zoning layer on a Leafmap map object based on user-selected filters.
+    Applies sidebar filters to the zoning GeoDataFrame and returns the filtered results.
 
-    Displays dropdown filters in the Streamlit sidebar to filter by county, jurisdiction,
-    and district(s), then styles and displays the filtered zoning districts on the map.
-
-    @param map: A Leafmap Map object used to display the zoning layer.
-    @return: A tuple containing the updated map and the filtered GeoDataFrame.
+    @return: Filtered GeoDataFrame based on sidebar selections.
     """
-    
     zoning_gdf = load_zoning_data()
 
     col1, col2, col3 = st.columns(3)
     with col1:
         county = st.selectbox("**County**", ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()))
     with col2:
-        jurisdiction = st.selectbox("**Jurisdiction**", ["All Jurisdictions"] + sorted(
-            zoning_gdf[zoning_gdf["County"] == county]["Jurisdiction"].dropna().unique()
-        ) if county != "All Counties" else ["All Jurisdictions"] + sorted(zoning_gdf["Jurisdiction"].dropna().unique()))
+        if county != "All Counties":
+            jurisdiction_opts = sorted(zoning_gdf[zoning_gdf["County"] == county]["Jurisdiction"].dropna().unique())
+        else:
+            jurisdiction_opts = sorted(zoning_gdf["Jurisdiction"].dropna().unique())
+        jurisdiction = st.selectbox("**Jurisdiction**", ["All Jurisdictions"] + jurisdiction_opts)
     with col3:
         # Filter district options based on current county and jurisdiction selection
         district_filter = zoning_gdf.copy()
@@ -624,33 +621,17 @@ def render_zoning_layer(map):
         district_opts = sorted(district_filter["District Name"].dropna().unique())
         districts = st.multiselect("**District(s)**", ["All Districts"] + district_opts, default=["All Districts"])
 
+    # Apply all filters
     filtered_gdf = filter_zoning_data(zoning_gdf, county, jurisdiction, districts)
+
     if filtered_gdf.empty:
         st.warning("No districts match your filters.")
-        return
+        return gpd.GeoDataFrame()
 
-    center = filtered_gdf.geometry.unary_union.centroid
-    map.set_center(center.x, center.y, zoom=10)
+    # Allow user filtering via dataframe_explorer
+    filtered_gdf = dataframe_explorer(filtered_gdf, case=False)
 
-    color_map = generate_district_color_map(filtered_gdf)
-
-    def style_fn(f):
-        dt = f["properties"].get("District Type", "")
-        return {"color": "navy", "weight": 0.3, "fillColor": color_map.get(dt, "gray"), "fillOpacity": 0.4}
-
-    info_cols = ["Jurisdiction District Name", "Abbreviated District Name", "District Type", "geometry"]
-    filtered_display = filtered_gdf[info_cols].copy()
-
-    map.add_gdf(
-        filtered_display, 
-        "Districts by Type", 
-        style_function=style_fn, 
-        info_mode="on_click", 
-        zoom_to_layer=True)
-    
-    map.add_legend(title="District Type", legend_dict=color_map)
-
-    return map, filtered_gdf
+    return filtered_gdf
 
 
 def assign_layer_style(filename):

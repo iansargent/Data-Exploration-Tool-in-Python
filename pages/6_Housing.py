@@ -12,63 +12,75 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
+import pydeck as pdk
 from app_utils import split_name_col, housing_metrics_vs_statewide, housing_pop_plot, housing_metrics_vs_10yr
 
 
-def census_housing():
+def census_housing_pydeck():
     # Page Title
-    st.markdown("<h2 style='color: #4a4a4a;'>VT Housing</h2>", unsafe_allow_html=True)
+    st.header("Housing", divider="grey")
     # Initialize a leafmap(foliumap) map object centered VT State
-    map = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
-    # Change the basemap to a light color for contrast
-    map.add_basemap("CartoDB.Positron")
 
     # Read the Census DP04 Housing Characteristics Dataset
     housing_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL.fgb')
     housing_2013 = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL_2013.fgb')
-
     # Split the "name" column into separate "County" and "Jurisdiction" columns
     housing_gdf = split_name_col(housing_gdf)
     housing_2013 = split_name_col(housing_2013)
 
     # Define the numerical columns in the GeoDataFrame for mapping
     numeric_cols = [col for col in housing_gdf.columns if housing_gdf[col].dtype in ['int64', 'float64']]
+    
+    st.subheader("Mapping")
     # Add a user select box to choose which variable they want to map
     housing_variable = st.selectbox("Select a Housing variable", numeric_cols)
 
-    # Only include necessary variables for the map dataset to avoid "hover-crowding"
-    housing_gdf_map = housing_gdf[["County", "Jurisdiction", housing_variable, "geometry"]].dropna()
 
-    # Add the data to the map (Chloropleth) with a red color scheme
-    # NOTE: Using the "NaturalBreaks" system to define color categories (A subjective decision)
-    map.add_data(
-        housing_gdf_map,
-        column=housing_variable,
-        scheme="NaturalBreaks",
-        cmap="Reds",
-        legend_title=housing_variable,
-        layer_name="Housing",
-        color = "pink")
-    
-    # Display the map to the page
-    map.to_streamlit(height=600)
+    # Project to lat/lon for Pydeck
+    housing_gdf = housing_gdf.to_crs(epsg=4326)
+    housing_gdf_map = housing_gdf[["County", "Jurisdiction", housing_variable, "geometry"]].dropna().copy()
 
-    housing_gdf_map_lat_lon = housing_gdf_map.copy()
+    # Normalize the housing variable
+    vmin = housing_gdf_map[housing_variable].min()
+    vmax = housing_gdf_map[housing_variable].max()
+    norm = colors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.get_cmap("Reds")
 
-    housing_gdf_map_lat_lon = housing_gdf_map_lat_lon.to_crs(epsg=4326)
-    housing_gdf_map_lat_lon["lon"] = housing_gdf_map_lat_lon.geometry.centroid.x
-    housing_gdf_map_lat_lon["lat"] = housing_gdf_map_lat_lon.geometry.centroid.y
+    # Convert to [R, G, B, A] values
+    housing_gdf_map["fill_color"] = housing_gdf_map[housing_variable].apply(
+        lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
 
-    housing_gdf_map_lat_lon = housing_gdf_map_lat_lon.dropna(subset=[housing_variable, "lat", "lon"])
-    # Optional: normalize size if values are too large/small
-    housing_gdf_map_lat_lon["scaled_size"] = (housing_gdf_map_lat_lon[housing_variable] / housing_gdf_map_lat_lon[housing_variable].max()) * 10000
+    # Convert geometry to GeoJSON-style coordinates
+    housing_gdf_map["coordinates"] = housing_gdf_map.geometry.apply(
+        lambda geom: geom.__geo_interface__["coordinates"])
 
-    housing_gdf_map_lat_lon = housing_gdf_map_lat_lon.drop(columns="geometry")
-    # st.map(housing_gdf_map_lat_lon, latitude="lat", longitude="lon", size="scaled_size")
+    # Pydeck PolygonLayer
+    polygon_layer = pdk.Layer(
+        "PolygonLayer",
+        data=housing_gdf_map,
+        get_polygon="coordinates[0]",
+        get_fill_color="fill_color",
+        pickable=True,
+        auto_highlight=True,
+    )
 
+    # Set view state
+    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
 
+    # Display map
+    st.pydeck_chart(pdk.Deck(
+        layers=[polygon_layer],
+        initial_view_state=view_state,
+        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+        tooltip={"text": "{Jurisdiction}: {" + housing_variable + "}"}
+    ))
+
+    st.markdown("---")
     # Census Snapshot section (Housing)
-    st.header("Housing Snapshot")
+    st.subheader("Housing Snapshot")
     # Include a source for the dataset (Census DP04 2023 5-year estimates)
     st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP04: Selected Housing Characteristics - " \
     "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
@@ -130,7 +142,7 @@ def census_housing():
 
 def main():
     # Display the page
-    census_housing()
+    census_housing_pydeck()
 
 
 if __name__ == "__main__":

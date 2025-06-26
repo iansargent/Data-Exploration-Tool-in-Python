@@ -17,7 +17,7 @@ from app_utils import (convert_all_timestamps_to_str, land_suitability_metric_ca
 import leafmap as flm
 
 
-def render_mapping_pydeck():
+def render_wastewater():
     st.header("VT Wastewater Infrastructure")
 
     column1, column2 = st.columns(2)
@@ -34,6 +34,16 @@ def render_mapping_pydeck():
     suit_response.raise_for_status()
     suit_gdf = gpd.read_file(BytesIO(suit_response.content))
 
+    # WASTEWATER TREATMENT FACILITIES
+    WWTF_url = "https://raw.githubusercontent.com/VERSO-UVM/Wastewater-Infrastructure-Mapping/refs/heads/main/data/VermontWWTF.geojson"
+    WWTF_response = requests.get(WWTF_url)
+    WWTF_response.raise_for_status()
+    WWTF_gdf = gpd.read_file(BytesIO(WWTF_response.content)).copy()
+    WWTF_gdf = WWTF_gdf.to_crs("EPSG:4326")
+    WWTF_gdf["lon"] = WWTF_gdf.geometry.centroid.x
+    WWTF_gdf["lat"] = WWTF_gdf.geometry.centroid.y
+    WWTF_gdf = WWTF_gdf.dropna(subset=["lat", "lon"])
+
     # FILTER by Jurisdiction
     jurisdictions = ["All Jurisdictions"] + sorted(suit_gdf["Jurisdiction"].dropna().unique().tolist())
     with column2:
@@ -48,48 +58,34 @@ def render_mapping_pydeck():
         "Well Suited": [44, 160, 44, 180],       # green
         "Moderately Suited": [255, 204, 0, 180], # yellow
     }
-    df_filtered = suit_gdf[suit_gdf["Suitability"].isin(category_colors.keys())].copy()
-    df_filtered["coordinates"] = df_filtered["geometry"].apply(
+    suit_filtered = suit_gdf[suit_gdf["Suitability"].isin(category_colors.keys())].copy()
+    suit_filtered["coordinates"] = suit_filtered["geometry"].apply(
         lambda geom: [list(geom.exterior.coords)] if geom.geom_type == "Polygon" 
         else [list(poly.exterior.coords) for poly in geom.geoms] if geom.geom_type == "MultiPolygon" 
         else []
     )
-    df_filtered = df_filtered.explode("coordinates", ignore_index=True)
+    suit_filtered = suit_filtered.explode("coordinates", ignore_index=True)
 
-    df_filtered["fill_color"] = df_filtered["Suitability"].apply(lambda x: category_colors.get(x, [200, 200, 200, 0]))
+    suit_filtered["fill_color"] = suit_filtered["Suitability"].apply(lambda x: category_colors.get(x, [200, 200, 200, 0]))
 
     # LAND SUITABILITY LAYER
-    polygon_layer = pdk.Layer(
+    soil_layer = pdk.Layer(
         "PolygonLayer",
-        data=df_filtered,
+        data=suit_filtered,
         get_polygon="coordinates",
         get_fill_color="fill_color",
         get_line_color=[20, 20, 20, 80],
         stroked=True,
         filled=True,
         pickable=True,
-        auto_highlight=True,
-    )
+        auto_highlight=True)
 
-    # WASTEWATER TREATMENT FACILITIES
-    WWTF_url = "https://raw.githubusercontent.com/VERSO-UVM/Wastewater-Infrastructure-Mapping/main/data/VermontWWTF.geojson"
-    WWTF_response = requests.get(WWTF_url)
-    WWTF_response.raise_for_status()
-    WWTF_gdf = gpd.read_file(BytesIO(WWTF_response.content)).copy()
-    WWTF_gdf = WWTF_gdf.to_crs("EPSG:4326")
-    WWTF_gdf["lon"] = WWTF_gdf.geometry.centroid.x
-    WWTF_gdf["lat"] = WWTF_gdf.geometry.centroid.y
-    WWTF_gdf = WWTF_gdf.dropna(subset=["lat", "lon"])
-
-    point_layer = pdk.Layer(
+    WWTF_layer = pdk.Layer(
         "ScatterplotLayer",
         data=WWTF_gdf,
         get_position='[lon, lat]',
         get_radius=300,
-        get_fill_color=[30, 144, 255, 180],  # Dodger blue
-        pickable=True,
-        tooltip=True
-    )
+        get_fill_color=[30, 144, 255, 180])
 
     # LINEAR FEATURES
     # linear_url = "https://raw.githubusercontent.com/VERSO-UVM/Wastewater-Infrastructure-Mapping/main/MappingTemplate/LinearFeatures2025.02.geojson"
@@ -97,33 +93,25 @@ def render_mapping_pydeck():
     # linear_response.raise_for_status()
     # linear_gdf = gpd.read_file(BytesIO(linear_response.content))
 
-    # POINT FEATURES
-    # NOTE: File sizes are too large (915.6 MB) Needs to be more compressed
-    # NVDA_point_url = "https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/Viz%20geojsons/NVDA_Point.geojson"
-    # NVDA_point_response = requests.get(NVDA_point_url)
-    # NVDA_point_response.raise_for_status()
-    # NVDA_point_gdf = gpd.read_file(BytesIO(NVDA_point_response.content))
-    # WRC_point_url = "https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/Viz%20geojsons/WRC_Point.geojson"
-    # WRC_point_response = requests.get(WRC_point_url)
-    # WRC_point_response.raise_for_status()
-    # WRC_point_gdf = gpd.read_file(BytesIO(WRC_point_response.content))
-
     # View setup
-    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=8)
+    bounds = suit_filtered.total_bounds  # [minx, miny, maxx, maxy]
+    center_lon = (bounds[0] + bounds[2]) / 2
+    center_lat = (bounds[1] + bounds[3]) / 2
+    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon)
 
     # Render in Streamlit
     st.pydeck_chart(pdk.Deck(
-        layers=[polygon_layer, point_layer],
+        layers=[soil_layer, WWTF_layer],
         initial_view_state=view_state,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         tooltip={"text": "{Suitability}"}
     ))
 
     # Metric Cards
-    land_suitability_metric_cards(df_filtered)
+    land_suitability_metric_cards(suit_filtered)
             
 def show_mapping(): 
-    render_mapping_pydeck()
+    render_wastewater()
 
 
 if __name__ == "__main__":
