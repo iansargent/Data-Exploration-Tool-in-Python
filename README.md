@@ -51,10 +51,18 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 │── utils.py              # Helper functions for file uploads
 │
 ├── pages/    # A "pages" folder to organize the different app pages
-│   ├── 1_Table Preview.py    # Interactive data grid display
-│   ├── 2_Data Summary.py     # Automated data profiling and summaries
-│   ├── 3_Visualize.py        # Single and dual variable plotting
-│   └── 4_About.py            # App information and credits
+│   ├── 1_Table Preview.py    # Interactive data grid display (for uploaded files)
+│   ├── 2_Data Summary.py     # Automated data quality and exploratory reports (for uploaded files)
+│   ├── 3_Visualize.py        # Single + dual variable plotting, and group-by plotting (for uploaded files)
+│   ├── 4_Zoning.py        # Mapping zoning regulations
+│   ├── 5_Wastewater.py        # Mapping VT wastewater infrastructure
+│   ├── 6_Housing.py        # Exploring Census housing data
+│   ├── 7_Economics.py        # Exploring Census economic data
+│   ├── 8_Demographics.py        # Exploring Census demographic data
+│   ├── 9_Social.py        # Exploring Census social data
+│   ├── 10_Flooding.py        # Mapping VT high risk flood zones (FEMA)
+│   ├── 11_Mapping.py        # General mapping tool for uploaded geo files
+│   └── 12_About.py            # App information and credits
 │
 │── requirements.txt      # Python dependencies
 │── README.md             # Project documentation
