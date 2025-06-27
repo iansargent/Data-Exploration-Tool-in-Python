@@ -7,7 +7,6 @@ Streamlit Data Visualization App
 About Page
 """
 
-
 import streamlit as st
 import markdown
 

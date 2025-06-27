@@ -8,11 +8,8 @@ Economics Page (Census)
 
 # Necessary imports
 import streamlit as st
-import pandas as pd
 import geopandas as gpd
-import leafmap.foliumap as leafmap
 import pydeck as pdk
-import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 from app_utils import split_name_col

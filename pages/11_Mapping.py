@@ -15,8 +15,6 @@ from app_utils import (get_user_files, is_latitude_longitude,
                        convert_all_timestamps_to_str, process_uploaded_files, 
                        render_zoning_layer, assign_layer_style, render_table,
                        render_comparison_table, get_lat_lon_cols, load_zoning_data)
-from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
-from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
 
 filtered_gdf = pd.DataFrame()

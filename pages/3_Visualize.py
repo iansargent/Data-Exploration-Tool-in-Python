@@ -10,7 +10,6 @@ Visualize Page
 import streamlit as st
 from app_utils import (get_user_files, get_columns, single_column_plot, 
                        two_column_plot, process_uploaded_files, group_by_plot)
-from st_aggrid import AgGrid
 import numpy as np
 import pandas as pd
 

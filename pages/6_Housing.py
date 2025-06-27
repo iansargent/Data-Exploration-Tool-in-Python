@@ -11,7 +11,6 @@ Housing Page (Census)
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
-import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pydeck as pdk

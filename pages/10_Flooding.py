@@ -8,8 +8,6 @@ Flooding Page (FEMA)
 import streamlit as st
 import geopandas as gpd
 import pydeck as pdk
-import pandas as pd
-import shapely
 
 
 def render_mapping_pydeck():

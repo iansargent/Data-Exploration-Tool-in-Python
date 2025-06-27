@@ -8,8 +8,6 @@ Table Preview Page
 
 # Necessary imports
 import streamlit as st
-from st_aggrid import AgGrid, ColumnsAutoSizeMode
-from streamlit_extras.metric_cards import style_metric_cards 
 from app_utils import get_user_files, process_uploaded_files, data_snapshot, load_zoning_file, get_columns
 import geopandas as gpd
 from streamlit_extras.dataframe_explorer import dataframe_explorer 

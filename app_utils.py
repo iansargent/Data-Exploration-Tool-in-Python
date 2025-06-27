@@ -15,11 +15,8 @@ import os
 import hashlib
 from statsmodels.stats.weightstats import DescrStatsW
 import calendar
-from ydata_profiling.config import Settings
-from streamlit_pandas_profiling import st_profile_report
 from ydata_profiling import ProfileReport
 import geopandas as gpd
-import leafmap.foliumap as lfm
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
