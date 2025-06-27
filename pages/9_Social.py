@@ -11,41 +11,69 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
+import pydeck as pdk
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
+from app_utils import split_name_col
 
 
-def render_mapping():
-    st.markdown("<h2 style='color: #4a4a4a;'>VT Social</h2>", unsafe_allow_html=True)
-
-    m = leafmap.Map(center=[44.26, -72.57], zoom=8, zoom_snap=0.5)
-    m.add_basemap("CartoDB.Positron")
+def render_social():
+    st.header("Social", divider="grey")
 
     social_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_SOCIAL_ALL.fgb')
+    social_gdf = split_name_col(social_gdf)
 
+    st.subheader("Mapping")
+    # Define the numerical columns in the GeoDataFrame for mapping
     numeric_cols = [col for col in social_gdf.columns if social_gdf[col].dtype in ['int64', 'float64']]
+    # Add a user select box to choose which variable they want to map
     social_variable = st.selectbox("Select a Social variable", numeric_cols)
 
-    social_gdf_map = social_gdf[["NAME", social_variable, "geometry"]].dropna()
+    # Project to lat/lon for Pydeck
+    social_gdf = social_gdf.to_crs(epsg=4326)
+    social_gdf_map = social_gdf[["County", "Jurisdiction", social_variable, "geometry"]].dropna().copy()
+    
+    # Normalize the social variable
+    vmin = social_gdf_map[social_variable].min()
+    vmax = social_gdf_map[social_variable].max()
+    norm = colors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = cm.get_cmap("Purples")
 
-    m.add_data(
-        social_gdf_map,
-        column=social_variable,
-        scheme="NaturalBreaks",
-        cmap="Purples",
-        legend_title=social_variable,
-        layer_name="Social",
-        color="lavender")
+    # Convert to [R, G, B, A] values
+    social_gdf_map["fill_color"] = social_gdf_map[social_variable].apply(
+        lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
 
-    # --- Always Show the Map ---
-    m.to_streamlit(height=600)
+    # Convert geometry to GeoJSON-style coordinates
+    social_gdf_map["coordinates"] = social_gdf_map.geometry.apply(
+        lambda geom: geom.__geo_interface__["coordinates"])
+    
+    # Set view state
+    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
+    
+    # Pydeck PolygonLayer
+    polygon_layer = pdk.Layer(
+        "PolygonLayer",
+        data=social_gdf_map,
+        get_polygon="coordinates[0]",
+        get_fill_color="fill_color",
+        pickable=True,
+        auto_highlight=True,
+    )
 
-    st.subheader("Social Data")
-    st.dataframe(social_gdf[["NAME", social_variable]])
-
-    return m
+    # Display map
+    st.pydeck_chart(pdk.Deck(
+        layers=[polygon_layer],
+        initial_view_state=view_state,
+        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+        tooltip={"text": "{Jurisdiction}: {" + social_variable + "}"}
+    ), height=550)
+    
+    return
             
 def show_mapping():
     # Display the page
-    render_mapping()
+    render_social()
 
 
 if __name__ == "__main__":

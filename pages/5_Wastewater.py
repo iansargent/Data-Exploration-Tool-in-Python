@@ -93,8 +93,16 @@ def render_wastewater():
     # linear_response.raise_for_status()
     # linear_gdf = gpd.read_file(BytesIO(linear_response.content))
 
+    # SERVICE AREAS
+    # service_url = "https://raw.githubusercontent.com/VERSO-UVM/Wastewater-Infrastructure-Mapping/main/data/VermontServiceArea.geojson"
+    # service_response = requests.get(service_url)
+    # service_response.raise_for_status()
+    # service_gdf = gpd.read_file(BytesIO(service_response.content))
+
+
+
     # View setup
-    bounds = suit_filtered.total_bounds  # [minx, miny, maxx, maxy]
+    bounds = suit_filtered.total_bounds
     center_lon = (bounds[0] + bounds[2]) / 2
     center_lat = (bounds[1] + bounds[3]) / 2
     view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon)

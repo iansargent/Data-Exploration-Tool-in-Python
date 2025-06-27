@@ -11,7 +11,6 @@ Housing Page (Census)
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
-import leafmap.foliumap as leafmap
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -19,10 +18,9 @@ import pydeck as pdk
 from app_utils import split_name_col, housing_metrics_vs_statewide, housing_pop_plot, housing_metrics_vs_10yr
 
 
-def census_housing_pydeck():
+def census_housing():
     # Page Title
     st.header("Housing", divider="grey")
-    # Initialize a leafmap(foliumap) map object centered VT State
 
     # Read the Census DP04 Housing Characteristics Dataset
     housing_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL.fgb')
@@ -31,13 +29,11 @@ def census_housing_pydeck():
     housing_gdf = split_name_col(housing_gdf)
     housing_2013 = split_name_col(housing_2013)
 
+    st.subheader("Mapping")
     # Define the numerical columns in the GeoDataFrame for mapping
     numeric_cols = [col for col in housing_gdf.columns if housing_gdf[col].dtype in ['int64', 'float64']]
-    
-    st.subheader("Mapping")
     # Add a user select box to choose which variable they want to map
     housing_variable = st.selectbox("Select a Housing variable", numeric_cols)
-
 
     # Project to lat/lon for Pydeck
     housing_gdf = housing_gdf.to_crs(epsg=4326)
@@ -64,8 +60,7 @@ def census_housing_pydeck():
         get_polygon="coordinates[0]",
         get_fill_color="fill_color",
         pickable=True,
-        auto_highlight=True,
-    )
+        auto_highlight=True)
 
     # Set view state
     view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
@@ -76,7 +71,7 @@ def census_housing_pydeck():
         initial_view_state=view_state,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         tooltip={"text": "{Jurisdiction}: {" + housing_variable + "}"}
-    ))
+    ), height=550)
 
     st.markdown("---")
     # Census Snapshot section (Housing)
@@ -142,7 +137,7 @@ def census_housing_pydeck():
 
 def main():
     # Display the page
-    census_housing_pydeck()
+    census_housing()
 
 
 if __name__ == "__main__":
