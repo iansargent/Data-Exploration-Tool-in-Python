@@ -43,25 +43,6 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 
 ---
 
-
-## Some Features
-
-
-- ✅ **Upload** and **preview** CSV, XLSX, XLS, JSON, GEOJSON, or SAV datasets
-
-- ✅ Interactive data **table display**
-
-- ✅ Layered **mapping** with geojson files
-
-- ✅ Automated **data profiling** and **summary statistics**
-
-- ✅ **Visualization** for single variables and variable pairs
-
-- ✅ An **About Page** to learn more about this project
-
----
-
-
 ## Project File Structure
 
 ```
@@ -78,15 +59,6 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
 │── requirements.txt      # Python dependencies
 │── README.md             # Project documentation
 ```
-
----
-
-## Planned Improvements
-
-- Add data comparison support features (for VT jurisdictions)
-- Include geospatial analytics
-- Include data filtering options
-- Improved UX and overall app design
 
 ---
 
