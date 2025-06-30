@@ -24,7 +24,7 @@ def flooding():
     high_risk = flood_gdf[flood_gdf["FLD_ZONE"].isin(high_risk_zones)].copy()
 
     # Simplify the geometry for computing performance
-    high_risk["geometry"] = high_risk["geometry"].simplify(0.001, preserve_topology=True)
+    high_risk["geometry"] = high_risk["geometry"].simplify(0.0001, preserve_topology=True)
 
     # Extract polygon shapes for pydeck
     def get_coordinates(geom):
@@ -33,6 +33,7 @@ def flooding():
         elif geom.geom_type == 'MultiPolygon':
             return [list(poly.exterior.coords) for poly in geom.geoms]
         return []
+    # Define a new "coordinates" column derived from geometry
     high_risk["coordinates"] = high_risk["geometry"].apply(get_coordinates)
 
     # "Explode" multipolygons into separate rows
@@ -59,7 +60,7 @@ def flooding():
         layers=[polygon_layer],
         initial_view_state=view_state,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-        tooltip={"text": "Zone: {FLD_ZONE}"}))
+        tooltip={"text": "Zone: {FLD_ZONE}"}), height=550)
 
 
 def show_flooding():
