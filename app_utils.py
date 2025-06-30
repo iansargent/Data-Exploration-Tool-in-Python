@@ -444,6 +444,7 @@ def split_name_col(census_gdf):
 #--------------------------------------#
 
 
+@st.cache_data
 def load_zoning_data():
     """
     Loads the Vermont Zoning dataset as a GeoDataFrame.
@@ -549,7 +550,7 @@ def render_comparison_table(selected_rows):
     return combined_df
 
 
-def filter_zoning_data(gdf, county, jurisdiction, districts):
+def filter_zoning_data(_gdf, county, jurisdiction, districts):
     """
     Filters the zoning GeoDataFrame based on selected county, jurisdiction, and districts.
 
@@ -559,7 +560,7 @@ def filter_zoning_data(gdf, county, jurisdiction, districts):
     @param districts: List of selected district names, or a list containing "All Districts" for no filter.
     @return: A filtered GeoDataFrame based on the specified criteria.
     """
-    df = gdf.copy()
+    df = _gdf.copy()
     if county != "All Counties":
         df = df[df["County"] == county]
     if jurisdiction != "All Jurisdictions":

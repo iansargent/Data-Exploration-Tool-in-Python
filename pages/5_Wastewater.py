@@ -16,6 +16,17 @@ from io import BytesIO
 from app_utils import (convert_all_timestamps_to_str, land_suitability_metric_cards)
 
 
+@st.cache_data
+def load_soil_septic(rpc):
+    land_suit_url = f"https://github.com/VERSO-UVM/Vermont-Livability-Map/raw/main/data/{rpc}_Soil_Septic.fgb"
+    suit_response = requests.get(land_suit_url)
+    suit_response.raise_for_status()
+    suit_gdf = gpd.read_file(BytesIO(suit_response.content))
+    suit_gdf = suit_gdf.to_crs("EPSG:4326")
+
+    return suit_gdf
+    
+
 def render_wastewater():
     # Page header
     st.header("VT Wastewater Infrastructure")
@@ -33,11 +44,8 @@ def render_wastewater():
     i = rpcs.index(selected_rpc)
 
     # LAND SUITABILITY DATA
-    land_suit_url = f"https://github.com/VERSO-UVM/Vermont-Livability-Map/raw/main/data/{rpcs[i]}_Soil_Septic.fgb"
-    suit_response = requests.get(land_suit_url)
-    suit_response.raise_for_status()
-    suit_gdf = gpd.read_file(BytesIO(suit_response.content))
-    suit_gdf = suit_gdf.to_crs("EPSG:4326")
+    suit_gdf = load_soil_septic(rpcs[i])
+    suit_gdf["geometry"] = suit_gdf["geometry"].simplify(0.0001, preserve_topology=True)
 
     # Filter by Jurisdiction (or All Jurisdictions)
     jurisdictions = ["All Jurisdictions"] + sorted(suit_gdf["Jurisdiction"].dropna().unique().tolist())
@@ -69,7 +77,7 @@ def render_wastewater():
         pickable=True,
         auto_highlight=True,
         stroked=True,
-        filled=True,
+        filled=True
     )
 
     # Calculate the center and zoom level of the map

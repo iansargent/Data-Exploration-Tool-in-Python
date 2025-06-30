@@ -12,12 +12,18 @@ import geopandas as gpd
 import pydeck as pdk
 
 
+st.cache_data()
+def load_flood_data():
+    flood_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/VT_Flood_Hazard.geojson')
+    return flood_gdf
+    
+
 def flooding():
     # Page header
     st.header("VT Flood Risk")
 
     # Load the FEMA flood hazard zones dataset
-    flood_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/VT_Flood_Hazard.geojson')
+    flood_gdf = load_flood_data()
 
     # Filter the data to only include high-risk FEMA flood zones
     high_risk_zones = ["A", "AE", "A1-A30", "AH", "AO", "A99"]
