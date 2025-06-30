@@ -10,9 +10,8 @@ ydata-profiling
 matplotlib
 pydeck
 streamlit-pandas-profiling
+openpyxl
 jsonopenpyxl
 pyarrow
 shapely
 leafmap
-
-
