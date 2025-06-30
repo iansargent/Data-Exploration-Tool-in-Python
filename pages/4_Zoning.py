@@ -15,6 +15,7 @@ from app_utils import render_zoning_layer, render_table, render_comparison_table
 
 
 def zoning():
+    # Page header
     st.header("Zoning")
 
     # Load the zoning data from GitHub
@@ -55,12 +56,13 @@ def zoning():
         layers=[layer], 
         initial_view_state=view_state,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json", 
-        tooltip={"text": "{District Type}"})
+        tooltip={"text": "{Jurisdiction District Name}" "\n ({District Type})"}
+    )
     
     # Display the map to the page
     st.pydeck_chart(map)
 
-    # Zoning acreage summary section using metric cards
+    st.markdown("---")
     
     # Total acres of land plotted on the map
     st.header("Land Area")
@@ -70,7 +72,7 @@ def zoning():
     # Acreage by district type
     st.subheader("District Type Land Distribution")
     # Acreage sum grouped by district type
-    acres_by_type = filtered_gdf.groupby("District Type")["Acres"].sum().reindex(zoning_colors.keys())
+    acres_by_type = filtered_gdf.groupby("District Type")["Acres"].sum().reindex(zoning_colors.keys()).fillna(0)
 
     # Display acreage for residential, mixed, and nonresidential (with relative % land)
     c2, c3, c4 = st.columns(3)

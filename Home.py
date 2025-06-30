@@ -7,7 +7,6 @@ Run this in the terminal to launch the app:
 -------------------------------------------
 streamlit run Home.py
 -------------------------------------------
-
 """
 
 # Necessary imports
@@ -85,8 +84,7 @@ def main():
                 <p>{navigation_placeholder}</p>
             </div>
             """,
-            unsafe_allow_html=True
-        )
+            unsafe_allow_html=True)
 
 
 if __name__ == "__main__":

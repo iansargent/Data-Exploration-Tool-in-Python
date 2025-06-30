@@ -524,17 +524,14 @@ def render_comparison_table(selected_rows):
 
     from functools import reduce
 
-    combined_df = reduce(
-        lambda left, right: pd.merge(left, right, on="Variable", how="outer"),
-        dfs
-    )
-
-    combined_df_sorted = combined_df.copy()
-    combined_df_sorted["na_count"] = combined_df_sorted.isna().sum(axis=1)
-    combined_df_sorted = combined_df_sorted.sort_values("na_count").drop(columns="na_count")
+    combined_df = reduce(lambda left, right: pd.merge(left, right, on="Variable", how="outer"), dfs)
+    # # If you wanted to sort with empty rows at the bottom
+    # combined_df_sorted = combined_df.copy()
+    # combined_df_sorted["na_count"] = combined_df_sorted.isna().sum(axis=1)
+    # combined_df_sorted = combined_df_sorted.sort_values("na_count").drop(columns="na_count")
 
     st.subheader("District Comparisons")
-    filtered_combined_df_sorted = dataframe_explorer(combined_df_sorted, case=False)
+    filtered_combined_df_sorted = dataframe_explorer(combined_df, case=False)
     st.dataframe(filtered_combined_df_sorted, use_container_width=True)
 
     import io
@@ -549,7 +546,7 @@ def render_comparison_table(selected_rows):
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    return combined_df_sorted
+    return combined_df
 
 
 def filter_zoning_data(gdf, county, jurisdiction, districts):
