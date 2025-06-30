@@ -16,9 +16,12 @@ from app_utils import split_name_col
 
 
 def render_economics():
+    # Page header
     st.header("Economics", divider="grey")
 
+    # Read the Census selected economic variables dataset (DP03)
     econ_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_ECONOMIC_ALL.fgb')
+    # Split the "name" column into separate "County" and "Jurisdiction" columns
     econ_gdf = split_name_col(econ_gdf)
 
     st.subheader("Mapping")
@@ -27,28 +30,26 @@ def render_economics():
     # Add a user select box to choose which variable they want to map
     econ_variable = st.selectbox("Select an economic variable", numeric_cols)
 
-    # Project to lat/lon for Pydeck
+    # Project geometry to latitude and longitude coordinates
     econ_gdf = econ_gdf.to_crs(epsg=4326)
+    # Select only necessary columns for the dataframe being mapped. Drop any NA values
     econ_gdf_map = econ_gdf[["County", "Jurisdiction", econ_variable, "geometry"]].dropna().copy()
 
-    # Normalize the economic variable
+    # Normalize the economic variable for monochromatic coloring
     vmin = econ_gdf_map[econ_variable].min()
     vmax = econ_gdf_map[econ_variable].max()
     norm = colors.Normalize(vmin=vmin, vmax=vmax)
     cmap = cm.get_cmap("Greens")
 
-    # Convert to [R, G, B, A] values
+    # Convert colors to [R, G, B, A] values
     econ_gdf_map["fill_color"] = econ_gdf_map[econ_variable].apply(
         lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
 
-    # Convert geometry to GeoJSON-style coordinates
+    # Convert the geometry column to GeoJSON coordinates
     econ_gdf_map["coordinates"] = econ_gdf_map.geometry.apply(
         lambda geom: geom.__geo_interface__["coordinates"])
-    
-    # Set view state
-    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
-    
-    # Pydeck PolygonLayer
+        
+    # Chloropleth map layer
     polygon_layer = pdk.Layer(
         "PolygonLayer",
         data=econ_gdf_map,
@@ -58,7 +59,10 @@ def render_economics():
         auto_highlight=True,
     )
 
-    # Display map
+    # Set the map center and zoom level
+    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
+
+    # Display the map to the page
     st.pydeck_chart(pdk.Deck(
         layers=[polygon_layer],
         initial_view_state=view_state,
@@ -68,10 +72,10 @@ def render_economics():
 
     return
             
-def show_mapping():
+def show_economics():
     # Display the page
     render_economics()
 
 
 if __name__ == "__main__":
-    show_mapping()
+    show_economics()

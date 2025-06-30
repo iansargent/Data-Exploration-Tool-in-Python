@@ -14,12 +14,10 @@ from streamlit_extras.dataframe_explorer import dataframe_explorer
 
 
 def render_table_preview():
-    
     # Set the page title
-    st.markdown(
-        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Table Preview</h2>",
-        unsafe_allow_html=True)
+    st.header("Table Preview")
     
+    # If zoning data is toggled "on"
     if st.sidebar.toggle("Load VT Zoning Data"):
         load_zoning_file()
     
@@ -36,45 +34,29 @@ def render_table_preview():
             # Drop the geometry column
             df = df.drop(columns=["geometry"]).reset_index(drop=True)
         
+        # Allow for specific column selections in the table (multiselect)
         column_selection = st.multiselect(
             label="Select columns to include in the table",
             options=["All Columns"] + get_columns(df),
             default="All Columns")
         
+        # If the user selects a specific column(s)
         if "All Columns" not in column_selection:
             df=df[column_selection]
         
+        # Use a dataframe explorer object from streamlit extras for table filtering 
         filtered_df = dataframe_explorer(df, case=False)
+        
+        # Display the dataframe on the page
         st.dataframe(filtered_df, use_container_width=True)
 
 
 def show_preview():
-    # Apply a background color to the page
-    st.markdown(
-    """
-    <style>
-    html, body, [class*="css"]  {
-        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
-    }
-    [data-testid="stAppViewContainer"] {
-        background-image: url("https://t3.ftcdn.net/jpg/01/99/28/98/360_F_199289808_twlKOyrViuqfzyV5JFmYdly2GHihxqEh.jpg");
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-position: center;
-    }
-    [data-testid="stHeader"] {
-        background: rgba(255, 255, 255, 0.0);
-    }
-    [data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.5);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
     # Show the table page
     render_table_preview()
 
 
 if __name__ == "__main__":
     show_preview()
+
+    

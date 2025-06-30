@@ -8,15 +8,16 @@ Visualize Page
 
 # Necessary imports
 import streamlit as st
-from app_utils import (get_user_files, get_columns, single_column_plot, 
-                       two_column_plot, process_uploaded_files, group_by_plot)
 import numpy as np
 import pandas as pd
+from app_utils import (get_user_files, get_columns, single_column_plot, 
+                       two_column_plot, process_uploaded_files, group_by_plot)
 
 
 # The visualize page (with default arguments given)
 def render_visualization(mode="single", processed_files=None):
-    
+    # Set the page title
+    st.header("Visualize")
     # For each processed file
     for df, filename in processed_files:
         # Initialize a unique key for certain page features
@@ -50,7 +51,6 @@ def render_visualization(mode="single", processed_files=None):
         elif mode == "double":         
             # Define a set of 2 columns for formating the variable select boxes
             column1, column2 = st.columns(2)
-
             # In the first column
             with column1:
                 # Selection box for the first variable
@@ -124,46 +124,7 @@ def render_visualization(mode="single", processed_files=None):
         key += 3
 
 # The main function
-def show_plots():
-    # Apply a background color to the page
-    st.markdown(
-    """
-    <style>
-    html, body, [class*="css"]  {
-        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
-    }
-    [data-testid="stAppViewContainer"] {
-        background-image: url("https://t3.ftcdn.net/jpg/01/99/28/98/360_F_199289808_twlKOyrViuqfzyV5JFmYdly2GHihxqEh.jpg");
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-position: center;
-    }
-    [data-testid="stHeader"] {
-        background: rgba(255, 255, 255, 0.0);
-    }
-    [data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.5);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Set the page title
-    st.markdown(
-        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Visualize</h2>",
-        unsafe_allow_html=True)
-    
-    # Apply global font settings
-    st.markdown(
-    """
-    <style>
-    /* Set Helvetica (fallback to Arial, sans-serif) globally */
-    html, body, [class*="css"]  {
-        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
+def visualize():
     # Define the three plotting tabs
     tab1, tab2, tab3 = st.tabs(["Single Variable", "Two Variables", "Group By"])
     
@@ -180,4 +141,4 @@ def show_plots():
         render_visualization("group-by", processed_files)
 
 if __name__ == "__main__":
-    show_plots()
+    visualize()

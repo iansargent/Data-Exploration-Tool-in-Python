@@ -17,14 +17,19 @@ from app_utils import (convert_all_timestamps_to_str, land_suitability_metric_ca
 
 
 def render_wastewater():
+    # Page header
     st.header("VT Wastewater Infrastructure")
 
+    # Set columns to display the filter boxes
     column1, column2 = st.columns(2)
+    # Define a list of RPCs for the RPC filter selection box
     rpcs = ["ACRPC", "BCRC", "CCRPC", "CVRPC", "LCPC", "MARC", "NVDA", "NWRPC", "RRPC", "TRORC", "WRC"]
     
+    # On the left, display the RPC selection
     with column1:
         selected_rpc = st.selectbox("RPC", options=rpcs, index=0)
 
+    # Take the index of that selection for data loading
     i = rpcs.index(selected_rpc)
 
     # LAND SUITABILITY DATA
@@ -34,25 +39,27 @@ def render_wastewater():
     suit_gdf = gpd.read_file(BytesIO(suit_response.content))
     suit_gdf = suit_gdf.to_crs("EPSG:4326")
 
-    # FILTER by Jurisdiction
+    # Filter by Jurisdiction (or All Jurisdictions)
     jurisdictions = ["All Jurisdictions"] + sorted(suit_gdf["Jurisdiction"].dropna().unique().tolist())
     with column2:
         selected_jurisdiction = st.multiselect("Jurisdiction", options=jurisdictions, default=["All Jurisdictions"])
     if selected_jurisdiction and "All Jurisdictions" not in selected_jurisdiction:
         suit_gdf = suit_gdf[suit_gdf["Jurisdiction"].isin(selected_jurisdiction)]
+    # Convert all timestamps to string for easier mapping
     suit_gdf = convert_all_timestamps_to_str(suit_gdf)
 
-    # CATEGORY COLORS
+    # Define soil suitability colors to be shown on the map
     category_colors = {"Well Suited": [44, 160, 44, 180],
                        "Moderately Suited": [255, 204, 0, 180]}
     suit_filtered = suit_gdf[suit_gdf["Suitability"].isin(category_colors.keys())].copy()        
     suit_filtered["fill_color"] = suit_filtered["Suitability"].apply(lambda x: category_colors.get(x))
 
+    # Extract the coordinates from the geometry column to map the polygon layer
     def extract_2d_coords(g):
         return [[ [x, y] for x, y in g.exterior.coords ]]
     suit_filtered["polygon_coords"] = suit_filtered.geometry.apply(extract_2d_coords)
 
-    # LAND SUITABILITY LAYER
+    # Land suitability map layer
     soil_layer = pdk.Layer(
         "PolygonLayer",
         data=suit_filtered,
@@ -65,25 +72,26 @@ def render_wastewater():
         filled=True,
     )
 
+    # Calculate the center and zoom level of the map
     bounds = suit_filtered.total_bounds
     center_lon = (bounds[0] + bounds[2]) / 2
     center_lat = (bounds[1] + bounds[3]) / 2
     view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, zoom=9)
 
-    # Render in Streamlit
+    # Display the map to the page
     st.pydeck_chart(pdk.Deck(
         layers=[soil_layer],
         initial_view_state=view_state,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
     ), use_container_width=True)
 
-    # Metric Cards
+    # Suitability metric cards
     land_suitability_metric_cards(suit_filtered)
     
             
-def show_mapping(): 
+def show_wastewater(): 
     render_wastewater()
 
 
 if __name__ == "__main__":
-    show_mapping()
+    show_wastewater()

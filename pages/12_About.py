@@ -10,7 +10,7 @@ About Page
 import streamlit as st
 import markdown
 
-def render_about():
+def about():
     # Set the page title
     st.markdown(
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>About the Project</h2>",
@@ -72,7 +72,7 @@ def show_about():
         """, unsafe_allow_html=True)
     
     # Show the about page
-    render_about()
+    about()
 
 
 if __name__ == "__main__":

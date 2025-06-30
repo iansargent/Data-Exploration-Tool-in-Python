@@ -16,9 +16,12 @@ from app_utils import split_name_col
 
 
 def render_demographics():
+    # Page header
     st.header("Demographics", divider="grey")    
     
+    # Read the Census selected demographic variables dataset (DP05)
     demographic_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_DEMOGRAPHIC_ALL.fgb')
+    # Split the "name" column into separate "County" and "Jurisdiction" columns
     demographic_gdf = split_name_col(demographic_gdf)
     
     st.subheader("Mapping")
@@ -27,28 +30,26 @@ def render_demographics():
     # Add a user select box to choose which variable they want to map
     demographic_variable = st.selectbox("Select a Demographic variable", numeric_cols)
 
-    # Project to lat/lon for Pydeck
+    # Project geometry to latitude and longitude coordinates
     demographic_gdf = demographic_gdf.to_crs(epsg=4326)
+    # Select only necessary columns for the dataframe being mapped. Drop any NA values
     demographic_gdf_map = demographic_gdf[["County", "Jurisdiction", demographic_variable, "geometry"]].dropna().copy()
 
-    # Normalize the demographic variable
+    # Normalize the demographic variable for monochromatic coloring
     vmin = demographic_gdf_map[demographic_variable].min()
     vmax = demographic_gdf_map[demographic_variable].max()
     norm = colors.Normalize(vmin=vmin, vmax=vmax)
     cmap = cm.get_cmap("Blues")
 
-    # Convert to [R, G, B, A] values
+    # Convert colors to [R, G, B, A] values
     demographic_gdf_map["fill_color"] = demographic_gdf_map[demographic_variable].apply(
         lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
 
-    # Convert geometry to GeoJSON-style coordinates
+    # Convert the geometry column to GeoJSON coordinates
     demographic_gdf_map["coordinates"] = demographic_gdf_map.geometry.apply(
         lambda geom: geom.__geo_interface__["coordinates"])
     
-    # Set view state
-    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
-    
-    # Pydeck PolygonLayer
+    # Chloropleth map layer
     polygon_layer = pdk.Layer(
         "PolygonLayer",
         data=demographic_gdf_map,
@@ -58,7 +59,10 @@ def render_demographics():
         auto_highlight=True,
     )
     
-    # Display map
+    # Set the map center and zoom level
+    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
+    
+    # Display the map to the page
     st.pydeck_chart(pdk.Deck(
         layers=[polygon_layer],
         initial_view_state=view_state,
@@ -68,10 +72,10 @@ def render_demographics():
     
     return
             
-def show_mapping():
+def show_demographics():
     # Display the page
     render_demographics()
 
 
 if __name__ == "__main__":
-    show_mapping()
+    show_demographics()

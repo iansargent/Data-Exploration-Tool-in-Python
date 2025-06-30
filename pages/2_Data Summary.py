@@ -8,36 +8,32 @@ Data Summary Page
 
 # Necessary imports
 import streamlit as st
-from app_utils import (get_user_files, generate_exploratory_report, process_uploaded_files,
-                       generate_quality_report, generate_comparison_report)
 from streamlit_pandas_profiling import st_profile_report
 import geopandas as gpd
+from app_utils import (get_user_files, generate_exploratory_report, process_uploaded_files,
+                       generate_quality_report, generate_comparison_report)
 
 
 def render_data_summary():
     # Set the page title
-    st.markdown(
-        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Data Summary</h2>",
-        unsafe_allow_html=True)
+    st.header("Data Summary")
     
-    # Get the user files and process them
+    # Get the user files and process (read + clean) them
     user_files = get_user_files()
     processed_files = process_uploaded_files(user_files)
-
-    # Define a list of divider colors that will visually separate each file report on the page
-    dividers = ["red", "blue", "green", "orange", "violet", "red", "grey"]
     
+    # Initialize a unique key for each download file
+    key = 0
     # For each processed file
     for i, (df, filename) in enumerate(processed_files):
-        # Initialize a unique key for each download file
-        key = 0
         # Header section for each uploaded file with a new divider color
-        st.header(f"Summary of {filename}", divider=dividers[i])
+        st.header(f"Summary of {filename}")
         # If the file is a GeoDataFrame
         if isinstance(df, gpd.GeoDataFrame):
             # Drop the geometry column
             df = df.drop(columns=["geometry"]).reset_index(drop=True)
         
+        # Set columns for formatting
         column1, column2 = st.columns(2)
         column3, column4 = st.columns(2)
 
@@ -51,6 +47,9 @@ def render_data_summary():
             if k not in st.session_state:
                 st.session_state[k] = None
 
+        # Set columns for formatting
+        column1, column2 = st.columns(2)
+        
         # Exploratory Report
         with column1:
             if st.button(label="Generate Exploratory Summary", key=f"{filename}_expl_{key}"):
@@ -81,7 +80,10 @@ def render_data_summary():
                     file_name=f'data_report_{filename}_qual.html',
                     key=f"{filename}_qual_dl")
 
-        # Display reports
+        # Set columns for formatting
+        column3, column4 = st.columns(2)
+        
+        # Display reports side-by-side
         with column3:
             with st.expander("View Exploratory Report"):
                 if st.session_state[expl_key] is not None:
@@ -95,6 +97,7 @@ def render_data_summary():
         # Visual divider
         st.markdown("---")
 
+    # If there are 2 or more uploaded files, provide a comparison report
     if len(processed_files) >= 2:
         st.header("Comparison Report")
         if st.button(label="Generate Comparison Report"):
@@ -105,41 +108,6 @@ def render_data_summary():
 
 # Run the data summary page
 def show_summary():
-    
-    # Apply a background color to the page
-    st.markdown(
-    """
-    <style>
-    html, body, [class*="css"]  {
-        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
-    }
-    [data-testid="stAppViewContainer"] {
-        background-image: url("https://t3.ftcdn.net/jpg/01/99/28/98/360_F_199289808_twlKOyrViuqfzyV5JFmYdly2GHihxqEh.jpg");
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        background-position: center;
-    }
-    [data-testid="stHeader"] {
-        background: rgba(255, 255, 255, 0.0);
-    }
-    [data-testid="stSidebar"] {
-        background: rgba(255, 255, 255, 0.5);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
-    # Set the global font settings
-    st.markdown(
-    """
-    <style>
-    /* Set Helvetica (fallback to Arial, sans-serif) globally */
-    html, body, [class*="css"]  {
-        font-family: 'Avenir', 'Arial', sans-serif; font-weight: 300;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
     # Show the data summary page
     render_data_summary()
 
