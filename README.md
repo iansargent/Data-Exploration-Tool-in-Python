@@ -14,7 +14,7 @@ A **Streamlit web app** for exploring, visualizing, and interpreting Vermont dat
    cd vermont-livability
    ```
 
-3. **Install** the package dependencies:
+3. **Install** the package dependencies into an environment with python version <=3.11
 
    ```sh
    pip install -r requirements.txt

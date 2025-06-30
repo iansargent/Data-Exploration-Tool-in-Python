@@ -1,5 +1,5 @@
 streamlit
-st-aggrid
+streamlit-aggrid
 streamlit-extras
 pandas
 geopandas
@@ -10,10 +10,8 @@ ydata-profiling
 matplotlib
 pydeck
 streamlit-pandas-profiling
-json
 openpyxl
+jsonopenpyxl
 pyarrow
 shapely
 leafmap
-
-
