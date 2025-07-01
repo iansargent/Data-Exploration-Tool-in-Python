@@ -11,7 +11,7 @@ streamlit run Home.py
 
 # Necessary imports
 import streamlit as st
-from app_utils import get_user_files, process_uploaded_files, load_zoning_file
+from app_utils import get_user_files, process_uploaded_files
 
 
 def main():
@@ -67,12 +67,6 @@ def main():
     
     # Display the file uploader in the side panel
     user_files = get_user_files()
-
-    # Option to load demo dataset via toggle
-    if st.sidebar.toggle("Load VT Zoning Data"):
-        load_zoning_file()
-        user_files = st.session_state["user_files"]
-
     processed_files = process_uploaded_files(user_files)
     
     # navigation_placeholder = "Placeholder for app navigation / directions"
