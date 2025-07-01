@@ -25,7 +25,7 @@ def zoning():
     filtered_gdf = render_zoning_layer()
     # Simplify the geometry for computing performance
     filtered_gdf["geometry"] = filtered_gdf["geometry"].simplify(0.0001, preserve_topology=True)
-
+    # Select only relevant columns to map
     filtered_gdf_map = filtered_gdf[["Jurisdiction District Name", "District Type", "geometry"]]
     # Convert gdf into GeoJSON format
     filtered_geojson = json.loads(filtered_gdf_map.to_json())
@@ -63,15 +63,18 @@ def zoning():
     
     # Total acres of land plotted on the map
     st.header("Land Area")
+    col1, col2 = st.columns(2)
+    
+    col1.metric(label="Districts", value=f"{len(filtered_gdf):,}")
     total_acre = filtered_gdf["Acres"].sum()
-    st.metric(label="**Total Acreage**", value=f"{total_acre:,.1f}")
+    col2.metric(label="**Total Acreage**", value=f"{total_acre:,.0f} acres")
 
-    # Acreage by district type
-    st.subheader("District Type Land Distribution")
     # Acreage sum grouped by district type
     acres_by_type = filtered_gdf.groupby("District Type")["Acres"].sum().fillna(0)
     acres_df = acres_by_type.reset_index()
+    # Pick relevant columns
     acres_df.columns = ["District Type", "Acres"]
+    # Rename district type values to be short (for plotting)
     acres_df["District Type"] = acres_df["District Type"].replace({
         "Primarily Residential": "Residential",
         "Mixed with Residential": "Mixed",
@@ -79,27 +82,16 @@ def zoning():
         "Overlay not Affecting Use": "Overlay"
     })
 
-    # Altair bar chart
+    # Altair bar chart of district type distribution
     bar_chart = alt.Chart(acres_df).mark_bar().encode(
         x=alt.X("District Type:N", sort="-y", title="Zoning Type", axis=alt.Axis(labelAngle=0)),
         y=alt.Y("Acres:Q", title="Total Acres"),
         color=alt.Color("District Type:N", legend=None),
-        tooltip=["District Type", alt.Tooltip("Acres:Q", format=",")]
+        tooltip=["District Type", alt.Tooltip("Acres:Q", format=",.0f")]
     ).properties(height=500, title="Zoning Acreage by District Type")
 
+    # Display the bar chart to the page
     st.altair_chart(bar_chart, use_container_width=True)
-
-
-    # Display acreage for residential, mixed, and nonresidential (with relative % land)
-    c2, c3, c4 = st.columns(3)
-    c2.metric("**Primarily Residential**", f"{acres_by_type.get('Primarily Residential', 0):,.0f} acres")
-    c2.metric("**Primarily Residential** (%)", f"{(acres_by_type.get('Primarily Residential', 0) / total_acre) * 100:.1f}%")
-
-    c3.metric("**Mixed with Residential**", f"{acres_by_type.get('Mixed with Residential', 0):,.0f} acres")
-    c3.metric("**Mixed with Residential** (%)", f"{(acres_by_type.get('Mixed with Residential', 0) / total_acre) * 100:.1f}%")
-
-    c4.metric("**Nonresidential**", f"{acres_by_type.get('Nonresidential', 0):,.0f} acres")
-    c4.metric("**Nonresidential** (%)", f"{(acres_by_type.get('Nonresidential', 0) / total_acre) * 100:.1f}%")
 
     # Style cards to look better
     style_metric_cards(background_color="whitesmoke", border_left_color="mediumseagreen")

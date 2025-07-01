@@ -75,16 +75,16 @@ def main():
 
     processed_files = process_uploaded_files(user_files)
     
-    navigation_placeholder = "Placeholder for app navigation / directions"
+    # navigation_placeholder = "Placeholder for app navigation / directions"
 
-    with st.container():        
-        st.markdown(
-            f"""
-            <div class="custom-container">
-                <p>{navigation_placeholder}</p>
-            </div>
-            """,
-            unsafe_allow_html=True)
+    # with st.container():        
+    #     st.markdown(
+    #         f"""
+    #         <div class="custom-container">
+    #             <p>{navigation_placeholder}</p>
+    #         </div>
+    #         """,
+    #         unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
