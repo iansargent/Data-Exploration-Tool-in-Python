@@ -9,6 +9,8 @@ About Page
 
 import streamlit as st
 import markdown
+import requests
+import markdown
 
 def about():
     # Set the page title
@@ -17,9 +19,12 @@ def about():
         unsafe_allow_html=True)
 
     # Open the 'about.md' file and read its content
-    with open('/Users/iansargent/streamlit-data-app/pages/about.md', 'r', encoding='utf-8') as file:
-        about_content = file.read()
-        html_content = markdown.markdown(about_content)
+    url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/pages/about.md"
+    response = requests.get(url)
+    response.raise_for_status()  # optional, to raise error on bad response
+
+    about_content = response.text
+    html_content = markdown.markdown(about_content)
 
     # Display the 'about.md' content in a container 
     with st.container():        

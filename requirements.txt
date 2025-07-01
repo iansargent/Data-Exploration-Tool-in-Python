@@ -3,6 +3,7 @@ streamlit-aggrid
 streamlit-extras
 pandas
 geopandas
+pyogrio
 altair
 numpy
 statsmodels

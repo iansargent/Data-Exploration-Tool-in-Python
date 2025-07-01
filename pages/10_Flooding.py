@@ -8,13 +8,13 @@ Flooding Page (FEMA)
 
 # Necessary imports
 import streamlit as st
-import geopandas as gpd
 import pydeck as pdk
+import pyogrio
 
 
 st.cache_data()
 def load_flood_data():
-    flood_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/VT_Flood_Hazard.geojson')
+    flood_gdf = pyogrio.read_dataframe("https://github.com/iansargent/Data-Exploration-Tool-in-Python/raw/main/Data/VT_Flood_Hazard.fgb")
     return flood_gdf
     
 
