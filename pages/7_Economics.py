@@ -12,6 +12,7 @@ import geopandas as gpd
 import pydeck as pdk
 import matplotlib.cm as cm
 import matplotlib.colors as colors
+import pyogrio
 from app_utils import split_name_col
 
 
@@ -20,7 +21,7 @@ def render_economics():
     st.header("Economics", divider="grey")
 
     # Read the Census selected economic variables dataset (DP03)
-    econ_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_ECONOMIC_ALL.fgb')
+    econ_gdf = pyogrio.read_dataframe('https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_ECONOMIC_ALL.fgb')
     # Split the "name" column into separate "County" and "Jurisdiction" columns
     econ_gdf = split_name_col(econ_gdf)
 

@@ -195,19 +195,6 @@ def get_file_extension(file):
 #--------------------------------------#
 
 
-def load_zoning_file():
-    """
-    Loads the Vermont Zoning Data to the app session state.
-    """
-    
-    demo_path = "/Users/iansargent/Desktop/ORCA/Steamlit App Testing/App Demo/vt-zoning-update.fgb"
-    if "user_files" not in st.session_state:
-        st.session_state.user_files = []
-
-    if demo_path not in st.session_state.user_files:
-        st.session_state.user_files.append(demo_path)
-
-
 @st.cache_data
 def read_data(file):
     """

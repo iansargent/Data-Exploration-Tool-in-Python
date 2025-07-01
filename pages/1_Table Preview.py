@@ -8,7 +8,7 @@ Table Preview Page
 
 # Necessary imports
 import streamlit as st
-from app_utils import get_user_files, process_uploaded_files, data_snapshot, load_zoning_file, get_columns
+from app_utils import get_user_files, process_uploaded_files, data_snapshot, get_columns
 import geopandas as gpd
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
@@ -16,11 +16,7 @@ from streamlit_extras.dataframe_explorer import dataframe_explorer
 def render_table_preview():
     # Set the page title
     st.header("Table Preview")
-    
-    # If zoning data is toggled "on"
-    if st.sidebar.toggle("Load VT Zoning Data"):
-        load_zoning_file()
-    
+        
     # Get the uploaded files and process them
     user_files = get_user_files()
     processed = process_uploaded_files(user_files)

@@ -14,6 +14,9 @@ import geopandas as gpd
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pydeck as pdk
+import pyogrio
+import requests
+import io
 from app_utils import split_name_col, housing_metrics_vs_statewide, housing_pop_plot, housing_metrics_vs_10yr
 
 
@@ -22,8 +25,8 @@ def census_housing():
     st.header("Housing", divider="grey")
 
     # Read the Census DP04 Housing Characteristics Dataset
-    housing_gdf = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL.fgb')
-    housing_2013 = gpd.read_file('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_HOUSING_ALL_2013.fgb')
+    housing_gdf = pyogrio.read_dataframe('https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL.fgb')
+    housing_2013 = pyogrio.read_dataframe('https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL_2013.fgb')
     # Split the "name" column into separate "County" and "Jurisdiction" columns
     housing_gdf = split_name_col(housing_gdf)
     housing_2013 = split_name_col(housing_2013)
@@ -120,8 +123,9 @@ def census_housing():
 
     # Read in VT historical population data on the census tract level
     # NOTE: Include a source for this as well (VT Open Data Portal)
-    pop_df = pd.read_csv('/Users/iansargent/Desktop/ORCA/Steamlit App Testing/Census/VT_Municipal_Pop.csv')
-    
+    pop_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_Historical_Population.csv"
+    response = requests.get(pop_url, verify=False)  # disables SSL verification
+    pop_df = pd.read_csv(io.StringIO(response.text))    
     # Display the time series plot of population, housing units, and new housing units
     housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df)
     

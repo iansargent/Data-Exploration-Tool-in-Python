@@ -18,7 +18,6 @@ from app_utils import render_zoning_layer, render_table, render_comparison_table
 def zoning():
     # Page header
     st.header("Zoning")
-
     # Load the zoning data from GitHub
     load_zoning_data()
     # Define the zoning data as a GeoDataFrame
