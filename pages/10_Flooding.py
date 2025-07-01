@@ -14,7 +14,7 @@ import pyogrio
 
 st.cache_data()
 def load_flood_data():
-    flood_gdf = pyogrio.read_dataframe("https://github.com/iansargent/Data-Exploration-Tool-in-Python/raw/main/Data/VT_Flood_Hazard.fgb")
+    flood_gdf = pyogrio.read_dataframe("https://github.com/iansargent/Data-Exploration-Tool-in-Python/raw/main/Data/Flood-Hazard/VT_Flood_Hazard.fgb")
     return flood_gdf
     
 
