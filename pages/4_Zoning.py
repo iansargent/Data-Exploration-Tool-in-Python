@@ -11,19 +11,43 @@ import streamlit as st
 from streamlit_extras.metric_cards import style_metric_cards 
 import pydeck as pdk
 import altair as alt
+import geopandas as gpd
 import json
-from app_utils import render_zoning_layer, render_table, render_comparison_table, load_zoning_data
+from app_utils import filter_zoning, render_table, render_comparison_table
+
+
+@st.cache_data
+def load_zoning_data():
+    """
+    Loads the Vermont Zoning dataset as a GeoDataFrame.
+
+    @return: The geopandas zoning dataset as a GeoDataFrame object.
+    """
+    from io import BytesIO
+    import requests
+    
+    zoning_url = 'https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/data/vt-zoning-update.fgb'
+
+    # Stream download to avoid issues with large files
+    response = requests.get(zoning_url)
+    response.raise_for_status()  # raises an error if download failed
+
+    gdf = gpd.read_file(BytesIO(response.content))
+    
+    gdf = gdf.drop(columns=["Bylaw Date"], errors="ignore")
+
+    gdf["geometry"] = gdf["geometry"].simplify(0.0001, preserve_topology=True)
+
+    return gdf
 
 
 def zoning():
     # Page header
     st.header("Zoning")
     # Load the zoning data from GitHub
-    load_zoning_data()
+    zoning_gdf = load_zoning_data()
     # Define the zoning data as a GeoDataFrame
-    filtered_gdf = render_zoning_layer()
-    # Simplify the geometry for computing performance
-    filtered_gdf["geometry"] = filtered_gdf["geometry"].simplify(0.0001, preserve_topology=True)
+    filtered_gdf = filter_zoning(zoning_gdf)
     # Select only relevant columns to map
     filtered_gdf_map = filtered_gdf[["Jurisdiction District Name", "District Type", "geometry"]]
     # Convert gdf into GeoJSON format
