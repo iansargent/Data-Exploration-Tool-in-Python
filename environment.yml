@@ -1,0 +1,24 @@
+name: orca_leahy_data
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pandas
+  - geopandas
+  - numpy
+  - matplotlib
+  - pyarrow
+  - shapely
+  - pip
+  - pip:
+      - streamlit
+      - streamlit-aggrid
+      - streamlit-extras
+      - ydata-profiling
+      - tqdm
+      - pydeck
+      - statsmodels
+      - openpyxl
+      - leafmap
+      - streamlit_pandas_profiling
