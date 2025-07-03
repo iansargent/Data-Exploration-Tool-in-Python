@@ -13,7 +13,6 @@ html, body, [class*="css"]  {
     padding-top: 2rem;
 }
 
-
 [data-testid="stHeader"] {
     background: rgba(255, 255, 255, 0.0);
 }
