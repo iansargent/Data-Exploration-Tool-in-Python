@@ -22,6 +22,10 @@ import matplotlib.colors as mcolors
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
+import requests
+from bs4 import BeautifulSoup
+
+#TODO: split file structure into more smaller scripts?
 
 #--------------------------------------#
 #######      File Handling      ########
@@ -254,6 +258,7 @@ def get_columns(df):
     return columns
 
 
+
 def get_column_type(df, column_name):
     """
     Get the data type of a specific column in the DataFrame.
@@ -424,6 +429,73 @@ def split_name_col(census_gdf):
     census_gdf = census_gdf.drop(columns='NAME')
 
     return census_gdf
+
+def get_census_cols():
+    r = requests.get("https://api.census.gov/data/2019/acs/acs5/profile/variables.html")
+    soup = BeautifulSoup(r.content, "html.parser") 
+
+    # get table headers as keys
+    keys = [th.get_text(strip=True, separator=" ")
+            for tr in soup.find_all("tr")
+            for th in tr.find_all("th")]
+    
+    #build rows 
+    rows = []
+    for tr in soup.find_all("tr"):
+        cells = [td.get_text(strip=True, separator=" ") for td in tr.find_all("td")] # cols
+        if cells:
+            rows.append(cells)
+    
+    df = pd.DataFrame(rows, columns=keys)
+    df = df[['Name', 'Label']].copy()
+    df.dropna(inplace=True)
+    return df
+
+def split_to_cols(s, cols):
+    parts = [p.strip() for p in s.split("!!")]
+    first = parts[0:len(cols)-1]
+    second = parts[len(cols)-1:]
+    second = [": ".join(second)]
+    return first + second
+
+def relabel_census_cols(df):
+    ## just splits apart the labels so we can filter across them 
+    cols = ["Measure", "Category", "Subcategory", "Variable"]
+    splits = df["Label"].apply(lambda x: split_to_cols(x, cols))
+    splits_df = pd.DataFrame(splits.tolist(), columns=cols)
+
+    ## create the total categories
+    splits_df.loc[ 
+        (splits_df['Subcategory'].notna()) & (splits_df['Variable']==""),
+        "Variable"] = "Total"
+    name_df=pd.concat([df, splits_df], axis=1)
+    return name_df
+
+def merge_census_cols(name_df, data_gdf):
+    ## melt the gdf into tidy format
+    id_vars = ['GEOID', 'geometry', 'Jurisdiction', 'County',]
+    data_gdf[id_vars]
+    df_long = data_gdf.melt(
+        id_vars=id_vars, 
+        value_vars=data_gdf.columns.difference(id_vars),
+        var_name="Code",
+        value_name="Value")
+    
+    ## merge to get the right names andf drop the cols
+    return pd.merge(
+        left=df_long,
+        right=name_df,
+        left_on="Code",
+        right_on="Name"
+    ).drop(columns=["Code", "Name", "Label"])
+
+
+def rename_and_merge_census_cols(census_gdf):
+    # wrapper func to rename codes in func
+    # TODO: consider saving renamed census codes permanently
+    name_df = get_census_cols()
+    name_df = relabel_census_cols(name_df)
+    return merge_census_cols(name_df, census_gdf)
 
 
 #--------------------------------------#

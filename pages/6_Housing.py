@@ -17,56 +17,68 @@ import pydeck as pdk
 import pyogrio
 import requests
 import io
+from  streamlit_autocomplete import st_textcomplete_autocomplete as st_auto
 from app_utils import (split_name_col, housing_metrics_vs_statewide, 
-                       housing_pop_plot, housing_snapshot, load_med_value_by_year)
+                       housing_pop_plot, housing_snapshot, load_med_value_by_year,
+                       rename_and_merge_census_cols)
+from streamlit_rendering import filter_dataframe
 
 
-def census_housing():
-    # Page title
-    st.header("Housing", divider="grey")
+@st.cache_data()
+def load_data():
+    # TODO: consider more elaborate caching in session_state vars, etc. 
+    # TODO: consider packaging the data directly into the repository. 
 
     # Read the Census DP04 Housing Characteristics Dataset
     housing_gdf_2023 = pyogrio.read_dataframe('https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL.fgb')
     housing_gdf_2013 = pyogrio.read_dataframe('https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL_2013.fgb')
     med_val_df = load_med_value_by_year()
-    
-    # Split the "name" column into separate "County" and "Jurisdiction" columns
+
+    # Split the "name" column into separate "County" and "Jurisdiction" columns, then rename the cols
     housing_gdf_2023 = split_name_col(housing_gdf_2023)
     housing_gdf_2013 = split_name_col(housing_gdf_2013)
+    tidy_2023 = rename_and_merge_census_cols(housing_gdf_2023)
     med_val_df = split_name_col(med_val_df)
+
+    return housing_gdf_2023, housing_gdf_2013, med_val_df, tidy_2023
+
+def census_housing():
+    # Page title
+    st.header("Housing", divider="grey")
+
+    housing_gdf_2023, housing_gdf_2013, med_val_df, tidy_2023 = load_data()
+
+
     # Compute statewide average median home value by year
     statewide_avg_df = (med_val_df.groupby("year", as_index=False)["estimate"].mean())
 
-    # The map section
+    ##  The map section ## 
     st.subheader("Mapping")
-    # Define the numerical columns in the GeoDataFrame for mapping
-    numeric_cols = [col for col in housing_gdf_2023.columns if housing_gdf_2023[col].dtype in ['int64', 'float64']]
-    # Add a user select box to choose which variable they want to map
-    housing_variable = st.selectbox("Select a Housing variable", numeric_cols)
+    
+    # select the combination of vars we're interested in
+    filtered_2023 = filter_dataframe(tidy_2023, filter_columns=[ "Category", "Subcategory", "Variable", "Measure"])
 
     # Project geometry to latitude and longitude coordinates
-    housing_gdf_2023 = housing_gdf_2023.to_crs(epsg=4326)
-    # Select only necessary columns for the dataframe being mapped. Drop any NA values
-    housing_gdf_2023_map = housing_gdf_2023[["County", "Jurisdiction", housing_variable, "geometry"]].dropna().copy()
+    filtered_2023 = filtered_2023.to_crs(epsg=4326)
 
     # Normalize the housing variable for monochromatic coloring
-    vmin = housing_gdf_2023_map[housing_variable].min()
-    vmax = housing_gdf_2023_map[housing_variable].max()
+    vmin = filtered_2023['Value'].min()
+    vmax = filtered_2023['Value'].max()
     norm = colors.Normalize(vmin=vmin, vmax=vmax)
     cmap = cm.get_cmap("Reds")
 
     # Convert colors to [R, G, B, A] values
-    housing_gdf_2023_map["fill_color"] = housing_gdf_2023_map[housing_variable].apply(
+    filtered_2023["fill_color"] = filtered_2023['Value'].apply(
         lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
 
     # Convert the geometry column to GeoJSON coordinates
-    housing_gdf_2023_map["coordinates"] = housing_gdf_2023_map.geometry.apply(
+    filtered_2023["coordinates"] = filtered_2023.geometry.apply(
         lambda geom: geom.__geo_interface__["coordinates"])
 
     # Chloropleth map layer
     polygon_layer = pdk.Layer(
         "PolygonLayer",
-        data=housing_gdf_2023_map,
+        data=filtered_2023,
         get_polygon="coordinates[0]",
         get_fill_color="fill_color",
         pickable=True,
@@ -80,12 +92,17 @@ def census_housing():
         layers=[polygon_layer],
         initial_view_state=view_state,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-        tooltip={"text": "{Jurisdiction}: {" + housing_variable + "}"}
+        tooltip={
+             "text": "{Jurisdiction}: {Value}"
+             }
     ), height=550)
 
-    st.markdown("---")
+
+
     
-    # Census Snapshot section (Housing)
+    ## Census Snapshot section (Housing) ##
+    st.markdown("---")
+
     st.subheader("Housing Snapshot")
     # Include a source for the dataset (Census DP04 2023 5-year estimates)
     st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP04: Selected Housing Characteristics - " \
@@ -93,6 +110,7 @@ def census_housing():
     "Retrieved June 11, 2025, from https://data.census.gov/")
 
     # Allow user to filter on the county and jurisdiction level for tailored reports 
+    # TODO: (maybe) put the filtering into it's own logic so that we can use it across pages. 
     col1, col2, col3 = st.columns(3)
     # County selection
     with col1:
