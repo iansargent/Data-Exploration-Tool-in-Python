@@ -17,25 +17,67 @@ import pydeck as pdk
 import pyogrio
 import requests
 import io
-from app_utils import (split_name_col, housing_metrics_vs_statewide, 
-                       housing_pop_plot, housing_snapshot, load_med_value_by_year)
+from app_utils import (split_name_col, housing_pop_plot, housing_snapshot)
+
+
+@st.cache_data
+def load_2023_housing():
+    url_2023 = 'https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL.fgb'
+    housing_gdf_2023 = pyogrio.read_dataframe(url_2023)
+    housing_gdf_2023 = split_name_col(housing_gdf_2023)
+    
+    return housing_gdf_2023
+
+
+@st.cache_data
+def load_2013_housing():
+    url_2013 = 'https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL_2013.fgb'
+    housing_gdf_2013 = pyogrio.read_dataframe(url_2013)
+    housing_gdf_2013 = split_name_col(housing_gdf_2013)
+    
+    return housing_gdf_2013
+
+
+@st.cache_data
+def load_med_value_by_year():
+    import io
+    import requests
+
+    med_value_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/med_home_value_by_year.csv"
+    response = requests.get(med_value_url, verify=False)  # disables SSL verification
+    med_value_df = pd.read_csv(io.StringIO(response.text))     
+    med_value_df = split_name_col(med_value_df)
+    
+    return med_value_df
+
+
+@st.cache_data
+def load_med_smoc_by_year():
+    import io
+    import requests
+
+    med_smoc_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/med_smoc_by_year.csv"
+    response = requests.get(med_smoc_url, verify=False)  # disables SSL verification
+    med_smoc_df = pd.read_csv(io.StringIO(response.text))
+
+    med_smoc_df = split_name_col(med_smoc_df)     
+    
+    return med_smoc_df
 
 
 def census_housing():
     # Page title
     st.header("Housing", divider="grey")
 
-    # Read the Census DP04 Housing Characteristics Dataset
-    housing_gdf_2023 = pyogrio.read_dataframe('https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL.fgb')
-    housing_gdf_2013 = pyogrio.read_dataframe('https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL_2013.fgb')
+    # Read the Census Housing Datasets
+    housing_gdf_2023 = load_2023_housing()
+    housing_gdf_2013 = load_2013_housing()
     med_val_df = load_med_value_by_year()
+    med_smoc_df = load_med_smoc_by_year()
     
-    # Split the "name" column into separate "County" and "Jurisdiction" columns
-    housing_gdf_2023 = split_name_col(housing_gdf_2023)
-    housing_gdf_2013 = split_name_col(housing_gdf_2013)
-    med_val_df = split_name_col(med_val_df)
     # Compute statewide average median home value by year
-    statewide_avg_df = (med_val_df.groupby("year", as_index=False)["estimate"].mean())
+    statewide_avg_val_df = (med_val_df.groupby("year", as_index=False)["estimate"].mean())
+    statewide_avg_smoc_df = (med_smoc_df.groupby(["year", "variable"], as_index=False)["estimate"].mean())
 
     # The map section
     st.subheader("Mapping")
@@ -73,7 +115,7 @@ def census_housing():
         auto_highlight=True)
 
     # Set the map center and zoom level
-    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
+    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, min_zoom=6.5, zoom=7)
 
     # Display the map to the page
     st.pydeck_chart(pdk.Deck(
@@ -109,15 +151,18 @@ def census_housing():
     filtered_gdf_2023 = housing_gdf_2023.copy()
     filtered_gdf_2013 = housing_gdf_2013.copy()
     filtered_med_val_df = med_val_df.copy()
+    filtered_med_smoc_df = med_smoc_df.copy()
     if county != "All Counties":
         filtered_gdf_2023 = filtered_gdf_2023[filtered_gdf_2023["County"] == county]
         filtered_gdf_2013 = filtered_gdf_2013[filtered_gdf_2013["County"] == county]
         filtered_med_val_df = filtered_med_val_df[filtered_med_val_df["County"] == county]
+        filtered_med_smoc_df = filtered_med_smoc_df[filtered_med_smoc_df["County"] == county]
     
     if jurisdiction != "All Jurisdictions":
         filtered_gdf_2023 = filtered_gdf_2023[filtered_gdf_2023["Jurisdiction"] == jurisdiction]
         filtered_gdf_2013 = filtered_gdf_2013[filtered_gdf_2013["Jurisdiction"] == jurisdiction]
         filtered_med_val_df = filtered_med_val_df[filtered_med_val_df["Jurisdiction"] == jurisdiction]
+        filtered_med_smoc_df = filtered_med_smoc_df[filtered_med_smoc_df["Jurisdiction"] == jurisdiction]
     
     # Selection for the baseline comparison (same area 10 years ago OR current statewide averages)
     with col3:
@@ -135,10 +180,12 @@ def census_housing():
     # Display the time series plot of population, housing units, and new housing units
     housing_pop_plot(county, jurisdiction, filtered_gdf_2023, pop_df)
     
-
     # Display formatted housing metrics vs statewide averages
-    housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023, 
-                     housing_gdf_2023, filtered_med_val_df, statewide_avg_df, compare_to)
+    housing_snapshot(county, jurisdiction, 
+                     filtered_gdf_2013, filtered_gdf_2023, housing_gdf_2023, 
+                     filtered_med_val_df, filtered_med_smoc_df, 
+                     statewide_avg_val_df, statewide_avg_smoc_df, compare_to)
+
 
 def show_housing():
     # Display the page

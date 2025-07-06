@@ -1697,18 +1697,20 @@ def group_by_plot(df, num_op, num_var, grp_by):
 
 
 #--------------------------------------#
-###           Census Data            ###
+###           Housing Data           ###
 #--------------------------------------#
 
-st.cache_data
-def load_med_value_by_year():
-    import io
-    import requests
 
-    med_value_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/med_home_value_by_year.csv"
-    response = requests.get(med_value_url, verify=False)  # disables SSL verification
-    med_value_df = pd.read_csv(io.StringIO(response.text))     
-    return med_value_df
+def get_geography(county, jurisdiction):
+    # For the plot title, dynamically change the area of interest based on user filter selections
+    if county == "All Counties" and jurisdiction == "All Jurisdictions":
+        title_geo = "Vermont (Statewide)"
+    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
+        title_geo = f"{county} County"
+    elif jurisdiction != "All Jurisdictions":
+        title_geo = f"{jurisdiction}"
+    
+    return title_geo
 
 
 def calculate_delta_values(filtered_gdf_2023, baseline, filtered_gdf_2013, housing_gdf):
@@ -2146,16 +2148,12 @@ def housing_metrics_vs_statewide(county, jurisdiction, housing_gdf, filtered_gdf
         border_size_px=0.5)
 
 
-def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023, 
-                     housing_gdf_2023, filtered_med_val_df, statewide_avg_df, compare_to):
+def housing_snapshot(county, jurisdiction, 
+                     filtered_gdf_2013, filtered_gdf_2023, housing_gdf_2023, 
+                     filtered_med_val_df, filtered_med_smoc_df,
+                     statewide_avg_val_df, statewide_avg_smoc_df, compare_to):
     # For the plot title, dynamically change the area of interest based on user filter selections
-    if county == "All Counties":
-        title_geo = "Vermont (Statewide)"
-    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
-        title_geo = f"{county} County"
-    elif jurisdiction != "All Jurisdictions":
-        title_geo = f"{jurisdiction}"
-    
+    title_geo = get_geography(county, jurisdiction)
     
     delta_dict = calculate_delta_values(filtered_gdf_2023, compare_to, filtered_gdf_2013, housing_gdf_2023)
 
@@ -2192,9 +2190,7 @@ def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023,
                        help="Percentage of units that are vacant in the selected geography.")
 
     # In the right column, show the pie chart distribution of occupied vs vacant units
-    pie_df = pd.DataFrame({
-        'Status': ['Occupied', 'Vacant'],
-        'Units': [occupied_units_2023, vacant_units_2023]})
+    pie_df = pd.DataFrame({'Status': ['Occupied', 'Vacant'], 'Units': [occupied_units_2023, vacant_units_2023]})
 
     pie_chart = alt.Chart(pie_df).mark_arc(innerRadius=130).encode(
         theta=alt.Theta(field="Units", type="quantitative", aggregate="sum"),
@@ -2210,7 +2206,6 @@ def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023,
     
     # HOUSING TENURE SECTION
     st.subheader("Housing Tenure")
-    
     left_col2, right_col2 = st.columns(2)
     
     with right_col2:
@@ -2257,7 +2252,7 @@ def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023,
     st.markdown("---")
     
     chart_df = pd.DataFrame()
-    statewide_line = statewide_avg_df.copy()
+    statewide_line = statewide_avg_val_df.copy()
     statewide_line = statewide_line[["year", "estimate"]]
     statewide_line["Group"] = "Statewide Average"
     
@@ -2266,7 +2261,7 @@ def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023,
         ymin = statewide_line["estimate"].min() - 5000
         ymax = statewide_line["estimate"].max() + 5000
 
-        base = alt.Chart(statewide_avg_df).encode(
+        base = alt.Chart(statewide_avg_val_df).encode(
             x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0)),
             y=alt.Y("estimate:Q", title="Median Home Value", 
                     scale=alt.Scale(domain=(ymin, ymax)),
@@ -2337,9 +2332,8 @@ def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023,
     # OWNER-OCCUPIED SECTION
     st.subheader("Monthly Owner Costs")
     c8, c8_2 = st.columns(2)
-    # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
+    # Average Median Monthly Owner Cost (SMOC) (For units with and without a mortgage)
     avg_med_SMOC_2023 = filtered_gdf_2023['DP04_0101E'].mean()
-    # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
     avg_med_SMOC2_2023 = filtered_gdf_2023['DP04_0109E'].mean()
     
     c8.metric(label="Selected Monthly **Owner Costs** for *mortgaged* units", value=f"${avg_med_SMOC_2023:,.2f}",
@@ -2351,10 +2345,92 @@ def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023,
     
     # Create a chart for the SMOC comparison
     st.markdown("---")
-    st.subheader("CREATE SMOC TIME SERIES PLOT HERE")
-    st.write("STEPS\n1. Get the data from tidycensus in R\n2. Write to CSV\n" \
-             "3. Upload the data to GitHub\n4. Create the time series plot here")
+    
+    smoc_chart_df = pd.DataFrame()
+    statewide_smoc_line = statewide_avg_smoc_df.copy()
+    statewide_smoc_line = statewide_smoc_line[["year", "estimate", "variable"]]
+    statewide_smoc_line["Group"] = "Statewide Average"
+    
+    # Statewide Level
+    if county == "All Counties" and jurisdiction == "All Jurisdictions":
+        ymin = statewide_smoc_line["estimate"].min() - 500
+        ymax = statewide_smoc_line["estimate"].max() + 500
+        
+        base = alt.Chart(statewide_avg_smoc_df).encode(
+            x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0)),
+            y=alt.Y("estimate:Q", title="Median SMOC", 
+                    scale=alt.Scale(domain=(ymin, ymax)),
+                    axis=alt.Axis(format="$,.0f")),
+            color=alt.Color("variable:N",legend=alt.Legend(
+                                            title=None, orient="top-left", 
+                                            direction="horizontal", offset=-30)),
+            tooltip=[alt.Tooltip('estimate', title='Median Monthly Costs', format="$,.0f"),
+                     alt.Tooltip('variable', title='SMOC Type')])
 
+        line = base.mark_line(color='mediumseagreen')
+        points = base.mark_point(color='mediumseagreen', filled=True, size=70)
+
+        line_chart = (line + points).properties(
+            title="Median Selected Monthly Owner Costs Over Time (SMOC)",
+            height=550).configure_title(fontSize=19,offset=40, dx=40).interactive()
+
+        st.altair_chart(line_chart, use_container_width=True)
+    
+    # County Level
+    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
+        filtered_med_smoc_df = filtered_med_smoc_df.rename(columns={"County": "Group"})
+        county_df_smoc = (filtered_med_smoc_df.groupby(["year", "variable", "Group"], as_index=False)["estimate"].mean())
+        smoc_chart_df = pd.concat([county_df_smoc, statewide_smoc_line], ignore_index=True)
+        smoc_chart_df["LineLabel"] = smoc_chart_df["Group"] + " " + smoc_chart_df["variable"]
+
+        ymin = smoc_chart_df["estimate"].min() - 200
+        ymax = smoc_chart_df["estimate"].max() + 200
+        
+        line_chart = alt.Chart(smoc_chart_df).mark_line().encode(
+        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("estimate:Q", title="Median SMOC", 
+                scale=alt.Scale(domain=(ymin, ymax)), axis=alt.Axis(format="$,.0f")),
+        color=alt.Color("Group:N", scale=alt.Scale(
+                    domain=[county, "Statewide Average"],
+                    range=["orangered", "#fcd1cc"]), legend=alt.Legend(
+                        title=None, orient="top-left", direction="horizontal")),
+            strokeDash=alt.StrokeDash("variable:N", title=None, legend=alt.Legend(
+                orient="top-left", direction="horizontal", offset=-20)),
+            tooltip=[alt.Tooltip('Group', title='Location'),
+                     alt.Tooltip('estimate', title='Median SMOC Value', format="$,.0f"),
+                     alt.Tooltip('variable', title='SMOC Type')]
+        ).properties(title=alt.Title("Median Monthly Owner Costs Over Time"), height=550
+        ).configure_title(fontSize=19,offset=30,dx=30).interactive()
+
+        st.altair_chart(line_chart, use_container_width=True)
+
+    elif jurisdiction != "All Jurisdictions":
+        filtered_med_smoc_df = filtered_med_smoc_df.rename(columns={"Jurisdiction": "Group"})
+        jurisdiction_df_smoc = (filtered_med_smoc_df.groupby(["year", "variable", "Group"], as_index=False)["estimate"].mean())
+        smoc_chart_df = pd.concat([jurisdiction_df_smoc, statewide_smoc_line], ignore_index=True)
+        smoc_chart_df["LineLabel"] = smoc_chart_df["Group"] + " " + smoc_chart_df["variable"]
+
+        ymin = smoc_chart_df["estimate"].min() - 200
+        ymax = smoc_chart_df["estimate"].max() + 200
+        
+        line_chart = alt.Chart(smoc_chart_df).mark_line().encode(
+        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("estimate:Q", title="Median SMOC", 
+                scale=alt.Scale(domain=(ymin, ymax)), axis=alt.Axis(format="$,.0f")),
+        color=alt.Color("Group:N", scale=alt.Scale(
+                    domain=[jurisdiction, "Statewide Average"],
+                    range=["orangered", "#fcd1cc"]), legend=alt.Legend(
+                        title=None, orient="top-left", direction="horizontal")),
+            strokeDash=alt.StrokeDash("variable:N", title=None, legend=alt.Legend(
+                orient="top-left", direction="horizontal", offset=-25)),
+            tooltip=[alt.Tooltip('Group', title='Location'),
+                     alt.Tooltip('estimate', title='Median SMOC Value', format="$,.0f"),
+                     alt.Tooltip('variable', title='SMOC Type')]
+        ).properties(title=alt.Title("Median Monthly Owner Costs Over Time"), height=550
+        ).configure_title(fontSize=19,offset=30,dx=30).interactive()
+
+        st.altair_chart(line_chart, use_container_width=True)
+     
     st.markdown("---")
 
     # RENTER-OCCUPIED SECTION
@@ -2374,7 +2450,6 @@ def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023,
     units_paying_rent_2023 = filtered_gdf_2023['DP04_0126E'].sum()
     rent_burden35_2023 = filtered_gdf_2023['DP04_0142E'].sum()
     rent_burden35_pct_2023 = (rent_burden35_2023 / units_paying_rent_2023) * 100
-    
     c10.metric(label="Occupied Units paying 35%+ of Income on Rent", value=f"{rent_burden35_2023:,.0f}",
         delta=delta_dict['rent_burden35_delta'], delta_color="inverse",
         help="Count of households where rent takes up 35% or more of their household income in the selected geography for 2023 compared to 2013.")
@@ -2386,94 +2461,46 @@ def housing_snapshot(county, jurisdiction, filtered_gdf_2013, filtered_gdf_2023,
     st.markdown("---")
 
     # UNITS IN STRUCTURE SECTION
-    # Calculate metrics for bar graph distribution of units in structure
-    # One Unit Detached
     one_unit_detached_2023 = filtered_gdf_2023['DP04_0007E'].sum()
-    one_unit_detached_2013 = filtered_gdf_2013['DP04_0007E'].sum()
-    # One Unit Attached
     one_unit_attached_2023 = filtered_gdf_2023['DP04_0008E'].sum()
-    one_unit_attached_2013 = filtered_gdf_2013['DP04_0008E'].sum()
-    # Two Units
+    one_unit_2023 = one_unit_detached_2023 + one_unit_attached_2023
     two_units_2023 = filtered_gdf_2023['DP04_0009E'].sum()
-    two_units_2013 = filtered_gdf_2013['DP04_0009E'].sum()
-    # Three to Four Units
     three_or_four_units_2023 = filtered_gdf_2023['DP04_0010E'].sum()
-    three_or_four_units_2013 = filtered_gdf_2013['DP04_0010E'].sum()
-    # Five to Nine Units
     five_to_nine_units_2023 = filtered_gdf_2023['DP04_0011E'].sum()
-    five_to_nine_units_2013 = filtered_gdf_2013['DP04_0011E'].sum()
-    # Ten to Nineteen Units
     ten_to_nineteen_units_2023 = filtered_gdf_2023['DP04_0012E'].sum()
-    ten_to_nineteen_units_2013 = filtered_gdf_2013['DP04_0012E'].sum()
-    # Twenty+ Units
     twenty_or_more_units_2023 = filtered_gdf_2023['DP04_0013E'].sum()
-    twenty_or_more_units_2013 = filtered_gdf_2013['DP04_0013E'].sum()
-    # Mobile Homes
     mobile_home_2023 = filtered_gdf_2023['DP04_0014E'].sum()
-    mobile_home_2013 = filtered_gdf_2013['DP04_0014E'].sum()
-    # Boat/RV/Van, etc.
     boat_RV_van_etc_2023 = filtered_gdf_2023['DP04_0015E'].sum()
-    boat_RV_van_etc_2013 = filtered_gdf_2013['DP04_0015E'].sum()
     
     # Create a DataFrame for a grouped bar chart
-    units_in_structure_df1 = pd.DataFrame({
+    units_in_structure_df = pd.DataFrame({
         'Structure Category': [
-            '1-Unit (Detached)', '1-Unit (Attached)', '2-Units',
-            '3 - 4 Units', '5 - 9 Units','10 - 19 Units', '20+ Units',
+            '1-Unit', '2-Units', '3 - 4 Units', 
+            '5 - 9 Units','10 - 19 Units', '20+ Units',
             'Mobile Homes', 'Boat/RV/Van, etc.'
         ],
         '2023 Units': [
-            one_unit_detached_2023, one_unit_attached_2023, two_units_2023,
+            one_unit_2023, two_units_2023,
             three_or_four_units_2023, five_to_nine_units_2023,
             ten_to_nineteen_units_2023, twenty_or_more_units_2023,
             mobile_home_2023, boat_RV_van_etc_2023
-        ],
-        '2013 Units': [
-            one_unit_detached_2013, one_unit_attached_2013, two_units_2013,
-            three_or_four_units_2013, five_to_nine_units_2013,
-            ten_to_nineteen_units_2013, twenty_or_more_units_2013,
-            mobile_home_2013, boat_RV_van_etc_2013
-        ]
-    })
+        ]})  
 
-    total_units_2023 = filtered_gdf_2023['DP04_0006E'].sum()
-    total_units_2013 = filtered_gdf_2013['DP04_0006E'].sum()
-    units_in_structure_df1['2023 %'] = round(units_in_structure_df1['2023 Units'] / total_units_2023, 3)
-    units_in_structure_df1['2013 %'] = round(units_in_structure_df1['2013 Units'] / total_units_2013, 3)
+    category_order = [
+        '1-Unit', '2-Units', '3 - 4 Units', 
+        '5 - 9 Units','10 - 19 Units', '20+ Units',
+        'Mobile Homes', 'Boat/RV/Van, etc.'
+    ]  
     
-    # Melt the DataFrame for grouped bar plotting
-    units_melted = units_in_structure_df1.melt(
-        id_vars='Structure Category',
-        value_vars=['2023 Units', '2013 Units'],
-        var_name='Year',
-        value_name='Units'
-    )
-    pct_melted = units_in_structure_df1.melt(
-        id_vars='Structure Category',
-        value_vars=['2023 %', '2013 %'],
-        var_name='Year',
-        value_name='Proportion'
-    )
-    units_melted['Year'] = units_melted['Year'].str.extract(r'(\d{4})')
-    pct_melted['Year'] = pct_melted['Year'].str.extract(r'(\d{4})') 
-    
-    # Merge melted DataFrames
-    units_in_structure_df = pct_melted.copy()
-    units_in_structure_df['Units'] = units_melted['Units']
-    
-    units_in_structure_chart = alt.Chart(units_in_structure_df).mark_bar().encode(
-        x=alt.X('Structure Category:N', title=None, sort='-y'),
-        xOffset='Year:N',
-        y=alt.Y('Proportion:Q', axis=alt.Axis(format='%'), title='Share of Total Units'),
-        color=alt.Color('Year:N', scale=alt.Scale(scheme='category10'), legend=alt.Legend(
-            direction='vertical', orient='top-right')),
-        tooltip=[alt.Tooltip('Year:N'), alt.Tooltip('Units:Q', format=','), alt.Tooltip('Proportion:Q', format='.1%')]
-    ).properties(height=550, title=f"Structure Category Distribution in {title_geo}")
+    units_in_structure_chart = alt.Chart(units_in_structure_df).mark_bar(color="tomato").encode(
+        x=alt.X('Structure Category:N', title="Structure Category", axis=alt.Axis(labelAngle=0), sort=category_order),
+        y=alt.Y('2023 Units:Q', title='Total Units'),
+        tooltip=[alt.Tooltip('2023 Units:Q', title = "Total Units", format=',')]
+    ).properties(height=600, title=f"Structure Category Distribution in {title_geo} (2023)"
+    ).configure_title(fontSize=19,offset=30,dx=30).interactive()
 
     # Display the grouped bar chart
     st.altair_chart(units_in_structure_chart, use_container_width=True)
-
-    st.subheader("NOTE: Make this a *filled line plot (one line for each structure type)")
     
     # Style the metric cards
     style_metric_cards(
@@ -2502,12 +2529,12 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
     filtered_gdf_pop = pd.merge(left=filtered_gdf, right=pop_df, how="left", left_on="GEOID", right_on="_geoid")
     
     # For the plot title, dynamically change the area of interest based on user filter selections
-    if county == "All Counties":
+    if county == "All Counties" and jurisdiction == "All Jurisdictions":
         title_geo = "Vermont (Statewide)"
     elif county != "All Counties" and jurisdiction == "All Jurisdictions":
         title_geo = f"{county} County"
     elif jurisdiction != "All Jurisdictions":
-        title_geo = f"{jurisdiction}, Vermont"
+        title_geo = f"{jurisdiction}"
     
     # Define a list of housing counts for each year range
     raw_housing_counts = [
