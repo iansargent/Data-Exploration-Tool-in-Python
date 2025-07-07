@@ -470,7 +470,7 @@ def relabel_census_cols(df):
     ## just splits apart the labels so we can filter across them 
     cols = ["Measure", "Category", "Subcategory", "Variable"]
     
-    # Keep only rows where the label appears structured by "!!" (Issues with geography rows)
+    # Keep only rows where the label is structured by "!!" (Issues with "Geography" rows)
     df_clean = df[df["Label"].str.contains("!!")].copy()
 
     # Reset index to avoid merging issues
@@ -479,7 +479,7 @@ def relabel_census_cols(df):
     splits = df_clean["Label"].apply(lambda x: list(split_to_cols(x, cols)))
     splits_df = pd.DataFrame(splits.tolist(), columns=cols)
     
-    ## create the total categories
+    # Create the total categories
     splits_df.loc[ 
         (splits_df['Subcategory'].notna()) & (splits_df['Variable']==""),
         "Variable"] = "Total"

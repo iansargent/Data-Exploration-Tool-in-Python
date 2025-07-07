@@ -13,69 +13,78 @@ import pydeck as pdk
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pyogrio
-from app_utils import split_name_col
+from app_utils import split_name_col, rename_and_merge_census_cols
+from streamlit_rendering import filter_dataframe
 
 
-def render_economics():
+@st.cache_data
+def load_2023_economics():
+    url_2023 = 'https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_ECONOMIC_ALL.fgb'
+    economics_gdf_2023 = pyogrio.read_dataframe(url_2023)
+    economics_gdf_2023 = split_name_col(economics_gdf_2023)
+    
+    return economics_gdf_2023
+
+
+def census_economics_page():
     # Page header
     st.header("Economics", divider="grey")
 
-    # Read the Census selected economic variables dataset (DP03)
-    econ_gdf = pyogrio.read_dataframe('https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_ECONOMIC_ALL.fgb')
-    # Split the "name" column into separate "County" and "Jurisdiction" columns
-    econ_gdf = split_name_col(econ_gdf)
+    mapping, snapshot = st.tabs(tabs=["Mapping", "Snapshot"])
 
-    st.subheader("Mapping")
-    # Define the numerical columns in the GeoDataFrame for mapping
-    numeric_cols = [col for col in econ_gdf.columns if econ_gdf[col].dtype in ['int64', 'float64']]
-    # Add a user select box to choose which variable they want to map
-    econ_variable = st.selectbox("Select an economic variable", numeric_cols)
+    econ_gdf_2023 = load_2023_economics()
+    tidy_2023 = rename_and_merge_census_cols(econ_gdf_2023)
 
-    # Project geometry to latitude and longitude coordinates
-    econ_gdf = econ_gdf.to_crs(epsg=4326)
-    # Select only necessary columns for the dataframe being mapped. Drop any NA values
-    econ_gdf_map = econ_gdf[["County", "Jurisdiction", econ_variable, "geometry"]].dropna().copy()
-
-    # Normalize the economic variable for monochromatic coloring
-    vmin = econ_gdf_map[econ_variable].min()
-    vmax = econ_gdf_map[econ_variable].max()
-    norm = colors.Normalize(vmin=vmin, vmax=vmax)
-    cmap = cm.get_cmap("Greens")
-
-    # Convert colors to [R, G, B, A] values
-    econ_gdf_map["fill_color"] = econ_gdf_map[econ_variable].apply(
-        lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
-
-    # Convert the geometry column to GeoJSON coordinates
-    econ_gdf_map["coordinates"] = econ_gdf_map.geometry.apply(
-        lambda geom: geom.__geo_interface__["coordinates"])
+    with mapping:
+        st.subheader("Mapping")
         
-    # Chloropleth map layer
-    polygon_layer = pdk.Layer(
-        "PolygonLayer",
-        data=econ_gdf_map,
-        get_polygon="coordinates[0]",
-        get_fill_color="fill_color",
-        pickable=True,
-        auto_highlight=True,
-    )
+        # Select the combination of vars we're interested in
+        filtered_2023 = filter_dataframe(tidy_2023, filter_columns=["Category", "Subcategory", "Variable", "Measure"])
+        # Project geometry to latitude and longitude coordinates
+        filtered_2023 = filtered_2023.to_crs(epsg=4326)
 
-    # Set the map center and zoom level
-    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
+        # Normalize the economic variable for monochromatic coloring
+        vmin = filtered_2023['Value'].min()
+        vmax = filtered_2023['Value'].max()
+        norm = colors.Normalize(vmin=vmin, vmax=vmax)
+        cmap = cm.get_cmap("Greens")
 
-    # Display the map to the page
-    st.pydeck_chart(pdk.Deck(
-        layers=[polygon_layer],
-        initial_view_state=view_state,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-        tooltip={"text": "{Jurisdiction}: {" + econ_variable + "}"}
-    ), height=550)
+        # Convert colors to [R, G, B, A] values
+        filtered_2023["fill_color"] = filtered_2023['Value'].apply(
+            lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
 
-    return
+        # Convert the geometry column to GeoJSON coordinates
+        filtered_2023["coordinates"] = filtered_2023.geometry.apply(
+            lambda geom: geom.__geo_interface__["coordinates"])
+            
+        # Chloropleth map layer
+        polygon_layer = pdk.Layer(
+            "PolygonLayer",
+            data=filtered_2023,
+            get_polygon="coordinates[0]",
+            get_fill_color="fill_color",
+            pickable=True,
+            auto_highlight=True,
+        )
+
+        # Set the map center and zoom level
+        view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
+
+        # Display the map to the page
+        st.pydeck_chart(pdk.Deck(
+            layers=[polygon_layer],
+            initial_view_state=view_state,
+            map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+            tooltip={"text": "{Jurisdiction}: {Value}"}), height=550)
+
+    ## Economic Snapshot
+    with snapshot:
+        st.subheader("Economic Snapshot")
+
             
 def show_economics():
     # Display the page
-    render_economics()
+    census_economics_page()
 
 
 if __name__ == "__main__":
