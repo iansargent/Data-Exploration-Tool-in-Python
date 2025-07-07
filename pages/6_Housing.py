@@ -17,23 +17,90 @@ import pydeck as pdk
 import pyogrio
 import requests
 import io
+# from  streamlit_autocomplete import st_textcomplete_autocomplete as st_auto
 from app_utils import (split_name_col, housing_metrics_vs_statewide, 
-                       housing_pop_plot, housing_snapshot, load_med_value_by_year)
+                       housing_pop_plot, housing_snapshot,
+                       rename_and_merge_census_cols)
+from streamlit_rendering import filter_dataframe
+
+
+@st.cache_data()
+def load_data():
+    # TODO: consider more elaborate caching in session_state vars, etc. 
+    # TODO: consider packaging the data directly into the repository.
+    st.write("Load Data Function")
+from app_utils import (split_name_col, housing_pop_plot, housing_snapshot)
+
+
+@st.cache_data
+def load_2023_housing():
+    url_2023 = 'https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL.fgb'
+    housing_gdf_2023 = pyogrio.read_dataframe(url_2023)
+    housing_gdf_2023 = split_name_col(housing_gdf_2023)
+    
+    return housing_gdf_2023
+
+
+@st.cache_data
+def load_2013_housing():
+    url_2013 = 'https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL_2013.fgb'
+    housing_gdf_2013 = pyogrio.read_dataframe(url_2013)
+    housing_gdf_2013 = split_name_col(housing_gdf_2013)
+    
+    return housing_gdf_2013
+
+
+@st.cache_data
+def load_med_value_by_year():
+    import io
+    import requests
+
+    med_value_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/med_home_value_by_year.csv"
+    response = requests.get(med_value_url, verify=False)  # disables SSL verification
+    med_value_df = pd.read_csv(io.StringIO(response.text))     
+    med_value_df = split_name_col(med_value_df)
+    
+    return med_value_df
+
+
+@st.cache_data
+def load_med_smoc_by_year():
+    import io
+    import requests
+
+    med_smoc_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/med_smoc_by_year.csv"
+    response = requests.get(med_smoc_url, verify=False)  # disables SSL verification
+    med_smoc_df = pd.read_csv(io.StringIO(response.text))
+
+    med_smoc_df = split_name_col(med_smoc_df)     
+    
+    return med_smoc_df
 
 
 def census_housing():
     # Page title
     st.header("Housing", divider="grey")
 
-    # Read the Census Housing Datasets
+    # Read the Census Housing Datasets (Name column is split here as well!)
     housing_gdf_2023 = load_2023_housing()
     housing_gdf_2013 = load_2013_housing()
     med_val_df = load_med_value_by_year()
+
+    # Split the "name" column into separate "County" and "Jurisdiction" columns, then rename the cols
+    tidy_2023 = rename_and_merge_census_cols(housing_gdf_2023)
+
+    return housing_gdf_2023, housing_gdf_2013, med_val_df, tidy_2023
+
+def census_housing_page():
+    # Page title
+    # st.header("Housing", divider="grey")
+
+    # housing_gdf_2023, housing_gdf_2013, med_val_df, tidy_2023 = load_data()
+    housing_gdf_2023, housing_gdf_2013, med_val_df, tidy_2023 = census_housing()
     
-    # Split the "name" column into separate "County" and "Jurisdiction" columns
-    housing_gdf_2023 = split_name_col(housing_gdf_2023)
-    housing_gdf_2013 = split_name_col(housing_gdf_2013)
-    med_val_df = split_name_col(med_val_df)
+
+    med_smoc_df = load_med_smoc_by_year()
+    
     # Compute statewide average median home value by year
     statewide_avg_val_df = (med_val_df.groupby("year", as_index=False)["estimate"].mean())
     statewide_avg_smoc_df = (med_smoc_df.groupby(["year", "variable"], as_index=False)["estimate"].mean())
@@ -42,8 +109,7 @@ def census_housing():
     st.subheader("Mapping")
     
     # select the combination of vars we're interested in
-    filtered_2023 = filter_dataframe(tidy_2023, filter_columns=[ "Category", "Subcategory", "Variable", "Measure"])
-
+    filtered_2023 = filter_dataframe(tidy_2023, filter_columns=["Category", "Subcategory", "Variable", "Measure"])
     # Project geometry to latitude and longitude coordinates
     filtered_2023 = filtered_2023.to_crs(epsg=4326)
 
@@ -151,7 +217,7 @@ def census_housing():
 
 def show_housing():
     # Display the page
-    census_housing()
+    census_housing_page()
 
 
 if __name__ == "__main__":

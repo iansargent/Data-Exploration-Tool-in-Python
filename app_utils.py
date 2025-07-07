@@ -430,6 +430,7 @@ def split_name_col(census_gdf):
 
     return census_gdf
 
+
 def get_census_cols():
     r = requests.get("https://api.census.gov/data/2019/acs/acs5/profile/variables.html")
     soup = BeautifulSoup(r.content, "html.parser") 
@@ -451,25 +452,42 @@ def get_census_cols():
     df.dropna(inplace=True)
     return df
 
+
 def split_to_cols(s, cols):
     parts = [p.strip() for p in s.split("!!")]
+    
+    while len(parts) < len(cols):
+        parts.append("")
+
     first = parts[0:len(cols)-1]
     second = parts[len(cols)-1:]
     second = [": ".join(second)]
+    
     return first + second
+
 
 def relabel_census_cols(df):
     ## just splits apart the labels so we can filter across them 
     cols = ["Measure", "Category", "Subcategory", "Variable"]
-    splits = df["Label"].apply(lambda x: split_to_cols(x, cols))
-    splits_df = pd.DataFrame(splits.tolist(), columns=cols)
+    
+    # Keep only rows where the label appears structured by "!!" (Issues with geography rows)
+    df_clean = df[df["Label"].str.contains("!!")].copy()
 
+    # Reset index to avoid merging issues
+    df_clean.reset_index(drop=True, inplace=True)
+    
+    splits = df_clean["Label"].apply(lambda x: list(split_to_cols(x, cols)))
+    splits_df = pd.DataFrame(splits.tolist(), columns=cols)
+    
     ## create the total categories
     splits_df.loc[ 
         (splits_df['Subcategory'].notna()) & (splits_df['Variable']==""),
         "Variable"] = "Total"
-    name_df=pd.concat([df, splits_df], axis=1)
+    
+    name_df = pd.concat([df_clean, splits_df], axis=1)
+
     return name_df
+
 
 def merge_census_cols(name_df, data_gdf):
     ## melt the gdf into tidy format
@@ -481,7 +499,7 @@ def merge_census_cols(name_df, data_gdf):
         var_name="Code",
         value_name="Value")
     
-    ## merge to get the right names andf drop the cols
+    ## merge to get the right names and drop the cols
     return pd.merge(
         left=df_long,
         right=name_df,
