@@ -72,6 +72,7 @@ def load_med_smoc_by_year():
     return med_smoc_df
 
 
+@st.cache_data
 def census_housing():
 
     # Read the Census Housing Datasets (Name column is split here as well!)
@@ -150,7 +151,7 @@ def census_housing_page():
         # Include a source for the dataset (Census DP04 2023 5-year estimates)
         st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP04: Selected Housing Characteristics - " \
         "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
-        "Retrieved June 11, 2025, from https://data.census.gov/")
+        "Retrieved from https://data.census.gov/")
 
         # Allow user to filter on the county and jurisdiction level for tailored reports 
         # TODO: (maybe) put the filtering into it's own logic so that we can use it across pages. 
@@ -194,7 +195,7 @@ def census_housing_page():
         # Read in VT historical population data on the census tract level
         # NOTE: Include a source for this as well (VT Open Data Portal)
         pop_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_Historical_Population.csv"
-        response = requests.get(pop_url, verify=False)  # disables SSL verification
+        response = requests.get(pop_url, verify=False)
         pop_df = pd.read_csv(io.StringIO(response.text))    
         # Display the time series plot of population, housing units, and new housing units
         housing_pop_plot(county, jurisdiction, filtered_gdf_2023, pop_df)
