@@ -112,6 +112,7 @@ def census_housing_page():
         filtered_2023 = filtered_2023.to_crs(epsg=4326)
 
         # Normalize the housing variable for monochromatic chloropleth coloring
+        #TODO: Fix the color normalization to handle outliers
         vmin = filtered_2023['Value'].min()
         vmax = filtered_2023['Value'].max()
         norm = colors.Normalize(vmin=vmin, vmax=vmax)

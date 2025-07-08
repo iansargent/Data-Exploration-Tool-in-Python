@@ -6,26 +6,43 @@ Streamlit Data Visualization Utility Functions
 
 
 import streamlit as st
-from st_aggrid import AgGrid, ColumnsAutoSizeMode
-from streamlit_extras.metric_cards import style_metric_cards 
 import pandas as pd
+import geopandas as gpd
 import altair as alt
 import numpy as np
 import os
+import requests
 import hashlib
-from statsmodels.stats.weightstats import DescrStatsW
-import calendar
-from ydata_profiling import ProfileReport
-import geopandas as gpd
+from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
+from ydata_profiling import ProfileReport
+from statsmodels.stats.weightstats import DescrStatsW
+from streamlit_extras.metric_cards import style_metric_cards 
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
+from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 
-import requests
-from bs4 import BeautifulSoup
+#TODO: Split file structure into more smaller scripts?
+        # Break down large functions into smaller ones (where necessary)
+        # Reorganize sections
+        # Rename Sections
+        # Outsource each set of functions to its own ..._utils.py file
+        # Update import statements in each page
+#TODO: Only include universal imports at the top...the rest go into the functions
 
-#TODO: split file structure into more smaller scripts?
+## POTENTIAL FILE STRUCTURE ##
+# 1. User_Uploaded_Files_utils.py
+# 2. Data_Cleaning_Handling_utils.py
+# 3. Data_Analysis.py
+# 4. Plotting_utils.py
+# 5. Zoning_utils.py
+# 6. Wastewater_utils.py
+# 7. Census_utils.py
+# 8. Housing_utils.py
+# 9. Economic_utils.py
+# 10. Demographic_utils.py
+# 11. Social_utils.py
+
 
 #--------------------------------------#
 #######      File Handling      ########
@@ -258,7 +275,6 @@ def get_columns(df):
     return columns
 
 
-
 def get_column_type(df, column_name):
     """
     Get the data type of a specific column in the DataFrame.
@@ -321,6 +337,8 @@ def month_name_to_num(month_name):
     @param month_name: The full name or abbrievation of a month (string).
     @return: The corresponding month number (int).
     """
+    import calendar
+
     # Try to convert month string (like "May", "5", "05") to number 1-12
     if pd.isna(month_name):
         return None

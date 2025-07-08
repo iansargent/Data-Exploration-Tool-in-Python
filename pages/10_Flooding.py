@@ -9,14 +9,21 @@ Flooding Page (FEMA)
 # Necessary imports
 import streamlit as st
 import pydeck as pdk
-import pyogrio
 import geopandas as gpd
 
 
-st.cache_data()
+#TODO: This API reference only retrieves the first 1000 features (rows). FIX THAT...WE NEED ALL 7300 something
+@st.cache_data
 def load_flood_data():
-    flood_gdf = gpd.read_file("/Users/iansargent/Desktop/ORCA/Steamlit App Testing/VT_Flood_Hazard.geojson")
-    return flood_gdf
+    import requests
+    from io import BytesIO
+
+    flood_url = "https://anrmaps.vermont.gov/arcgis/rest/services/Open_Data/OPENDATA_ANR_EMERGENCY_SP_NOCACHE_v2/MapServer/57/query?where=1%3D1&outFields=FLD_ZONE,FLD_AR_ID,STUDY_TYP&outSR=4326&f=json"
+    flood_response = requests.get(flood_url)
+    suit_gdf = gpd.read_file(BytesIO(flood_response.content))
+    suit_gdf = suit_gdf.to_crs("EPSG:4326")
+
+    return suit_gdf
     
 
 def flooding():
