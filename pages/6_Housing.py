@@ -12,13 +12,16 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import matplotlib.cm as cm
+from  matplotlib import colormaps
 import matplotlib.colors as colors
 import pydeck as pdk
 import pyogrio
 import requests
 import io
 # import st_textcomplete_autocomplete as st_auto
-from app_utils import (split_name_col, housing_pop_plot, housing_snapshot, rename_and_merge_census_cols)
+from app_utils import (split_name_col, render_colorbar, housing_pop_plot, housing_snapshot,
+                        rename_and_merge_census_cols, get_colornorm_stats, TopHoldNorm,
+                        map_outlier_yellow)
 from streamlit_rendering import filter_dataframe
 
 
@@ -52,7 +55,7 @@ def load_med_value_by_year():
     import requests
 
     med_value_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/med_home_value_by_year.csv"
-    response = requests.get(med_value_url, verify=False)  # disables SSL verification
+    response = requests.get(med_value_url, verify=True) # disables SSL verification
     med_value_df = pd.read_csv(io.StringIO(response.text))     
     med_value_df = split_name_col(med_value_df)
     
@@ -64,7 +67,7 @@ def load_med_smoc_by_year():
     import requests
 
     med_smoc_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/med_smoc_by_year.csv"
-    response = requests.get(med_smoc_url, verify=False)  # disables SSL verification
+    response = requests.get(med_smoc_url, verify=True) # disables SSL verification
     med_smoc_df = pd.read_csv(io.StringIO(response.text))
 
     med_smoc_df = split_name_col(med_smoc_df)     
@@ -106,24 +109,39 @@ def census_housing_page():
     with mapping:
         st.subheader("Mapping")
         
-        # Select the combination of vars we're interested in
+        # project meaninful columns to lat/long
         filtered_2023 = filter_dataframe(tidy_2023, filter_columns=["Category", "Subcategory", "Variable", "Measure"])
-        # Project geometry to latitude and longitude coordinates
         filtered_2023 = filtered_2023.to_crs(epsg=4326)
 
         # Normalize the housing variable for monochromatic chloropleth coloring
-        vmin = filtered_2023['Value'].min()
-        vmax = filtered_2023['Value'].max()
-        norm = colors.Normalize(vmin=vmin, vmax=vmax)
-        cmap = cm.get_cmap("Reds")
+        vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 2.5)
+        cmap = colormaps["Reds"]
 
-        # Convert colors to [R, G, B, A] values
-        filtered_2023["fill_color"] = filtered_2023['Value'].apply(
-            lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
+        style = st.radio("Outlier Handling:", options=["Holdout", "Yellow"])
+
+        if style=="Holdout":
+            # option one:  outliers get the top 10% of the norm (same color, just gradation shifts)
+            norm = TopHoldNorm(vmin=vmin, vmax=vmax, cutoff=cutoff, outlier_fraction=0.1)
+            # # Convert colors to [R, G, B, A] values
+            filtered_2023["fill_color"] = filtered_2023['Value'].apply(
+                lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
+        
+        elif style=="Yellow":
+            # option two: outliers get a separate color -- yellow
+            norm = colors.Normalize(vmin=vmin, vmax=cutoff, clip=False)
+            filtered_2023["fill_color"] = filtered_2023["Value"].apply(
+                lambda x: map_outlier_yellow(x, cmap, norm, cutoff))
+
+
+        render_colorbar(cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, cutoff=cutoff, style=style) ##TODO: consider whether we actually want this: currently, don't like it.
 
         # Convert the geometry column to GeoJSON coordinates
         filtered_2023["coordinates"] = filtered_2023.geometry.apply(
-            lambda geom: geom.__geo_interface__["coordinates"])
+            lambda geom: geom.__geo_interface__["coordinates"]) 
+        
+        
+
+
 
         # Chloropleth map layer
         polygon_layer = pdk.Layer(
