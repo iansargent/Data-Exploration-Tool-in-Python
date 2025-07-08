@@ -132,7 +132,6 @@ def census_housing_page():
             filtered_2023["fill_color"] = filtered_2023["Value"].apply(
                 lambda x: map_outlier_yellow(x, cmap, norm, cutoff))
 
-
         render_colorbar(cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, cutoff=cutoff, style=style) ##TODO: consider whether we actually want this: currently, don't like it.
 
         # Convert the geometry column to GeoJSON coordinates
