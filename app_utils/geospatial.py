@@ -5,11 +5,7 @@ Vermont Data App
 Geospatial Utility Functions
 """
 
-import streamlit as st
-from streamlit_extras.metric_cards import style_metric_cards 
-import pandas as pd
-import geopandas as gpd
-import os
+from app_utils.analysis import get_columns
 
 
 def is_latitude_longitude(df):

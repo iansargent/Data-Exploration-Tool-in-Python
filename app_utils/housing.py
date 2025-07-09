@@ -5,24 +5,11 @@ Vermont Data App
 Housing Utility Functions
 """
 
-# Streamlit 
 import streamlit as st
 from streamlit_extras.metric_cards import style_metric_cards 
-
-# Data Processing / Plotting
 import pandas as pd
-import geopandas as gpd
 import altair as alt
-import numpy as np
-
-# Standard Libraries
-import os
-import io
-
-# Color Mapping 
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-from matplotlib.colorbar import ColorbarBase
+from app_utils.census import get_geography_title, calculate_delta_values
 
 
 def housing_snapshot(county, jurisdiction, 

@@ -8,7 +8,6 @@ Color Utility Functions
 # Basic Libraries
 import streamlit as st
 import pandas as pd
-import geopandas as gpd
 import numpy as np
 import io
 

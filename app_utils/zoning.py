@@ -7,22 +7,9 @@ Zoning Utility Functions
 
 # Streamlit 
 import streamlit as st
-from streamlit_extras.metric_cards import style_metric_cards 
-
-# Data Processing / Plotting
 import pandas as pd
 import geopandas as gpd
-import altair as alt
-import numpy as np
-
-# Standard Libraries
-import os
 import io
-
-# Color Mapping 
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-from matplotlib.colorbar import ColorbarBase
 
 
 def zoning_district_map(filtered_geojson, filtered_gdf_map):

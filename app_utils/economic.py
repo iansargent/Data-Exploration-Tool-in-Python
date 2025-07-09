@@ -6,10 +6,10 @@ Economic Utility Functions
 """
 
 import streamlit as st
-from streamlit_extras.metric_cards import style_metric_cards 
 import pandas as pd
 import altair as alt
-from app_utils.census_utils import get_geography_title, calculate_delta_values
+from streamlit_extras.metric_cards import style_metric_cards 
+from app_utils.census import get_geography_title
 
 
 def economic_snapshot(county, jurisdiction, economic_gdf_2023):    

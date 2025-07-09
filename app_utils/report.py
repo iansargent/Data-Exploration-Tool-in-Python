@@ -4,24 +4,7 @@ Vermont Data App
 
 Report Utility Functions
 """
-# Streamlit 
-import streamlit as st
-from streamlit_extras.metric_cards import style_metric_cards 
-
-# Data Processing / Plotting
-import pandas as pd
-import geopandas as gpd
-import altair as alt
-import numpy as np
-
-# Standard Libraries
-import os
-import io
-
-# Color Mapping 
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-from matplotlib.colorbar import ColorbarBase
+from ydata_profiling import ProfileReport, compare
 
 
 def exploratory_report(df):
@@ -32,10 +15,9 @@ def exploratory_report(df):
     @param df: A pandas DataFrame object.
     @return: An exploratory ydata-profiling ProfileReport object.
     """
-    from ydata_profiling import ProfileReport
 
     # Get the number of columns in the dataframe
-    df_columns = get_columns(df)
+    df_columns = (df.columns.tolist())
     num_columns = len(df_columns)
 
     # If there are a large amount of columns (30)
@@ -68,7 +50,6 @@ def quality_report(df):
     @param df: A pandas DataFrame object.
     @return: A data quality ydata-profiling ProfileReport object.
     """
-    from ydata_profiling import ProfileReport
 
     report = ProfileReport(
             df,
@@ -89,7 +70,6 @@ def comparison_report(dfs):
     @param dfs: A list of pandas DataFrame objects.
     @return: A ydata-profiling comparison report.
     """
-    from ydata_profiling import ProfileReport, compare
     
     reports = []
     for i, df in enumerate(dfs):

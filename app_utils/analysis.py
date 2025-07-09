@@ -6,11 +6,8 @@ DataFrame Analysis Utility Functions
 """
 
 import streamlit as st
-from streamlit_extras.metric_cards import style_metric_cards 
-import pandas as pd
-import geopandas as gpd
-import os
-from app_utils.data_cleaning_utils import clean_data
+from streamlit_extras.metric_cards import style_metric_cards
+import pandas
 
 
 def get_columns(df):

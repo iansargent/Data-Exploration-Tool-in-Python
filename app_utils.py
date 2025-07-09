@@ -53,6 +53,7 @@ from matplotlib.colorbar import ColorbarBase
 #######      File Handling      ########
 #--------------------------------------#
 
+
 def get_user_files(key="main"):
     """
     Handles file upload interaction from the Streamlit sidebar.
@@ -725,33 +726,6 @@ def filtered_zoning_df(zoning_gdf):
         crs=zoning_gdf.crs)
 
     return filtered_gdf
-
-
-def assign_layer_style(filename):
-    """
-    Assigns a style dictionary for rendering a map layer based on the filename.
-    Matches keywords in the filename to predefined styles for color and line weight.
-
-    @param filename: The name of the file as a string.
-    @return: A dictionary specifying style properties for rendering (e.g., color, weight, fillOpacity).
-    """
-
-    if "border" in filename:
-        style = {"color": "dodgerblue", "weight": 2}
-    elif "linearfeatures" in filename:
-        style = {"color": "blue", "weight": 2}
-    elif "pointfeatures" in filename:
-        style = {"color": "darkorange", "weight": 2}
-    elif "servicearea" in filename:
-        style = {"color": "darkred", "weight": 2}
-    elif ("wwtf" in filename) or ("facilit" in filename):
-        style = {"color": "darkgreen", "weight": 2}
-    elif "zoning" in filename:
-        style = {"color": "navy", "weight": 0.3, "fillOpacity": 0}
-    else:
-        style = {}
-    
-    return style
 
 
 def land_suitability_metric_cards(gdf):
@@ -1962,6 +1936,7 @@ def calculate_delta_values(filtered_gdf_2023, baseline, filtered_gdf_2013, housi
         "rent_burden35_delta": rent_burden35_delta if baseline == "2013 Local Data (10-Year Change)" else None,
         "rent_burden35_pct_delta": rent_burden35_pct_delta
     }
+
 
 def housing_snapshot(county, jurisdiction, 
                      filtered_gdf_2013, filtered_gdf_2023, housing_gdf_2023, 

@@ -5,10 +5,7 @@ Vermont Data App
 Census Utility Functions
 """
 
-import streamlit as st
-from streamlit_extras.metric_cards import style_metric_cards 
 import pandas as pd
-import altair as alt
 
 
 def split_name_col(census_gdf):

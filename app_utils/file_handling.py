@@ -9,8 +9,9 @@ import streamlit as st
 from streamlit_extras.metric_cards import style_metric_cards 
 import pandas as pd
 import geopandas as gpd
-import altair as alt
-import numpy as np
+import os
+from app_utils.data_cleaning import clean_data
+from app_utils.geospatial import get_lat_lon_cols, is_latitude_longitude
 
 
 @st.cache_data

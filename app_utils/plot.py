@@ -6,16 +6,12 @@ Plotting Utility Functions
 """
 
 import streamlit as st
-from streamlit_extras.metric_cards import style_metric_cards 
 import pandas as pd
-import geopandas as gpd
 import altair as alt
 import numpy as np
-import os
-import io
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-from matplotlib.colorbar import ColorbarBase
+from app_utils.analysis import get_column_type, get_skew
+from streamlit_extras.metric_cards import style_metric_cards 
+
 
 
 def single_column_plot(df, selected_column):
