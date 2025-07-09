@@ -9,7 +9,6 @@ Wastewater Page
 # Necessary imports
 import streamlit as st
 import geopandas as gpd
-import pandas as pd
 import pydeck as pdk
 import requests
 from io import BytesIO

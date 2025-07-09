@@ -69,7 +69,7 @@ def zoning():
     bounds = filtered_gdf.total_bounds
     center_lon = (bounds[0] + bounds[2]) / 2
     center_lat = (bounds[1] + bounds[3]) / 2
-    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, zoom=9)
+    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, min_zoom=6.5)
 
     # Define the pydeck map
     map = pdk.Deck(

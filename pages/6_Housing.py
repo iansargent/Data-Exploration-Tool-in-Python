@@ -116,17 +116,23 @@ def census_housing_page():
         # Normalize the housing variable for monochromatic chloropleth coloring
         vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 2.5)
         cmap = colormaps["Reds"]
+        
+        #TODO: Fix the color normalization to handle outliers
+        vmin = filtered_2023['Value'].min()
+        vmax = filtered_2023['Value'].max()
+        norm = colors.Normalize(vmin=vmin, vmax=vmax)
+        cmap = cm.get_cmap("Reds")
 
         style = st.radio("Outlier Handling:", options=["Holdout", "Yellow"])
 
-        if style=="Holdout":
+        if style == "Holdout":
             # option one:  outliers get the top 10% of the norm (same color, just gradation shifts)
             norm = TopHoldNorm(vmin=vmin, vmax=vmax, cutoff=cutoff, outlier_fraction=0.1)
             # # Convert colors to [R, G, B, A] values
             filtered_2023["fill_color"] = filtered_2023['Value'].apply(
                 lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
         
-        elif style=="Yellow":
+        elif style == "Yellow":
             # option two: outliers get a separate color -- yellow
             norm = colors.Normalize(vmin=vmin, vmax=cutoff, clip=False)
             filtered_2023["fill_color"] = filtered_2023["Value"].apply(
