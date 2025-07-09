@@ -2747,6 +2747,7 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
 ###           Economic Data          ###
 #--------------------------------------#
 
+
 def economic_snapshot(county, jurisdiction, economic_gdf_2023):    
     title_geo = get_geography(county, jurisdiction)
 
@@ -2871,15 +2872,20 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     )
 
 
-#### Color Maps
+#--------------------------------------#
+###            Color Maps            ###
+#--------------------------------------#
+
+
 def get_colornorm_stats(df, cutoff_scalar):
-    ## simple helper func for DRY
+    ## Simple helper func for DRY
     mean = df['Value'].mean()
     std = df['Value'].std()
     vmin = df['Value'].min()
     vmax = df['Value'].max()
     cutoff = mean + cutoff_scalar * std
     return vmin, vmax, cutoff
+
 
 class TopHoldNorm(mcolors.Normalize):
     """
@@ -2908,6 +2914,7 @@ class TopHoldNorm(mcolors.Normalize):
 
         return np.clip(result, 0, 1)
 
+
 def render_colorbar(cmap, norm, vmin, vmax, cutoff, style, label="Scale"):
     fig, ax = plt.subplots(figsize=(5, 0.4))
    
@@ -2931,8 +2938,42 @@ def render_colorbar(cmap, norm, vmin, vmax, cutoff, style, label="Scale"):
     plt.close(fig)
     st.image(buf, use_container_width=True)
 
+
 def map_outlier_yellow(x, cmap, norm, cutoff):
         if x > cutoff:
             return [255, 255, 0, 180]  # Yellow RGBA
         rgba = cmap(norm(x))
         return [int(c * 255) for c in rgba[:3]] + [180]
+
+
+def jenks_color_map(df, n_classes):
+    import jenkspy
+    import matplotlib.cm as cm
+    from matplotlib import colormaps
+    import matplotlib.colors as colors
+
+    if df['Value'].dropna().empty:
+        df['color_groups'] = np.nan
+        st.warning("The variable you are trying to map is not a valid measure. Please select another variable.")
+        return {}
+
+    # Define breaks with "n" classifications and define a "groups" to the dataframe
+    breaks = jenkspy.jenks_breaks(df['Value'].dropna(), n_classes=n_classes)            
+    group_labels = [f'group_{i+1}' for i in range(n_classes)]
+    df['color_groups'] = pd.cut(df['Value'], bins=breaks, labels=group_labels, include_lowest=True)
+
+    # Define a red colormap based on the number of groups selected
+    cmap = cm.get_cmap('Reds')
+    color_vals = np.linspace(0.1, 0.9, n_classes)
+    jenks_colors = [colors.to_hex(cmap(val)) for val in color_vals]
+
+    # Map RGB colors to each defined category
+    jenks_cmap_dict = {str(group): hex_to_rgb255(color) for group, color in zip(group_labels, jenks_colors)}
+    
+    return jenks_cmap_dict
+    
+
+def hex_to_rgb255(hex_color):
+    import matplotlib.colors as colors
+    rgb = colors.to_rgb(hex_color)
+    return [int(255 * c) for c in rgb] + [180]

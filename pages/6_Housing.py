@@ -22,7 +22,7 @@ import requests
 import io
 from app_utils import (split_name_col, render_colorbar, housing_pop_plot, housing_snapshot,
                         rename_and_merge_census_cols, get_colornorm_stats, TopHoldNorm,
-                        map_outlier_yellow)
+                        map_outlier_yellow, jenks_color_map)
 from streamlit_rendering import filter_dataframe
 
 
@@ -128,41 +128,25 @@ def census_housing_page():
             # Convert colors to [R, G, B, A] values
             filtered_2023["fill_color"] = filtered_2023['Value'].apply(
                 lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
+            render_colorbar(cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, cutoff=cutoff, style=style)
         
         elif style == "Yellow":
             # Option Two: Outliers get a separate color (yellow)
             norm = colors.Normalize(vmin=vmin, vmax=cutoff, clip=False)
             filtered_2023["fill_color"] = filtered_2023["Value"].apply(
                 lambda x: map_outlier_yellow(x, cmap, norm, cutoff))
+            render_colorbar(cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, cutoff=cutoff, style=style)
         
         elif style == "Jenk's Natural Breaks":
             # Option Two: Jenk's Natural Breaks Algorithm
-            
             # Using a slider, adjust the number of "groups" in the data
             col1, _, _ = st.columns(3)
             n_classes = col1.slider(label="Adjust the number of breaks", value=10, min_value=5, max_value=15, )
-            
-            # Define breaks with "n" classifications and define a "groups" to the dataframe
-            breaks = jenkspy.jenks_breaks(filtered_2023['Value'].dropna(), n_classes=n_classes)            
-            group_labels = [f'group_{i+1}' for i in range(n_classes)]
-            filtered_2023['color_groups'] = pd.cut(filtered_2023['Value'], bins=breaks, labels=group_labels)
-
-            # Define a red colormap based on the number of groups selected
-            cmap = cm.get_cmap('Reds')
-            color_vals = np.linspace(0.2, 0.9, n_classes)
-            jenks_colors = [colors.to_hex(cmap(val)) for val in color_vals]
-
-            # Function to Convert hex colors into RGB values (for pyplot)
-            def hex_to_rgb255(hex_color):
-                rgb = colors.to_rgb(hex_color)
-                return [int(255 * c) for c in rgb] + [180]
-            
-            # Map RGB colors to each defined category
-            jenks_cmap_dict = {str(group): hex_to_rgb255(color) for group, color in zip(group_labels, jenks_colors)}
+            # Define the Jenk's colormap and apply it to the dataframe
+            jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes)
             filtered_2023['fill_color'] = filtered_2023['color_groups'].astype(str).map(jenks_cmap_dict)
-        
-        #TODO: Consider how we want to display the color bar: Currently, don't like it.
-        # render_colorbar(cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, cutoff=cutoff, style=style)
+            # Fill null values with a transparent color
+            filtered_2023['fill_color'] = filtered_2023['fill_color'].fillna("(0, 0, 0, 0)")
 
         # Convert the geometry column to GeoJSON coordinates
         filtered_2023["coordinates"] = filtered_2023.geometry.apply(
