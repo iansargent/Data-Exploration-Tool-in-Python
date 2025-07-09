@@ -5,14 +5,43 @@ Streamlit Data Visualization Utility Functions
 """
 
 
+## streamlit 
 import streamlit as st
+from st_aggrid import AgGrid, ColumnsAutoSizeMode
+from streamlit_extras.metric_cards import style_metric_cards 
+=======
 import pandas as pd
 import geopandas as gpd
 import altair as alt
+from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
+from streamlit_extras.dataframe_explorer import dataframe_explorer 
+
+## data processing
+import pandas as pd
 import numpy as np
+import geopandas as gpd
+from statsmodels.stats.weightstats import DescrStatsW
+from ydata_profiling import ProfileReport
+
+## standard libraries
 import os
 import requests
 import hashlib
+
+import calendar
+from io import BytesIO
+
+
+## matplotlib 
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from matplotlib.colorbar import ColorbarBase
+
+
+## web queries
+import requests
+from bs4 import BeautifulSoup
+=======
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -2842,3 +2871,70 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
         box_shadow=True,
         border_size_px=0.5
     )
+
+
+
+
+#### Color Maps
+def get_colornorm_stats(df, cutoff_scalar):
+    ## simple helper func for DRY
+    mean = df['Value'].mean()
+    std = df['Value'].std()
+    vmin = df['Value'].min()
+    vmax = df['Value'].max()
+    cutoff = mean + cutoff_scalar * std
+    return vmin, vmax, cutoff
+
+class TopHoldNorm(mcolors.Normalize):
+    """
+    Holds out the top x of the color norm for outliers, so they're in the same cmap but just the top `outlier_fraction` of it. 
+    """
+    def __init__(self, vmin, vmax, cutoff, outlier_fraction=0.1, clip=False):
+        super().__init__(vmin, vmax, clip)
+        self.cutoff = cutoff
+        self.outlier_fraction = outlier_fraction
+        self.vmin = vmin
+        self.vmax = vmax
+
+    def __call__(self, value, clip=None):
+        value = np.array(value)
+        result = np.zeros_like(value, dtype=np.float64)
+
+        norm_main_max = 1 - self.outlier_fraction
+
+        # Normalize main range [vmin, cutoff] to [0, norm_main_max]
+        mask_main = value <= self.cutoff
+        result[mask_main] = (value[mask_main] - self.vmin) / (self.cutoff - self.vmin) * norm_main_max
+
+        # Normalize outliers [cutoff, vmax] to [norm_main_max, 1]
+        mask_outlier = value > self.cutoff
+        result[mask_outlier] = norm_main_max + (value[mask_outlier] - self.cutoff) / (self.vmax - self.cutoff) * self.outlier_fraction
+
+        return np.clip(result, 0, 1)
+
+def render_colorbar(cmap, norm, vmin, vmax, cutoff, style, label="Scale"):
+    fig, ax = plt.subplots(figsize=(5, 0.4))
+   
+    cb = ColorbarBase(ax, cmap=cmap, norm=norm, orientation='horizontal')
+    ticks=np.linspace(vmin, cutoff, 5)
+    cb.set_label(label)
+
+    if style=="Holdout":
+        ticks = np.append(ticks, vmax)
+    else:
+        cb.set_label("Scale (Outliers in Yellow)")
+
+    cb.set_ticks(ticks)
+    cb.set_ticklabels([f"{t:.2g}" for t in ticks])
+
+
+    buf = BytesIO()
+    plt.savefig(buf, format="png", bbox_inches='tight')
+    plt.close(fig)
+    st.image(buf, use_container_width=True)
+
+def map_outlier_yellow(x, cmap, norm, cutoff):
+        if x > cutoff:
+            return [255, 255, 0, 180]  # Yellow RGBA
+        rgba = cmap(norm(x))
+        return [int(c * 255) for c in rgba[:3]] + [180]
