@@ -4,50 +4,25 @@ ORCA
 Streamlit Data Visualization Utility Functions
 """
 
-
-## streamlit 
+# Streamlit 
 import streamlit as st
-from st_aggrid import AgGrid, ColumnsAutoSizeMode
 from streamlit_extras.metric_cards import style_metric_cards 
+
+# Data Processing / Plotting
 import pandas as pd
 import geopandas as gpd
 import altair as alt
-from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
-from streamlit_extras.dataframe_explorer import dataframe_explorer 
-
-# Data Processing
-import pandas as pd
 import numpy as np
-import geopandas as gpd
-from statsmodels.stats.weightstats import DescrStatsW
-from ydata_profiling import ProfileReport
 
 # Standard Libraries
 import os
-import requests
-import hashlib
+import io
 
-import calendar
-from io import BytesIO
-
-# Matplotlib 
+# Color Mapping 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.colorbar import ColorbarBase
 
-
-# Web queries
-import requests
-from bs4 import BeautifulSoup
-
-from bs4 import BeautifulSoup
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-from ydata_profiling import ProfileReport
-from statsmodels.stats.weightstats import DescrStatsW
-from streamlit_extras.metric_cards import style_metric_cards 
-from streamlit_extras.dataframe_explorer import dataframe_explorer 
-from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 
 #TODO: Split file structure into more smaller scripts?
         # Break down large functions into smaller ones (where necessary)
@@ -58,6 +33,9 @@ from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdat
 #TODO: Only include universal imports at the top...the rest go into the functions
 
 ## POTENTIAL FILE STRUCTURE ##
+
+## GENERAL PURPOSE
+
 # 1. User_Uploaded_Files_utils.py
 # 2. Data_Cleaning_Handling_utils.py
 # 3. Data_Analysis.py
@@ -93,8 +71,7 @@ def get_user_files(key="main"):
         type=["geojson", "fgb", "csv", "xlsx", 'xls', 'json', 'sav'],
         accept_multiple_files=True,
         key = f"data_upload_{key}",
-        label_visibility="hidden"
-    )
+        label_visibility="hidden")
 
     # url_upload = st.sidebar.text_input(
     #     label = "URL Uploader",
@@ -155,6 +132,7 @@ def process_uploaded_files(user_files):
         df = read_data(file)
         if df is None:
             continue
+        
         # Clean the data using the clean_data() function
         df = clean_data(df)
 
@@ -168,8 +146,7 @@ def process_uploaded_files(user_files):
                 # Convert into a GeoDataFrame with geometry
                 df = gpd.GeoDataFrame(df, 
                         geometry=gpd.points_from_xy(df[lon_col], df[lat_col]), 
-                        crs="EPSG:4326"
-                )
+                        crs="EPSG:4326")
             # If it cannot convert it
             except Exception as e:
                 st.warning(f"Error converting to GeoDataFrame: {e}")
@@ -191,6 +168,8 @@ def file_hash(file):
     @param file: File object that you would like to generate a hash code for.
     @return: A Unique hash code.
     """
+    import hashlib
+
     hasher = hashlib.sha256()
     
     if isinstance(file, str):
@@ -298,7 +277,6 @@ def get_columns(df):
     @return: A list of column names in the dataframe (string).
     """
     columns = df.columns.tolist()
-    
     return columns
 
 
@@ -311,7 +289,6 @@ def get_column_type(df, column_name):
     @return: The pandas data type of the column (dtype).
     """
     column_type = df[column_name].dtype
-    
     return column_type
 
 
@@ -327,7 +304,7 @@ def is_latitude_longitude(df):
 
     # Define both the latitude and longitude columns more generally
     lat_col = [col for col in df_columns if any(kw in col.lower() for kw in ["latitude", "lat"])]
-    lon_col = [col for col in df_columns if any(kw in col.lower() for kw in ["longitude", "lon", "lng", "long"])]
+    lon_col = [col for col in df_columns if any(kw in col.lower() for kw in ["longitude", "lon", "lng", "lon", "long"])]
 
     # If both columns are found, return True
     if lat_col and lon_col:
@@ -466,10 +443,8 @@ def split_name_col(census_gdf):
     @param census_gdf: A census style GeoDataFrame with a "NAME" column.
     @return: The cleaned dataset with the split "NAME" column.
     """
-
     # Split the NAME column
     census_gdf[['Jurisdiction', 'County']] = census_gdf['NAME'].str.extract(r'^(.*?),\s*(.*?) County,')
-
     # Drop the original NAME column if desired
     census_gdf = census_gdf.drop(columns='NAME')
 
@@ -477,6 +452,9 @@ def split_name_col(census_gdf):
 
 
 def get_census_cols():
+    import requests
+    from bs4 import BeautifulSoup
+    
     r = requests.get("https://api.census.gov/data/2019/acs/acs5/profile/variables.html")
     soup = BeautifulSoup(r.content, "html.parser") 
 
@@ -512,7 +490,7 @@ def split_to_cols(s, cols):
 
 
 def relabel_census_cols(df):
-    ## just splits apart the labels so we can filter across them 
+    # Splits apart the labels so we can filter across them 
     cols = ["Measure", "Category", "Subcategory", "Variable"]
     
     # Keep only rows where the label is structured by "!!" (Issues with "Geography" rows)
@@ -535,7 +513,7 @@ def relabel_census_cols(df):
 
 
 def merge_census_cols(name_df, data_gdf):
-    ## melt the gdf into tidy format
+    # Melt the gdf into tidy format
     id_vars = ['GEOID', 'geometry', 'Jurisdiction', 'County',]
     data_gdf[id_vars]
     df_long = data_gdf.melt(
@@ -544,7 +522,7 @@ def merge_census_cols(name_df, data_gdf):
         var_name="Code",
         value_name="Value")
     
-    ## merge to get the right names and drop the cols
+    # Merge to get the right names and drop the cols
     return pd.merge(
         left=df_long,
         right=name_df,
@@ -566,18 +544,44 @@ def rename_and_merge_census_cols(census_gdf):
 #--------------------------------------#
 
 
-def render_table(gdf):
+def zoning_district_map(filtered_geojson, filtered_gdf_map):
+    import pydeck as pdk
+    
+    layer = pdk.Layer(
+        "GeoJsonLayer",
+        data=filtered_geojson,
+        get_fill_color=[95, 165, 231, 200],
+        get_line_color=[80, 80, 80, 80],
+        highlight_color=[222, 102, 0, 200],
+        line_width_min_pixels=0.5,
+        pickable=True,
+        auto_highlight=True)
+
+    # Calculate the center and zoom level of the map
+    bounds = filtered_gdf_map.total_bounds
+    center_lon = (bounds[0] + bounds[2]) / 2
+    center_lat = (bounds[1] + bounds[3]) / 2
+    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, min_zoom=6.5)
+   
+    # Display the map to the page
+    map = pdk.Deck(layers=[layer], initial_view_state=view_state,
+        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json")
+    
+    return map
+
+
+def selection_table(gdf):
     """
     Displays an interactive AgGrid table and returns selected rows.
 
     @param gdf: A GeoDataFrame.
     @return: The selected rows in the AgGrid Table.
     """
+    from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
     
     df = gdf.copy()
     if "geometry" in df.columns:
         df = df.drop(columns=["geometry"])
-
 
     first_cols = ["OBJECTID", "Jurisdiction District Name", "Abbreviated District Name", "County"]
     remaining_cols = [col for col in df.columns if col not in first_cols]
@@ -604,13 +608,17 @@ def render_table(gdf):
     return selected_rows
 
 
-def render_comparison_table(selected_rows):
+def zoning_comparison_table(selected_rows):
     """
     Takes selected rows from AgGrid, creates a comparison table, and displays it.
 
     @param selected_rows: The selected rows from an AgGrid interactive table.
     @return: The comparison table as a dataframe
     """
+    from datetime import datetime
+    from functools import reduce
+    from streamlit_extras.dataframe_explorer import dataframe_explorer
+
     if len(selected_rows) == 0:
         return
 
@@ -623,8 +631,6 @@ def render_comparison_table(selected_rows):
         df_long.columns = ["Variable", district_name]
         dfs.append(df_long)
 
-    from functools import reduce
-
     combined_df = reduce(lambda left, right: pd.merge(left, right, on="Variable", how="outer"), dfs)
     # # If you wanted to sort with empty rows at the bottom
     # combined_df_sorted = combined_df.copy()
@@ -634,9 +640,6 @@ def render_comparison_table(selected_rows):
     st.subheader("District Comparisons")
     filtered_combined_df_sorted = dataframe_explorer(combined_df, case=False)
     st.dataframe(filtered_combined_df_sorted, use_container_width=True)
-
-    import io
-    from datetime import datetime
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
@@ -671,29 +674,7 @@ def filter_zoning_data(_gdf, county, jurisdiction, districts):
     return df
 
 
-def generate_district_color_map(gdf):
-    """
-    Generates a color map assigning a unique color to each district type.
-
-    @param gdf: A GeoDataFrame containing a 'District Type' column.
-    @return: A dictionary mapping each unique district type to a hex color code.
-    """
-    district_types = gdf["District Type"].dropna()
-    # Ensure valid string keys, strip whitespace, remove "None" as string if present
-    unique_types = sorted(set(str(dt).strip() for dt in district_types if str(dt).strip().lower() != "none"))
-
-    cmap = plt.get_cmap("Set2")
-    colors = [mcolors.rgb2hex(cmap(i % cmap.N)) for i in range(len(unique_types))]
-
-    return dict(zip(unique_types, colors))
-
-
-def filter_zoning(zoning_gdf):
-    """
-    Applies filters to the zoning GeoDataFrame and returns the filtered results.
-
-    @return: Filtered GeoDataFrame based on sidebar selections.
-    """
+def zoning_geography(zoning_gdf):
     col1, col2, col3 = st.columns(3)
     with col1:
         county = st.selectbox("**County**", ["All Counties"] + sorted(zoning_gdf["County"].dropna().unique()))
@@ -714,6 +695,19 @@ def filter_zoning(zoning_gdf):
         district_opts = sorted(district_filter["District Name"].dropna().unique())
         districts = st.multiselect("**District(s)**", ["All Districts"] + district_opts, default=["All Districts"])
 
+        return county, jurisdiction, districts
+
+
+def filtered_zoning_df(zoning_gdf):
+    """
+    Applies filters to the zoning GeoDataFrame and returns the filtered results.
+
+    @return: Filtered GeoDataFrame based on sidebar selections.
+    """
+    from streamlit_extras.dataframe_explorer import dataframe_explorer
+
+    # Define the filtered geography
+    county, jurisdiction, districts = zoning_geography(zoning_gdf)
     # Apply all filters
     filtered_gdf = filter_zoning_data(zoning_gdf, county, jurisdiction, districts)
 
@@ -722,7 +716,13 @@ def filter_zoning(zoning_gdf):
         return gpd.GeoDataFrame()
 
     # Allow user filtering via dataframe_explorer
-    filtered_gdf = dataframe_explorer(filtered_gdf, case=False)
+    filtered_pd = dataframe_explorer(filtered_gdf, case=False)
+
+    # Re-attach geometry from original GeoDataFrame using index
+    filtered_gdf = gpd.GeoDataFrame(
+        filtered_pd,
+        geometry=zoning_gdf.loc[filtered_pd.index, "geometry"],
+        crs=zoning_gdf.crs)
 
     return filtered_gdf
 
@@ -843,7 +843,7 @@ def get_skew(df, variable):
     return skewness
 
 
-def data_snapshot(df, filename):
+def descriptive_metrics(df, filename):
     """
     Reports the overall structure of the dataset, including
     dimensions and the dataframe type.
@@ -893,14 +893,10 @@ def data_snapshot(df, filename):
     style_metric_cards(
         background_color="whitesmoke", 
         border_size_px=1, 
-        border_left_color="mediumseagreen"
-    )
-    
-    # Return
-    return
+        border_left_color="mediumseagreen")    
 
 
-def generate_exploratory_report(df):
+def exploratory_report(df):
     """
     Generate a tailored exploratory profile report 
     given a DataFrame using the ydata-profiling package.
@@ -908,6 +904,8 @@ def generate_exploratory_report(df):
     @param df: A pandas DataFrame object.
     @return: An exploratory ydata-profiling ProfileReport object.
     """
+    from ydata_profiling import ProfileReport
+
     # Get the number of columns in the dataframe
     df_columns = get_columns(df)
     num_columns = len(df_columns)
@@ -934,7 +932,7 @@ def generate_exploratory_report(df):
     return report
 
 
-def generate_quality_report(df):
+def quality_report(df):
     """
     Generate a tailored data quality profile report 
     given a DataFrame using the ydata-profiling package.
@@ -942,6 +940,8 @@ def generate_quality_report(df):
     @param df: A pandas DataFrame object.
     @return: A data quality ydata-profiling ProfileReport object.
     """
+    from ydata_profiling import ProfileReport
+
     report = ProfileReport(
             df,
             title="Data Quality",
@@ -953,7 +953,7 @@ def generate_quality_report(df):
     return report
 
 
-def generate_comparison_report(dfs):
+def comparison_report(dfs):
     """
     Generates a comparison report given a list of 
     uploaded dataframes
@@ -961,7 +961,6 @@ def generate_comparison_report(dfs):
     @param dfs: A list of pandas DataFrame objects.
     @return: A ydata-profiling comparison report.
     """
-    
     from ydata_profiling import ProfileReport, compare
     
     reports = []
@@ -975,26 +974,6 @@ def generate_comparison_report(dfs):
     comparison_report = compare(reports)
 
     return comparison_report
-
-
-def parcel_flood_metrics():
-    parcel_gdf = gpd.read_file("/Users/iansargent/Desktop/ORCA/Steamlit App Testing/VT_Parcel.geojson")
-    
-    parcel_gdf = parcel_gdf[["GIS SPAN", "PARCEL ID", "TOWN", "Grand-List Town-Name", 
-                             "Property Description", "Category (Real Estate only)", 
-                             "Resident Ownership Code", "Total Acres", "Listed Real Value (Full)",
-                             "Non-Residential Value (Full)", "Listed Value of Land", "Housesite Value",
-                             "Shape_Area", "Shape_Length"]]
-    
-    flood_gdf = gpd.read_file("/Users/iansargent/Desktop/ORCA/Steamlit App Testing/VT_Flood_Hazard.geojson")
-
-
-    projected_crs = 'EPSG:3857' 
-
-    parcels_proj = parcel_gdf.to_crs(projected_crs)
-    flood_proj = flood_gdf.to_crs(projected_crs)
-
-    parcel_flood = gpd.sjoin(parcels_proj, flood_proj, how='inner', predicate='within')  
 
 
 #--------------------------------------#
@@ -1011,6 +990,8 @@ def single_column_plot(df, selected_column):
     @param selected_column: The name of the column in the DataFrame (string).
     @return: The Altair plot objects associated with the data type of the column.
     """
+    from statsmodels.stats.weightstats import DescrStatsW
+
     # Define the plotting source as the one selected column without missing values
     source = df[[selected_column]].dropna()
     # Get the column type
@@ -1836,7 +1817,7 @@ def group_by_plot(df, num_op, num_var, grp_by):
 #--------------------------------------#
 
 
-def get_geography(county, jurisdiction):
+def get_geography_title(county, jurisdiction):
     # For the plot title, dynamically change the area of interest based on user filter selections
     if county == "All Counties" and jurisdiction == "All Jurisdictions":
         title_geo = "Vermont (Statewide)"
@@ -1982,313 +1963,12 @@ def calculate_delta_values(filtered_gdf_2023, baseline, filtered_gdf_2013, housi
         "rent_burden35_pct_delta": rent_burden35_pct_delta
     }
 
-
-def housing_metrics_vs_statewide(county, jurisdiction, housing_gdf, filtered_gdf, filtered_med_val_df, statewide_avg_df):
-    # For the plot title, dynamically change the area of interest based on user filter selections
-    if county == "All Counties":
-        title_geo = "Vermont (Statewide)"
-        plot_geo = "Vermont (Statewide)"
-    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
-        title_geo = f"{county} County"
-        plot_geo = f"{county} County"
-    elif jurisdiction != "All Jurisdictions":
-        title_geo = f"{jurisdiction}"
-        plot_geo = f"{jurisdiction}"
-    
-    # Housing Units Section
-    st.subheader("Occupancy")
-    # Split section into two colunms
-    left_col1, right_col2 = st.columns(2)
-    # In the left column, show the metrics
-    with left_col1:
-        # Caclulate total units, vacant units, and occupied units (State + 2023) with percentages
-        total_units_2023 = filtered_gdf['DP04_0001E'].sum()
-        total_units_state = housing_gdf['DP04_0001E'].sum()
-
-        occupied_units_2023 = filtered_gdf['DP04_0002E'].sum()
-        occupied_units_state = housing_gdf['DP04_0002E'].sum()
-        pct_occ_2023 = (occupied_units_2023 / total_units_2023) * 100
-        pct_occ_state = (occupied_units_state / total_units_state) * 100
-        pct_occ_delta = pct_occ_2023 - pct_occ_state
-        
-        vacant_units_2023 = filtered_gdf['DP04_0003E'].sum()
-        pct_vac_2023 = (vacant_units_2023 / total_units_2023) * 100
-        vacant_units_state = housing_gdf['DP04_0003E'].sum()
-        pct_vac_state = (vacant_units_state / total_units_state) * 100
-        pct_vac_delta = pct_vac_2023 - pct_vac_state
-
-        # Total units
-        st.metric(label="**Total Housing Units**", value=f"{total_units_2023:,.0f}",
-            help="Total number of housing units in the selected geography for 2023.")
-
-        # Split metrics for vacant and occupied
-        subcol1, subcol2 = st.columns(2)
-        # Occupied Units metric card with %
-        with subcol1:
-            st.metric(label="**Occupied Units**", value=f"{occupied_units_2023:,.0f}", 
-                help="Total number of occupied housing units in the selected geography.")
-            st.metric(label="**Occupied Units (%)**", value=f"{pct_occ_2023:.1f}%", 
-                delta=f"{pct_occ_delta:.1f}%", help="Percentage of units that are occupied in the selected geography.")
-        # Vacant Units metric card with %
-        with subcol2:
-            st.metric(label="**Vacant Units**", value=f"{vacant_units_2023:,.0f}", 
-                help="Total number of vacant housing units in the selected geography.")
-            st.metric(label="**Vacant Units (%)**", value=f"{pct_vac_2023:.1f}%", 
-                delta=f"{pct_vac_delta:.1f}%",
-                help="Percentage of units that are vacant in the selected geography.")
-
-    # In the right column, show the pie chart distribution of occupied vs vacant units
-    with right_col2:
-        pie_df = pd.DataFrame({
-            'Status': ['Occupied', 'Vacant'],
-            'Units': [occupied_units_2023, vacant_units_2023]
-        })
-
-        pie_chart = alt.Chart(pie_df).mark_arc(innerRadius=130).encode(
-            theta=alt.Theta(field="Units", type="quantitative", aggregate="sum"),
-            color=alt.Color(field="Status", type="nominal", scale=alt.Scale(
-                domain=["Occupied", "Vacant"],
-                range=["cornflowerblue", "whitesmoke"])),
-                tooltip=[alt.Tooltip("Status:N"), alt.Tooltip("Units")]
-        ).properties(width=300, height=440).configure_legend(orient='top-left')
-        
-        # Display the pie chart
-        st.altair_chart(pie_chart, use_container_width=True)
-
-    # Divider
-    st.markdown("---")
-    
-    # HOUSING TENURE SECTION
-    st.subheader("Housing Tenure")
-    left_col2, right_col2 = st.columns(2)
-    
-    with right_col2:
-        c4, c5 = st.columns(2)
-        # Owner-Occupied Units
-        owned_units_2023 = filtered_gdf['DP04_0046E'].sum()
-        owned_units_state = housing_gdf['DP04_0046E'].sum()
-        pct_own_2023 = (owned_units_2023 / occupied_units_2023) * 100
-        pct_own_state = (owned_units_state / occupied_units_state) * 100
-        pct_own_delta = pct_own_2023 - pct_own_state
-        c4.metric(
-            label="**Owner-Occupied**", value=f"{owned_units_2023:,.0f}",
-            help="Total number of owner-occupied housing units in the selected geography.")
-        # Units Owned (%)
-        c4.metric(label="**Owner-Occupied** (%)", value=f"{pct_own_2023:.1f}%",
-            delta=f"{pct_own_delta:.1f}%", help="Percentage of occupied units that are owner-occupied in the selected geography.")
-    
-        # Renter-Occupied Units
-        rented_units_2023 = filtered_gdf['DP04_0047E'].sum()
-        rented_units_state = housing_gdf['DP04_0047E'].sum()
-        pct_rent_2023 = (rented_units_2023 / occupied_units_2023) * 100
-        pct_rent_state = (rented_units_state / occupied_units_state) * 100
-        pct_rent_delta = pct_rent_2023 - pct_rent_state
-        c5.metric(label="**Renter-Occupied**", value=f"{rented_units_2023:,.0f}",
-            help="Total number of renter-occupied housing units in the selected geography.")
-        # Units Rented (%)
-        c5.metric(label="**Renter-Occupied** (%)", value=f"{pct_rent_2023:.1f}%",
-            delta=f"{pct_rent_delta:.1f}%",
-            help="Percentage of occupied units that are renter-occupied in the selected geography."
-        )
-
-    with left_col2:
-        # Pie chart for Housing Tenure
-        pie_df = pd.DataFrame({
-            'Occupied Tenure': ['Owner', 'Renter'],
-            'Units': [owned_units_2023, rented_units_2023]
-        })
-
-        pie_chart = alt.Chart(pie_df).mark_arc(innerRadius=75).encode(
-            theta=alt.Theta(field="Units", type="quantitative", aggregate="sum"),
-            color=alt.Color(field="Occupied Tenure", scale=alt.Scale(
-                domain=["Owner", "Renter"],
-                range=['cornflowerblue', 'whitesmoke'])), 
-                tooltip=[alt.Tooltip("Occupied Tenure:N"), alt.Tooltip("Units")]
-                ).properties(width=250, height=300).configure_legend(orient="top-left")
-        
-        st.altair_chart(pie_chart)
-    
-    st.markdown("---")
-    
-    # OWNER-OCCUPIED SECTION
-    st.subheader("Owner-Occupied Units")
-    c7 = st.container()
-    st.subheader("Monthly Owner Costs")
-    c8, c8_2 = st.columns(2)
-    
-    # Average Median Home Value
-    avg_med_val_2023 = filtered_gdf['DP04_0089E'].mean()
-    avg_med_val_state = housing_gdf['DP04_0089E'].mean()
-    avg_med_val_delta = avg_med_val_2023 - avg_med_val_state
-    c7.metric(label="Median **Home Value**", value=f"${avg_med_val_2023:,.2f}",
-        delta=f"{avg_med_val_delta:,.2f}", delta_color="off",
-        help="Average median home value in the selected geography for 2023 compared to the statewide average."
-    )
-
-    with c7:
-        st.dataframe(filtered_med_val_df)
-        
-    # Average Median Monthly Owner Cost (SMOC) (For units with a mortgage)
-    avg_med_SMOC_2023 = filtered_gdf['DP04_0101E'].mean()
-    avg_med_SMOC_state = housing_gdf['DP04_0101E'].mean()
-    avg_med_SMOC_delta = avg_med_SMOC_2023 - avg_med_SMOC_state
-    c8.metric(label="Selected Monthly **Owner Costs** for *mortgaged* units", value=f"${avg_med_SMOC_2023:,.2f}",
-        delta=f"{avg_med_SMOC_delta:,.2f}", delta_color="inverse",
-        help="Average monthly owner costs for ***mortgaged*** units in the selected geography for 2023 vs statewide average."
-    )
-
-    # Average Median Monthly Owner Cost (SMOC) (For units without a mortgage)
-    avg_med_SMOC2_2023 = filtered_gdf['DP04_0109E'].mean()
-    avg_med_SMOC2_state = housing_gdf['DP04_0109E'].mean()
-    avg_med_SMOC2_delta = avg_med_SMOC2_2023 - avg_med_SMOC2_state
-    c8_2.metric(label="Selected Monthly **Owner Costs** for *non-mortgaged* units", value=f"${avg_med_SMOC2_2023:,.2f}",
-        delta=f"{avg_med_SMOC2_delta:,.2f}", delta_color="inverse",
-        help="Average monthly owner costs for ***non-mortgaged*** units in the selected geography for 2023."
-    )
-
-    
-    con = st.container()
-    con.markdown(
-        "***Note***: The Selected Monthly Owner Costs (SMOC) include costs such as mortgage," \
-        " property taxes, insurance, and utilities. "
-        "The SMOC for non-mortgaged units includes costs such as property taxes, insurance, and utilities.")
-    
-    # Create a chart for the SMOC comparison
-    with con:
-        mort_nonmort = st.selectbox(label="Select Monthly Cost Category", options=['Mortgaged', 'Non-Mortgaged'], index=0)
-
-        SMOC_bar_df = pd.DataFrame({
-            'Location': ['Statewide', plot_geo],
-            'Median SMOC (Mortgaged)': [avg_med_SMOC_state, avg_med_SMOC_2023],
-            'Median SMOC (Non-Mortgaged)': [avg_med_SMOC2_state, avg_med_SMOC2_2023]
-        })
-
-        SMOC_bar_chart = alt.Chart(SMOC_bar_df).mark_bar().encode(
-            x=alt.X('Location:N', title=None),
-            y=alt.Y(f'Median SMOC ({mort_nonmort}):Q', title=f'Median Monthly Costs', axis=alt.Axis(format='$,.0f')),
-            tooltip=[alt.Tooltip('Location:N'), alt.Tooltip(f'Median SMOC ({mort_nonmort}):Q')]
-        ).properties(
-            title=f"Median SMOC Comparison for {mort_nonmort} Units (2023)",
-            height=550, width=600
-        )
-
-        st.altair_chart(SMOC_bar_chart)
-
-    st.markdown("---")
-
-    # RENTER-OCCUPIED SECTION
-    st.subheader("Renter-Occupied Units")
-    c9 = st.container()
-    c10, c11 = st.columns(2)
-    
-    # Average Median Gross Rent
-    avg_med_gross_rent_2023 = filtered_gdf['DP04_0134E'].mean()
-    avg_med_gross_rent_state = housing_gdf['DP04_0134E'].mean()
-    avg_med_gross_rent_delta = avg_med_gross_rent_2023 - avg_med_gross_rent_state
-    c9.metric(label="Median **Gross Rent**", value=f"${avg_med_gross_rent_2023:,.2f}",
-        delta=f"{avg_med_gross_rent_delta:,.2f}", delta_color="inverse",
-        help="Average median gross rent in the selected geography for 2023."
-    )
-    
-    # Count of Households where rent takes up 35% or more of their household income
-    units_paying_rent_2023 = filtered_gdf['DP04_0126E'].sum()
-    units_paying_rent_state = housing_gdf['DP04_0126E'].sum()
-    rent_burden35_2023 = filtered_gdf['DP04_0142E'].sum()
-    rent_burden35_state = housing_gdf['DP04_0142E'].sum()
-    rent_burden35_pct_2023 = (rent_burden35_2023 / units_paying_rent_2023) * 100
-    rent_burden35_pct_state = (rent_burden35_state / units_paying_rent_state) * 100
-    rent_burden35_pct_delta = rent_burden35_pct_2023 - rent_burden35_pct_state
-    c10.metric(label="Occupied Units paying 35%+ of Income on Rent", value=f"{rent_burden35_2023:,.0f}",
-        help="Count of households where rent takes up 35% or more of their household income in the selected geography for 2023.")
-    # Percentage of households where rent takes up 35% or more of their household income
-    c11.metric(label="% Occupied Units paying 35%+ of Income on Rent", value=f"{rent_burden35_pct_2023:.1f}%",
-        delta=f"{rent_burden35_pct_delta:.1f}%", delta_color="inverse",
-        help="Percentage of households where rent takes up 35% or more of their household income in the selected geography for 2023.")
-
-    st.markdown("---")
-
-    # UNITS IN STRUCTURE SECTION
-
-    # Calculate metrics for bar graph distribution of units in structure
-    # One Unit Detached
-    pct_one_unit_detached_2023 = (filtered_gdf['DP04_0007E'].sum() / filtered_gdf['DP04_0006E'].sum())
-    pct_one_unit_detached_state = (housing_gdf['DP04_0007E'].sum() / housing_gdf['DP04_0006E'].sum())
-    # One Unit Attached
-    pct_one_unit_attached_2023 = (filtered_gdf['DP04_0008E'].sum() / filtered_gdf['DP04_0006E'].sum())
-    pct_one_unit_attached_state = (housing_gdf['DP04_0008E'].sum() / housing_gdf['DP04_0006E'].sum()) 
-    # Two Units
-    pct_two_units_2023 = (filtered_gdf['DP04_0009E'].sum() / filtered_gdf['DP04_0006E'].sum())
-    pct_two_units_state = (housing_gdf['DP04_0009E'].sum() / housing_gdf['DP04_0006E'].sum())
-    # Three to Four Units
-    pct_three_or_four_units_2023 = (filtered_gdf['DP04_0010E'].sum() / filtered_gdf['DP04_0006E'].sum())
-    pct_three_or_four_units_state = (housing_gdf['DP04_0010E'].sum() / housing_gdf['DP04_0006E'].sum()) 
-    # Five to Nine Units
-    pct_five_to_nine_units_2023 = (filtered_gdf['DP04_0011E'].sum() / filtered_gdf['DP04_0006E'].sum()) 
-    pct_five_to_nine_units_state = (housing_gdf['DP04_0011E'].sum() / housing_gdf['DP04_0006E'].sum())
-    # Ten to Nineteen Units
-    pct_ten_to_nineteen_units_2023 = (filtered_gdf['DP04_0012E'].sum() / filtered_gdf['DP04_0006E'].sum())
-    pct_ten_to_nineteen_units_state = (housing_gdf['DP04_0012E'].sum() / housing_gdf['DP04_0006E'].sum()) 
-    # Twenty+ Units
-    pct_twenty_or_more_units_2023 = (filtered_gdf['DP04_0013E'].sum() / filtered_gdf['DP04_0006E'].sum()) 
-    pct_twenty_or_more_units_state =(housing_gdf['DP04_0013E'].sum() / housing_gdf['DP04_0006E'].sum()) 
-    # Mobile Homes
-    pct_mobile_home_2023 = (filtered_gdf['DP04_0014E'].sum() / filtered_gdf['DP04_0006E'].sum())
-    pct_mobile_home_state = (housing_gdf['DP04_0014E'].sum() / housing_gdf['DP04_0006E'].sum())
-    # Boat/RV/Van, etc.
-    pct_boat_RV_van_etc_2023 = (filtered_gdf['DP04_0015E'].sum() / filtered_gdf['DP04_0006E'].sum())
-    pct_boat_RV_van_etc_state = (housing_gdf['DP04_0015E'].sum() / housing_gdf['DP04_0006E'].sum())
-    
-    # Create a DataFrame for a grouped bar chart
-    units_in_structure_df = pd.DataFrame({
-        'Structure Category': [
-            '1-Unit (Detached)', '1-Unit (Attached)', '2-Units',
-            '3 - 4 Units', '5 - 9 Units','10 - 19 Units', '20+ Units',
-            'Mobile Homes', 'Boat/RV/Van, etc.'],
-        f"{plot_geo}": [
-            pct_one_unit_detached_2023, pct_one_unit_attached_2023, pct_two_units_2023,
-            pct_three_or_four_units_2023, pct_five_to_nine_units_2023,
-            pct_ten_to_nineteen_units_2023, pct_twenty_or_more_units_2023,
-            pct_mobile_home_2023, pct_boat_RV_van_etc_2023],
-        'Statewide': [
-            pct_one_unit_detached_state, pct_one_unit_attached_state, pct_two_units_state,
-            pct_three_or_four_units_state, pct_five_to_nine_units_state,
-            pct_ten_to_nineteen_units_state, pct_twenty_or_more_units_state,
-            pct_mobile_home_state, pct_boat_RV_van_etc_state]})
-    # Melt the DataFrame for grouped bar plotting
-    units_in_structure_df = units_in_structure_df.melt(
-        id_vars='Structure Category',
-        value_vars=[f'{plot_geo}', 'Statewide'],
-        var_name='Location',
-        value_name='Percentage of Units'
-    )
-    units_in_structure_df['Percentage of Units'] = round(units_in_structure_df['Percentage of Units'], 3)
-    
-    # Create the grouped bar chart comparing 2023 to statewide distribution of units in structure
-    units_in_structure_chart = alt.Chart(units_in_structure_df).mark_bar().encode(
-        x=alt.X('Structure Category:N', title=None, sort='-y'),
-        y=alt.Y('Percentage of Units:Q', title='Percentage of Units').axis(format='.0%'),
-        color=alt.Color('Location:N', title=None, legend=alt.Legend(
-            direction='vertical', orient='top-right')),
-        xOffset='Location:N'
-    ).properties(title=f"Structure Category Distribution in {title_geo}", height=550)
-
-    # Display the grouped bar chart
-    st.altair_chart(units_in_structure_chart, use_container_width=True)
-    
-    # Style the metric cards
-    style_metric_cards(
-        background_color="whitesmoke",
-        border_left_color="cornflowerblue",
-        box_shadow=True,
-        border_size_px=0.5)
-
-
 def housing_snapshot(county, jurisdiction, 
                      filtered_gdf_2013, filtered_gdf_2023, housing_gdf_2023, 
                      filtered_med_val_df, filtered_med_smoc_df,
                      statewide_avg_val_df, statewide_avg_smoc_df, compare_to):
     # For the plot title, dynamically change the area of interest based on user filter selections
-    title_geo = get_geography(county, jurisdiction)
+    title_geo = get_geography_title(county, jurisdiction)
     
     delta_dict = calculate_delta_values(filtered_gdf_2023, compare_to, filtered_gdf_2013, housing_gdf_2023)
 
@@ -2749,7 +2429,7 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
 
 
 def economic_snapshot(county, jurisdiction, economic_gdf_2023):    
-    title_geo = get_geography(county, jurisdiction)
+    title_geo = get_geography_title(county, jurisdiction)
 
     st.subheader("Employment")
     
@@ -2884,6 +2564,7 @@ def get_colornorm_stats(df, cutoff_scalar):
     vmin = df['Value'].min()
     vmax = df['Value'].max()
     cutoff = mean + cutoff_scalar * std
+    
     return vmin, vmax, cutoff
 
 
@@ -2932,11 +2613,11 @@ def render_colorbar(cmap, norm, vmin, vmax, cutoff, style, label="Scale"):
     cb.set_ticks(ticks)
     cb.set_ticklabels([f"{t:.2g}" for t in ticks])
 
-
-    buf = BytesIO()
+    buf = io.BytesIO()
     plt.savefig(buf, format="png", bbox_inches='tight')
     plt.close(fig)
-    st.image(buf, use_container_width=True)
+    
+    st.image(buf, width=450)
 
 
 def map_outlier_yellow(x, cmap, norm, cutoff):
@@ -2946,7 +2627,7 @@ def map_outlier_yellow(x, cmap, norm, cutoff):
         return [int(c * 255) for c in rgba[:3]] + [180]
 
 
-def jenks_color_map(df, n_classes):
+def jenks_color_map(df, n_classes, color):
     import jenkspy
     import matplotlib.cm as cm
     from matplotlib import colormaps
@@ -2963,7 +2644,7 @@ def jenks_color_map(df, n_classes):
     df['color_groups'] = pd.cut(df['Value'], bins=breaks, labels=group_labels, include_lowest=True)
 
     # Define a red colormap based on the number of groups selected
-    cmap = cm.get_cmap('Reds')
+    cmap = cm.get_cmap(color)
     color_vals = np.linspace(0.1, 0.9, n_classes)
     jenks_colors = [colors.to_hex(cmap(val)) for val in color_vals]
 

@@ -14,7 +14,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pyogrio
 from streamlit_rendering import filter_dataframe
-from app_utils import split_name_col, rename_and_merge_census_cols
+from app_utils import split_name_col, rename_and_merge_census_cols, jenks_color_map
 
 
 @st.cache_data
@@ -41,15 +41,13 @@ def render_demographics():
         # Project geometry to latitude and longitude coordinates
         filtered_2023 = filtered_2023.to_crs(epsg=4326)
 
-        # Normalize the demographic variable for monochromatic coloring
-        vmin = filtered_2023['Value'].min()
-        vmax = filtered_2023['Value'].max()
-        norm = colors.Normalize(vmin=vmin, vmax=vmax)
-        cmap = cm.get_cmap("Blues")
-
-        # Convert colors to [R, G, B, A] values
-        filtered_2023["fill_color"] = filtered_2023['Value'].apply(
-            lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
+        col1, _, _ = st.columns(3)
+        n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
+        # Define the Jenk's colormap and apply it to the dataframe
+        jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes, "Blues")
+        filtered_2023['fill_color'] = filtered_2023['color_groups'].astype(str).map(jenks_cmap_dict)
+        # Fill null values with a transparent color
+        filtered_2023['fill_color'] = filtered_2023['fill_color'].fillna("(0, 0, 0, 0)")
 
         # Convert the geometry column to GeoJSON coordinates
         filtered_2023["coordinates"] = filtered_2023.geometry.apply(
@@ -66,7 +64,7 @@ def render_demographics():
         )
 
         # Set the map center and zoom level
-        view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
+        view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, min_zoom=6.5, zoom=7)
 
         # Display the map to the page
         st.pydeck_chart(pdk.Deck(
@@ -74,6 +72,9 @@ def render_demographics():
             initial_view_state=view_state,
             map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
             tooltip={"text": "{Jurisdiction}: {Value}"}), height=550)
+        
+        tidy_2023
+        filtered_2023
 
     ## Census Snapshot section (Housing) ##
     with snapshot:

@@ -14,7 +14,7 @@ import pydeck as pdk
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pyogrio
-from app_utils import split_name_col, rename_and_merge_census_cols, economic_snapshot
+from app_utils import split_name_col, rename_and_merge_census_cols, economic_snapshot, jenks_color_map
 from streamlit_rendering import filter_dataframe
 
 
@@ -44,15 +44,13 @@ def census_economics_page():
         # Project geometry to latitude and longitude coordinates
         filtered_2023 = filtered_2023.to_crs(epsg=4326)
 
-        # Normalize the economic variable for monochromatic coloring
-        vmin = filtered_2023['Value'].min()
-        vmax = filtered_2023['Value'].max()
-        norm = colors.Normalize(vmin=vmin, vmax=vmax)
-        cmap = cm.get_cmap("Greens")
-
-        # Convert colors to [R, G, B, A] values
-        filtered_2023["fill_color"] = filtered_2023['Value'].apply(
-            lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
+        col1, _, _ = st.columns(3)
+        n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
+        # Define the Jenk's colormap and apply it to the dataframe
+        jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes, "Greens")
+        filtered_2023['fill_color'] = filtered_2023['color_groups'].astype(str).map(jenks_cmap_dict)
+        # Fill null values with a transparent color
+        filtered_2023['fill_color'] = filtered_2023['fill_color'].fillna("(0, 0, 0, 0)")
 
         # Convert the geometry column to GeoJSON coordinates
         filtered_2023["coordinates"] = filtered_2023.geometry.apply(
@@ -69,7 +67,7 @@ def census_economics_page():
         )
 
         # Set the map center and zoom level
-        view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7)
+        view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, min_zoom=6.5, zoom=7)
 
         # Display the map to the page
         st.pydeck_chart(pdk.Deck(

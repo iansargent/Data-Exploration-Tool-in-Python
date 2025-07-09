@@ -8,7 +8,7 @@ Table Preview Page
 
 # Necessary imports
 import streamlit as st
-from app_utils import get_user_files, process_uploaded_files, data_snapshot, get_columns
+from app_utils import get_user_files, process_uploaded_files, descriptive_metrics, get_columns
 import geopandas as gpd
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
@@ -24,7 +24,7 @@ def render_table_preview():
     # For each uploaded file
     for i, (df, filename) in enumerate(processed):
         # Data information (dimensions and filename)
-        data_snapshot(df, filename)
+        descriptive_metrics(df, filename)
         # If the dataframe is a GeoDataFrame, drop the geometry column in order to display the table
         if isinstance(df, gpd.GeoDataFrame):
             # Drop the geometry column

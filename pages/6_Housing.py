@@ -15,7 +15,6 @@ import numpy as np
 import matplotlib.cm as cm
 from  matplotlib import colormaps
 import matplotlib.colors as colors
-import jenkspy
 import pydeck as pdk
 import pyogrio
 import requests
@@ -88,6 +87,7 @@ def census_housing():
 
     return housing_gdf_2023, housing_gdf_2013, med_val_df, tidy_2023
 
+
 def census_housing_page():
     # Page title
     st.header("Housing", divider="grey")
@@ -141,9 +141,9 @@ def census_housing_page():
             # Option Two: Jenk's Natural Breaks Algorithm
             # Using a slider, adjust the number of "groups" in the data
             col1, _, _ = st.columns(3)
-            n_classes = col1.slider(label="Adjust the number of breaks", value=10, min_value=5, max_value=15, )
+            n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
             # Define the Jenk's colormap and apply it to the dataframe
-            jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes)
+            jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes, "Reds")
             filtered_2023['fill_color'] = filtered_2023['color_groups'].astype(str).map(jenks_cmap_dict)
             # Fill null values with a transparent color
             filtered_2023['fill_color'] = filtered_2023['fill_color'].fillna("(0, 0, 0, 0)")

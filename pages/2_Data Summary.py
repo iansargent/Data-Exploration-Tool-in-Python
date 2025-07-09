@@ -10,8 +10,8 @@ Data Summary Page
 import streamlit as st
 from streamlit_pandas_profiling import st_profile_report
 import geopandas as gpd
-from app_utils import (get_user_files, generate_exploratory_report, process_uploaded_files,
-                       generate_quality_report, generate_comparison_report)
+from app_utils import (get_user_files, process_uploaded_files, 
+                       exploratory_report, quality_report, comparison_report)
 
 
 def render_data_summary():
@@ -54,7 +54,7 @@ def render_data_summary():
         with column1:
             if st.button(label="Generate Exploratory Summary", key=f"{filename}_expl_{key}"):
                 with st.spinner("Generating report..."):
-                    ex_profile = generate_exploratory_report(df)
+                    ex_profile = exploratory_report(df)
                     st.session_state[expl_key] = ex_profile
                     st.session_state[expl_html_key] = ex_profile.to_html()
 
@@ -69,7 +69,7 @@ def render_data_summary():
         with column2:
             if st.button(label="Generate Data Quality Summary", key=f"{filename}_qual_{key}"):
                 with st.spinner("Generating report..."):
-                    qual_profile = generate_quality_report(df)
+                    qual_profile = quality_report(df)
                     st.session_state[qual_key] = qual_profile
                     st.session_state[qual_html_key] = qual_profile.to_html()
 
@@ -102,7 +102,7 @@ def render_data_summary():
         st.header("Comparison Report")
         if st.button(label="Generate Comparison Report"):
             dfs = [item[0] for item in processed_files] 
-            comp_report = generate_comparison_report(dfs)
+            comp_report = comparison_report(dfs)
             st_profile_report(comp_report)
 
 

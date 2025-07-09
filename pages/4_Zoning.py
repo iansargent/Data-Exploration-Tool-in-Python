@@ -13,7 +13,7 @@ import pydeck as pdk
 import altair as alt
 import geopandas as gpd
 import json
-from app_utils import filter_zoning, render_table, render_comparison_table
+from app_utils import filtered_zoning_df, selection_table, zoning_comparison_table, zoning_district_map
 
 
 @st.cache_data
@@ -44,50 +44,24 @@ def load_zoning_data():
 def zoning():
     # Page header
     st.header("Zoning")
-    # Load the zoning data from GitHub
+    # Load the zoning data from GitHub and filter it
     zoning_gdf = load_zoning_data()
-    # Define the zoning data as a GeoDataFrame
-    filtered_gdf = filter_zoning(zoning_gdf)
+    filtered_gdf = filtered_zoning_df(zoning_gdf)
     # Select only relevant columns to map
     filtered_gdf_map = filtered_gdf[["Jurisdiction District Name", "District Type", "geometry"]]
+    filtered_gdf_map = filtered_gdf_map.to_crs(epsg=4326)
     # Convert gdf into GeoJSON format
     filtered_geojson = json.loads(filtered_gdf_map.to_json())
-
-    # Create a pydeck layer for mapping the zoning data
-    layer = pdk.Layer(
-        "GeoJsonLayer",
-        data=filtered_geojson,
-        get_fill_color=[95, 165, 231, 200],
-        get_line_color=[80, 80, 80, 80],
-        highlight_color=[222, 102, 0, 200],
-        line_width_min_pixels=0.5,
-        pickable=True,
-        auto_highlight=True
-    )
-
-    # Calculate the center and zoom level of the map
-    bounds = filtered_gdf.total_bounds
-    center_lon = (bounds[0] + bounds[2]) / 2
-    center_lat = (bounds[1] + bounds[3]) / 2
-    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, min_zoom=6.5)
-
-    # Define the pydeck map
-    map = pdk.Deck(
-        layers=[layer], 
-        initial_view_state=view_state,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json", 
-        tooltip={"text": "{Jurisdiction District Name}" "\n ({District Type})"},
-    )
-    
-    # Display the map to the page
+    # Define the pydeck map object and display it
+    map = zoning_district_map(filtered_geojson, filtered_gdf_map)
     st.pydeck_chart(map, height=550)
-
-    st.markdown("---")
     
+    st.markdown("---")
+
     # Total acres of land plotted on the map
     st.header("Land Area")
-    col1, col2 = st.columns(2)
     
+    col1, col2 = st.columns(2)
     col1.metric(label="Districts", value=f"{len(filtered_gdf):,}")
     total_acre = filtered_gdf["Acres"].sum()
     col2.metric(label="**Total Acreage**", value=f"{total_acre:,.0f} acres")
@@ -121,17 +95,16 @@ def zoning():
 
     # Selectable Table for comparisons
     st.subheader("Zoning Districts Table")
-    selected = render_table(filtered_gdf)
+    selected = selection_table(filtered_gdf)
     
     try:
         # If a district(s) is selected from the table above, show the comparison table
         if not selected.empty:
-            render_comparison_table(selected)
-    except Exception as e:
-        st.warning(f"No Selected Districts to Compare: {e}")
+            zoning_comparison_table(selected)
+    except:
+        st.warning(f"No Selected Districts to Compare")
 
-    return map
-            
+
 def show_zoning():
     zoning()
 
