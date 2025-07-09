@@ -9,21 +9,20 @@ Streamlit Data Visualization Utility Functions
 import streamlit as st
 from st_aggrid import AgGrid, ColumnsAutoSizeMode
 from streamlit_extras.metric_cards import style_metric_cards 
-=======
 import pandas as pd
 import geopandas as gpd
 import altair as alt
 from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 
-## data processing
+# Data Processing
 import pandas as pd
 import numpy as np
 import geopandas as gpd
 from statsmodels.stats.weightstats import DescrStatsW
 from ydata_profiling import ProfileReport
 
-## standard libraries
+# Standard Libraries
 import os
 import requests
 import hashlib
@@ -31,17 +30,16 @@ import hashlib
 import calendar
 from io import BytesIO
 
-
-## matplotlib 
+# Matplotlib 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.colorbar import ColorbarBase
 
 
-## web queries
+# Web queries
 import requests
 from bs4 import BeautifulSoup
-=======
+
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -2873,8 +2871,6 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     )
 
 
-
-
 #### Color Maps
 def get_colornorm_stats(df, cutoff_scalar):
     ## simple helper func for DRY
@@ -2921,8 +2917,10 @@ def render_colorbar(cmap, norm, vmin, vmax, cutoff, style, label="Scale"):
 
     if style=="Holdout":
         ticks = np.append(ticks, vmax)
-    else:
+    elif style == "Yellow":
         cb.set_label("Scale (Outliers in Yellow)")
+    elif style == "Jenk's Natural Breaks":
+        cb.set_label("Jenk's")
 
     cb.set_ticks(ticks)
     cb.set_ticklabels([f"{t:.2g}" for t in ticks])

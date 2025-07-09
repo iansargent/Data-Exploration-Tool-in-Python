@@ -11,14 +11,15 @@ Housing Page (Census)
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
+import numpy as np
 import matplotlib.cm as cm
 from  matplotlib import colormaps
 import matplotlib.colors as colors
+import jenkspy
 import pydeck as pdk
 import pyogrio
 import requests
 import io
-# import st_textcomplete_autocomplete as st_auto
 from app_utils import (split_name_col, render_colorbar, housing_pop_plot, housing_snapshot,
                         rename_and_merge_census_cols, get_colornorm_stats, TopHoldNorm,
                         map_outlier_yellow)
@@ -77,7 +78,6 @@ def load_med_smoc_by_year():
 
 @st.cache_data
 def census_housing():
-
     # Read the Census Housing Datasets (Name column is split here as well!)
     housing_gdf_2023 = load_2023_housing()
     housing_gdf_2013 = load_2013_housing()
@@ -109,44 +109,64 @@ def census_housing_page():
     with mapping:
         st.subheader("Mapping")
         
-        # project meaninful columns to lat/long
+        # Project meaningful columns to lat/long
         filtered_2023 = filter_dataframe(tidy_2023, filter_columns=["Category", "Subcategory", "Variable", "Measure"])
         filtered_2023 = filtered_2023.to_crs(epsg=4326)
 
         # Normalize the housing variable for monochromatic chloropleth coloring
-        vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 2.5)
+        vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 5)
         cmap = colormaps["Reds"]
         
-        #TODO: Fix the color normalization to handle outliers
-        vmin = filtered_2023['Value'].min()
-        vmax = filtered_2023['Value'].max()
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = cm.get_cmap("Reds")
 
-        style = st.radio("Outlier Handling:", options=["Holdout", "Yellow"])
+        style = st.radio("Outlier Handling:", options=["Holdout", "Yellow", "Jenk's Natural Breaks"])
 
         if style == "Holdout":
-            # option one:  outliers get the top 10% of the norm (same color, just gradation shifts)
+            # Option One:  Outliers get the top 10% of the norm (same color, just gradation shifts)
             norm = TopHoldNorm(vmin=vmin, vmax=vmax, cutoff=cutoff, outlier_fraction=0.1)
-            # # Convert colors to [R, G, B, A] values
+            # Convert colors to [R, G, B, A] values
             filtered_2023["fill_color"] = filtered_2023['Value'].apply(
                 lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
         
         elif style == "Yellow":
-            # option two: outliers get a separate color -- yellow
+            # Option Two: Outliers get a separate color (yellow)
             norm = colors.Normalize(vmin=vmin, vmax=cutoff, clip=False)
             filtered_2023["fill_color"] = filtered_2023["Value"].apply(
                 lambda x: map_outlier_yellow(x, cmap, norm, cutoff))
+        
+        elif style == "Jenk's Natural Breaks":
+            # Option Two: Jenk's Natural Breaks Algorithm
+            
+            # Using a slider, adjust the number of "groups" in the data
+            col1, _, _ = st.columns(3)
+            n_classes = col1.slider(label="Adjust the number of breaks", value=10, min_value=5, max_value=15, )
+            
+            # Define breaks with "n" classifications and define a "groups" to the dataframe
+            breaks = jenkspy.jenks_breaks(filtered_2023['Value'].dropna(), n_classes=n_classes)            
+            group_labels = [f'group_{i+1}' for i in range(n_classes)]
+            filtered_2023['color_groups'] = pd.cut(filtered_2023['Value'], bins=breaks, labels=group_labels)
 
-        render_colorbar(cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, cutoff=cutoff, style=style) ##TODO: consider whether we actually want this: currently, don't like it.
+            # Define a red colormap based on the number of groups selected
+            cmap = cm.get_cmap('Reds')
+            color_vals = np.linspace(0.2, 0.9, n_classes)
+            jenks_colors = [colors.to_hex(cmap(val)) for val in color_vals]
+
+            # Function to Convert hex colors into RGB values (for pyplot)
+            def hex_to_rgb255(hex_color):
+                rgb = colors.to_rgb(hex_color)
+                return [int(255 * c) for c in rgb] + [180]
+            
+            # Map RGB colors to each defined category
+            jenks_cmap_dict = {str(group): hex_to_rgb255(color) for group, color in zip(group_labels, jenks_colors)}
+            filtered_2023['fill_color'] = filtered_2023['color_groups'].astype(str).map(jenks_cmap_dict)
+        
+        #TODO: Consider how we want to display the color bar: Currently, don't like it.
+        # render_colorbar(cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, cutoff=cutoff, style=style)
 
         # Convert the geometry column to GeoJSON coordinates
         filtered_2023["coordinates"] = filtered_2023.geometry.apply(
             lambda geom: geom.__geo_interface__["coordinates"]) 
-        
-        
-
-
 
         # Chloropleth map layer
         polygon_layer = pdk.Layer(

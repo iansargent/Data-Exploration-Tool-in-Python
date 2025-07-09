@@ -34,17 +34,6 @@ def main():
     # Display the file uploader in the side panel
     user_files = get_user_files()
     processed_files = process_uploaded_files(user_files)
-    
-    # navigation_placeholder = "Placeholder for app navigation / directions"
-
-    # with st.container():        
-    #     st.markdown(
-    #         f"""
-    #         <div class="custom-container">
-    #             <p>{navigation_placeholder}</p>
-    #         </div>
-    #         """,
-    #         unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
