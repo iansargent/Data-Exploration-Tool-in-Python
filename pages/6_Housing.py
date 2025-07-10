@@ -118,7 +118,7 @@ def census_housing_page():
         norm = colors.Normalize(vmin=vmin, vmax=vmax)
         cmap = cm.get_cmap("Reds")
 
-        style = st.radio("Outlier Handling:", options=["Holdout", "Yellow", "Jenk's Natural Breaks"], horizontal=True)
+        style = st.radio("Outlier Handling:", options=["Jenk's Natural Breaks", "Yellow", "Holdout"], horizontal=True)
 
         if style == "Holdout":
             # Option One:  Outliers get the top 10% of the norm (same color, just gradation shifts)
