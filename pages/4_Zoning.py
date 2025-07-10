@@ -8,12 +8,11 @@ Zoning Page
 
 # Necessary imports
 import streamlit as st
-from streamlit_extras.metric_cards import style_metric_cards 
-import pydeck as pdk
 import altair as alt
 import geopandas as gpd
 import json
-from app_utils import filtered_zoning_df, selection_table, zoning_comparison_table, zoning_district_map
+from streamlit_extras.metric_cards import style_metric_cards 
+from app_utils.zoning import filtered_zoning_df, selection_table, zoning_comparison_table, zoning_district_map
 
 
 @st.cache_data

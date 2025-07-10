@@ -8,7 +8,8 @@ Table Preview Page
 
 # Necessary imports
 import streamlit as st
-from app_utils import get_user_files, process_uploaded_files, descriptive_metrics, get_columns
+from app_utils.file_handling import get_user_files, process_uploaded_files
+from app_utils.analysis import descriptive_metrics, get_columns
 import geopandas as gpd
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
 

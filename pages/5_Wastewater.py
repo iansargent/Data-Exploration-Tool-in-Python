@@ -12,7 +12,8 @@ import geopandas as gpd
 import pydeck as pdk
 import requests
 from io import BytesIO
-from app_utils import (convert_all_timestamps_to_str, land_suitability_metric_cards)
+from app_utils.data_cleaning import convert_all_timestamps_to_str
+from app_utils.wastewater import land_suitability_metric_cards
 
 
 @st.cache_data

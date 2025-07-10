@@ -8,13 +8,11 @@ Demographics Page (Census)
 
 # Necessary imports
 import streamlit as st
-import geopandas as gpd
 import pydeck as pdk
-import matplotlib.cm as cm
-import matplotlib.colors as colors
 import pyogrio
 from streamlit_rendering import filter_dataframe
-from app_utils import split_name_col, rename_and_merge_census_cols, jenks_color_map
+from app_utils.census import split_name_col, rename_and_merge_census_cols
+from app_utils.color import jenks_color_map
 
 
 @st.cache_data

@@ -10,8 +10,8 @@ Data Summary Page
 import streamlit as st
 from streamlit_pandas_profiling import st_profile_report
 import geopandas as gpd
-from app_utils import (get_user_files, process_uploaded_files, 
-                       exploratory_report, quality_report, comparison_report)
+from app_utils.file_handling import get_user_files, process_uploaded_files
+from app_utils.report import exploratory_report, quality_report, comparison_report
 
 
 def render_data_summary():

@@ -8,13 +8,11 @@ Economics Page (Census)
 
 # Necessary imports
 import streamlit as st
-import geopandas as gpd
-import pandas as pd
 import pydeck as pdk
-import matplotlib.cm as cm
-import matplotlib.colors as colors
 import pyogrio
-from app_utils import split_name_col, rename_and_merge_census_cols, economic_snapshot, jenks_color_map
+from app_utils.color import jenks_color_map
+from app_utils.economic import economic_snapshot
+from app_utils.census import split_name_col, rename_and_merge_census_cols
 from streamlit_rendering import filter_dataframe
 
 

@@ -10,8 +10,9 @@ Visualize Page
 import streamlit as st
 import numpy as np
 import pandas as pd
-from app_utils import (get_user_files, get_columns, single_column_plot, 
-                       two_column_plot, process_uploaded_files, group_by_plot)
+from app_utils.file_handling import get_user_files, process_uploaded_files
+from app_utils.analysis import get_columns
+from app_utils.plot import single_column_plot, two_column_plot, group_by_plot
 
 
 # The visualize page (with default arguments given)

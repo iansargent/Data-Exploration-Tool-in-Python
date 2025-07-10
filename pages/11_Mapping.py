@@ -12,9 +12,9 @@ import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
 from sklearn.preprocessing import MinMaxScaler
-from app_utils import (get_user_files, is_latitude_longitude, 
-                       convert_all_timestamps_to_str, process_uploaded_files, 
-                       assign_layer_style, get_lat_lon_cols)
+from app_utils.data_cleaning import convert_all_timestamps_to_str
+from app_utils.file_handling import (get_user_files, is_latitude_longitude, 
+                                     process_uploaded_files, get_lat_lon_cols)
 
 
 def render_mapping():
@@ -49,13 +49,11 @@ def render_mapping():
     for df, filename in processed_files:
         # Convert any datetime variables to string type
         df = convert_all_timestamps_to_str(df)
-        # Based on the filename, assign a color if it is a keyword
-        style = assign_layer_style(filename)
 
         # If it is a GeoDataFrame but does not have lat/lon columns
         if isinstance(df, gpd.GeoDataFrame) and not is_latitude_longitude(df):
             # Add the layer to the map
-            m.add_gdf(df, layer_name=filename, style=style, info_mode='on_click', zoom_to_layer=True)
+            m.add_gdf(df, layer_name=filename, info_mode='on_click', zoom_to_layer=True)
 
         # If there are lat/lon columns, define them respectfully
         elif is_latitude_longitude(df):

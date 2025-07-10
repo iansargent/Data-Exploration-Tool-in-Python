@@ -10,7 +10,6 @@ About Page
 import streamlit as st
 import markdown
 import requests
-import markdown
 
 def about():
     # Set the page title

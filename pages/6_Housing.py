@@ -10,8 +10,6 @@ Housing Page (Census)
 # Necessary imports
 import streamlit as st
 import pandas as pd
-import geopandas as gpd
-import numpy as np
 import matplotlib.cm as cm
 from  matplotlib import colormaps
 import matplotlib.colors as colors
@@ -19,9 +17,9 @@ import pydeck as pdk
 import pyogrio
 import requests
 import io
-from app_utils import (split_name_col, render_colorbar, housing_pop_plot, housing_snapshot,
-                        rename_and_merge_census_cols, get_colornorm_stats, TopHoldNorm,
-                        map_outlier_yellow, jenks_color_map)
+from app_utils.census import split_name_col, rename_and_merge_census_cols
+from app_utils.housing import housing_pop_plot, housing_snapshot
+from app_utils.color import render_colorbar, map_outlier_yellow, jenks_color_map, get_colornorm_stats, TopHoldNorm
 from streamlit_rendering import filter_dataframe
 
 
