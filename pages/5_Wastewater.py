@@ -29,7 +29,7 @@ def load_soil_septic(rpc):
 
 def render_wastewater():
     # Page header
-    st.header("VT Wastewater Infrastructure")
+    st.header("Wastewater Infrastructure")
 
     # Set columns to display the filter boxes
     column1, column2 = st.columns(2)

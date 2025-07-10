@@ -23,9 +23,7 @@ def main():
     )
     
     # Set the page title
-    st.markdown(
-        "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>Vermont Data Exploration App</h2>",
-        unsafe_allow_html=True)
+    st.header("Vermont Data Exploration App")
 
     # Display a background photo for the page
     with open("main_page.css") as f:
