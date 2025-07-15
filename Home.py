@@ -11,7 +11,7 @@ streamlit run Home.py
 
 # Necessary imports
 import streamlit as st
-from app_utils import get_user_files, process_uploaded_files
+from app_utils.file_handling import get_user_files, process_uploaded_files
 
 
 def main():
