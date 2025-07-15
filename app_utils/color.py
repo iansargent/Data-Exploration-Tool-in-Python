@@ -95,7 +95,7 @@ def jenks_color_map(df, n_classes, color):
 
     if df['Value'].dropna().empty:
         df['color_groups'] = np.nan
-        st.warning("The variable you are trying to map is not a valid measure. Please select another variable.")
+        st.warning("The variable you are trying to map is an invalid measure. Please select another variable.")
         return {}
 
     # Define breaks with "n" classifications and define a "groups" to the dataframe
