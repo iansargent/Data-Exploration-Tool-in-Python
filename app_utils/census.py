@@ -7,6 +7,10 @@ Census Utility Functions
 
 import pandas as pd
 
+import requests
+import pyogrio  
+import io
+
 
 def split_name_col(census_gdf):
     """
@@ -122,6 +126,15 @@ def get_geography_title(county, jurisdiction):
         title_geo = f"{jurisdiction}"
     
     return title_geo
+
+def load_census_data(url, is_geospatial=False):
+    ## gen. func to get the census data and split it from the url and file type (currently binary)
+    if is_geospatial:
+        df = pyogrio.read_dataframe(url)
+    else:
+        response = requests.get(url, verify=True)
+        df = pd.read_csv(io.StringIO(response.text))
+    return split_name_col(df)
 
 
 def calculate_delta_values(filtered_gdf_2023, baseline, filtered_gdf_2013, housing_gdf):
