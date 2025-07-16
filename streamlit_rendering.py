@@ -1,45 +1,39 @@
 import streamlit as st
 import pandas as pd
 
-def filter_dataframe(df, filter_columns):
+def filter_dataframe(dfs, filter_columns, key_prefix="filter_dataframe", header=None, ):
     """
     Create cascading selectboxes in two rows to filter a DataFrame.
     
     Args:
-        df (pd.DataFrame): DataFrame to filter.
+        dfs (pd.DataFrame): DataFrame to filter, OR a list of frames to filter. 
         filter_columns (list): Columns to filter on.
     
     Returns:
         pd.DataFrame: Filtered DataFrame.
     """
-    filtered_df = df.copy()
-    selected = {}
+    keys = [f"{key_prefix}_{i}" for i in range(len(filter_columns))] ## so that we can have multiple layers of filter on same page
 
-    # Split into two rows
-    half = (len(filter_columns) + 1) // 2
-    first_row = filter_columns[:half]
-    second_row = filter_columns[half:]
+    dfs = ensure_list(dfs) 
+    df = dfs[0]
 
-    # First row of filters
-    cols1 = st.columns(len(first_row))
-    for i, col_name in enumerate(first_row):
-        unique_values = filtered_df[col_name].dropna().unique()
+    selected_values = {}
+
+    if header:
+        st.markdown(header)
+    cols1 = st.columns(len(filter_columns))
+    for i, col_name in enumerate(filter_columns):
+        unique_values = df[col_name].dropna().unique()
         selected_value = cols1[i].selectbox(
             col_name,
-            options=sorted(unique_values)
+            options=sorted(unique_values), 
+            key=keys[i]
         )
-        selected[col_name] = selected_value
-        filtered_df = filtered_df[filtered_df[col_name] == selected_value]
+        selected_values[col_name] = selected_value
+        dfs = [df[df[col_name] == selected_value] for df in dfs]
+        df = dfs[0]
+        
+    return (dfs[0], selected_values) if len(dfs) == 1 else [(df, selected_values) for df in dfs]
 
-    # Second row of filters
-    cols2 = st.columns(len(second_row))
-    for i, col_name in enumerate(second_row):
-        unique_values = filtered_df[col_name].dropna().unique()
-        selected_value = cols2[i].selectbox(
-            col_name,
-            options=sorted(unique_values)
-        )
-        selected[col_name] = selected_value
-        filtered_df = filtered_df[filtered_df[col_name] == selected_value]
-
-    return filtered_df
+def ensure_list(x):
+    return x if isinstance(x, list) else [x]

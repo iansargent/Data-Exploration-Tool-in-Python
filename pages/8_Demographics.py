@@ -35,7 +35,10 @@ def render_demographics():
         st.subheader("Demographic Snapshot")
 
     with compare:
-        compare_tab(data=tidy_2023)           
+        data_dict = {
+            "Demographics 2023" : tidy_2023,
+        }
+        compare_tab(data_dict)   
 
 if __name__ == "__main__":
     render_demographics()

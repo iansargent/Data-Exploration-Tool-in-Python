@@ -11,6 +11,9 @@ import requests
 import pyogrio  
 import io
 
+import requests
+from bs4 import BeautifulSoup
+
 
 def split_name_col(census_gdf):
     """
@@ -29,9 +32,6 @@ def split_name_col(census_gdf):
 
 
 def get_census_cols():
-    import requests
-    from bs4 import BeautifulSoup
-    
     r = requests.get("https://api.census.gov/data/2019/acs/acs5/profile/variables.html")
     soup = BeautifulSoup(r.content, "html.parser") 
 
@@ -127,17 +127,41 @@ def get_geography_title(county, jurisdiction):
     
     return title_geo
 
+import requests
+import io
+import pyogrio
+import pandas as pd
+import geopandas as gpd
+
 def load_census_data(url, is_geospatial=False):
-    ## gen. func to get the census data and split it from the url and file type (currently binary)
+    """
+    Load census data from URL.
+    Supports GeoDataFrames (via pyogrio) and standard CSV.
+
+    Returns:
+        pd.DataFrame or gpd.GeoDataFrame
+    """
     if is_geospatial:
-        df = pyogrio.read_dataframe(url)
+        try:
+            df = pyogrio.read_dataframe(url)
+            print(df.crs)
+        except Exception as e:
+            raise RuntimeError(f"Failed to read geospatial data: {e}")
     else:
-        response = requests.get(url, verify=True)
-        df = pd.read_csv(io.StringIO(response.text))
+        try:
+            response = requests.get(url, verify=True)
+            response.raise_for_status()
+            df = pd.read_csv(io.StringIO(response.text))
+        except Exception as e:
+            raise RuntimeError(f"Failed to load tabular data: {e}")
+
     return split_name_col(df)
 
 
+
 def calculate_delta_values(filtered_gdf_2023, baseline, filtered_gdf_2013, housing_gdf):
+
+    ##TODO simplify this logic into something that can handle whatever data is thrown at it. 
     if baseline == "2013 Local Data (10-Year Change)":
         total_units_2023 = filtered_gdf_2023['DP04_0001E'].sum()
         total_units_2013 = filtered_gdf_2013['DP04_0001E'].sum()

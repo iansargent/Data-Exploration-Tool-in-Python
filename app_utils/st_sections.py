@@ -4,15 +4,18 @@ from  matplotlib import colormaps
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pydeck as pdk
-from streamlit_rendering import filter_dataframe
+from streamlit_rendering import filter_dataframe, ensure_list
+from collections import defaultdict
+import altair as alt
+import pandas as pd
 
 
 def mapping_tab(data): 
     st.subheader("Mapping")
     
     # Project meaningful columns to lat/long
-    filtered_2023 = filter_dataframe(data, filter_columns=["Category", "Subcategory", "Variable", "Measure"])
-    filtered_2023 = filtered_2023.to_crs(epsg=4326)
+    filtered_2023, selected_value = filter_dataframe(data, filter_columns=["Category", "Subcategory", "Variable", "Measure"], key_prefix="mapping_filter")
+    filtered_2023.to_crs(epsg=4326)
 
     # Normalize the housing variable for monochromatic chloropleth coloring
     vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 5)
@@ -25,7 +28,7 @@ def mapping_tab(data):
 
     if style == "Holdout":
         # Option One:  Outliers get the top 10% of the norm (same color, just gradation shifts)
-        norm = TopHoldNorm(vmin=vmin, vmax=vmax, cutoff=cutoff, outlier_fraction=0.1)
+        norm = TopHoldNorm(vmin=vmin, vmax=vmax, cutoff=cutoff, outlier_fraction=0.05)
         # Convert colors to [R, G, B, A] values
         filtered_2023["fill_color"] = filtered_2023['Value'].apply(
             lambda x: [int(c * 255) for c in cmap(norm(x))[:3]] + [180])
@@ -71,7 +74,126 @@ def mapping_tab(data):
         initial_view_state=view_state,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         tooltip={"text": "{Jurisdiction}: {Value}"}), height=550)
-    
 
-def compare_tab(data):
-    st.radio("Hmm", ["help", "please"])
+def select_dataset(col, data_dict, label_prefix):
+    """
+    Helper func for the comparison tab to select two different datasets to compare. 
+    """
+    select_val = col.selectbox(f"Select **{label_prefix} Dataset**", data_dict.keys())
+    df = data_dict.get(select_val)
+    select_col = col.selectbox("Select **County**", df['County'].unique(), key=f"{label_prefix}_select_col")
+    df = df[df['County'] == select_col].copy()
+    select_juridisdictions = col.multiselect(
+        "Select **Towns**", 
+        options=sorted(list(df['Jurisdiction'].unique())+["All"]), 
+        default="All", key=f"{label_prefix}_select_jur"
+        )
+    select_juridisdictions = select_juridisdictions if "All" not in select_juridisdictions else list(df['Jurisdiction'].unique())
+    df = df[df['Jurisdiction'].isin(select_juridisdictions)]
+    return df
+
+
+def get_sets_and_filter(data_dict, label_prefixs):
+    """
+    Function to let the user:
+        select datasets, county, and towns to compare
+        select number of variables to filter
+        filter dataframes as they select those variables
+
+    Returns a dictionary where keys are complicated format strings and values are filtered dataframes (2 for each var)
+    """
+    st.subheader("Select Datasets and Variables")
+    dfs = [
+        select_dataset(col, data_dict, label_prefix=label).drop(columns=["GEOID", "geometry"])
+        for col, label in zip(st.columns(2), label_prefixs)
+    ]
+    st.markdown("### Select Number of Variables")
+    var_count = st.slider("Select number of variables", 1, 5, 1, label_visibility="collapsed")
+    
+    results_dict = {
+        f"**Variable {var_i+1}**: {' | '.join(selected.values())} : **{label_prefixs[df_idx]} Dataset**": df
+        for var_i in range(var_count)
+        for df_idx, (df, selected) in enumerate(ensure_list(
+            filter_dataframe(
+                dfs,
+                filter_columns=["Category", "Subcategory", "Variable", "Measure"],
+                key_prefix=f"results{var_i+1}",
+                header=f"#### Select Variable {var_i + 1}: "
+            )
+        ))
+    }
+    return results_dict
+
+def compare_tab(data_dict):
+    label_prefixs = ["Base", "Comparison"]
+    results_dict = get_sets_and_filter(data_dict, label_prefixs)
+
+    grouped = defaultdict(dict)
+    for key, df in results_dict.items():
+        var_name, dataset_name = key.rsplit(':', 1)
+        grouped[var_name][f"{dataset_name}"] = df
+
+
+    ## run plots
+    plotting_dict = {
+        "Jurisdiction Barplot" : grouped_barplot_by_jurisdiction,
+        "County Barplot" : barplot_by_county,
+    }
+
+    st.subheader("Plotting")
+    plots = st.multiselect("Select which plots to show", options=plotting_dict.keys())
+    for plot in plots:
+        plotting_dict[plot](grouped, label_prefixs)
+
+def barplot_by_county(grouped, label_prefixs):
+    for var_name, datasets in grouped.items():
+        if len(datasets) != 2:
+            continue
+
+        totals = []
+        for i, (_, df) in enumerate(datasets.items()):
+            total = df["Value"].sum()
+            totals.append({"Dataset": label_prefixs[i], "Total": total})
+
+        totals_df = pd.DataFrame(totals)
+
+        st.markdown(f"#### {var_name}")
+        st.altair_chart(
+            alt.Chart(totals_df)
+            .mark_bar()
+            .encode(
+                x=alt.X("Dataset:N", title="Dataset", axis=alt.Axis(labelAngle=-60)),
+                y=alt.Y("Total:Q", title="Value"),
+                color="Dataset:N"
+            )
+            .properties(height=300),
+            use_container_width=True
+        )
+
+
+def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
+    for var_name, datasets in grouped.items():
+        if len(datasets) != 2:
+            continue
+
+        dfs = list(datasets.values())
+
+        merged = pd.merge(
+            dfs[0][["Jurisdiction", "Value"]].rename(columns={"Value": f"{label_prefixs[0]}"}),
+            dfs[1][["Jurisdiction", "Value"]].rename(columns={"Value": f"{label_prefixs[1]}"}),
+            on="Jurisdiction",
+            how="outer"
+        ).fillna(0) 
+
+        merged_long = merged.reset_index(drop=True).melt(id_vars="Jurisdiction", var_name="Dataset", value_name="Value")
+
+        chart = alt.Chart(merged_long).mark_bar().encode(
+            x=alt.X("Jurisdiction", title="Jurisdiction", axis=alt.Axis(labelAngle=-90)), ## this is just flat; not sure the best angle
+            y="Value",
+            color='Dataset',
+            tooltip=['Jurisdiction', 'Dataset', 'Value'],
+            xOffset='Dataset:N'
+        ).properties(width=700, height=400)
+
+        st.markdown(f"#### {var_name}")
+        st.altair_chart(chart)

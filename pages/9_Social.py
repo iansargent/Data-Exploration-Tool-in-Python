@@ -35,7 +35,10 @@ def render_social():
         st.subheader("Social Snapshot")
 
     with compare:
-        compare_tab(data=tidy_2023)
+        data_dict = {
+            "Social 2023" : tidy_2023,
+        }
+        compare_tab(data_dict)
 
             
 def show_social():
