@@ -51,9 +51,10 @@ def census_housing_page():
     statewide_avg_val_df = (med_val_df.groupby("year", as_index=False)["estimate"].mean())
     statewide_avg_smoc_df = (med_smoc_df.groupby(["year", "variable"], as_index=False)["estimate"].mean())
 
+    # st.write(housing_gdf_2023.columns) debug
     ##  The map section ## 
     with mapping:
-        mapping_tab(tidy_2023)
+        mapping_tab(tidy_2023, )
     
     # Housing Snapshot
     with snapshot:
@@ -115,10 +116,13 @@ def census_housing_page():
                         filtered_gdf_2013, filtered_gdf_2023, housing_gdf_2023, 
                         filtered_med_val_df, filtered_med_smoc_df, 
                         statewide_avg_val_df, statewide_avg_smoc_df, compare_to)
-
-
+        
     with compare:
-        compare_tab(data=tidy_2023)
+        data_dict = {
+            "Housing 2023" : tidy_2023,
+            "Housing 2013" : rename_and_merge_census_cols(housing_gdf_2013)
+        }
+        compare_tab(data_dict)
         
 def show_housing():
     # Display the page

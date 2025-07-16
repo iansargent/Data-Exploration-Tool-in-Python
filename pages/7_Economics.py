@@ -78,7 +78,10 @@ def census_economics_page():
         economic_snapshot(county, jurisdiction, filtered_gdf_2023)
 
     with compare:
-        compare_tab(data=tidy_2023)
+        data_dict = {
+            "Economics 2023" : tidy_2023,
+        }
+        compare_tab(data_dict)
             
 def show_economics():
     # Display the page

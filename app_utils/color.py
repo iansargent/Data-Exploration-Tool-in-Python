@@ -64,6 +64,7 @@ def render_colorbar(cmap, norm, vmin, vmax, cutoff, style, label="Scale"):
     cb.set_label(label)
 
     if style=="Holdout":
+        ticks = ticks[:-1]
         ticks = np.append(ticks, vmax)
     elif style == "Yellow":
         cb.set_label("Scale (Outliers in Yellow)")
@@ -71,13 +72,13 @@ def render_colorbar(cmap, norm, vmin, vmax, cutoff, style, label="Scale"):
         cb.set_label("Jenk's")
 
     cb.set_ticks(ticks)
-    cb.set_ticklabels([f"{t:.2g}" for t in ticks])
+    cb.set_ticklabels([f"{t:.0f}" for t in ticks])
 
     buf = io.BytesIO()
     plt.savefig(buf, format="png", bbox_inches='tight')
     plt.close(fig)
     
-    st.image(buf, width=450)
+    st.image(buf, use_container_width=True)
 
 
 def map_outlier_yellow(x, cmap, norm, cutoff):
