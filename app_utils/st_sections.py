@@ -8,6 +8,7 @@ from streamlit_rendering import filter_dataframe, ensure_list
 from collections import defaultdict
 import altair as alt
 import pandas as pd
+from app_utils.plot import sort_select
 
 
 def mapping_tab(data): 
@@ -24,7 +25,7 @@ def mapping_tab(data):
     norm = colors.Normalize(vmin=vmin, vmax=vmax)
     cmap = cm.get_cmap("Reds")
 
-    style = st.radio("Outlier Handling:", options=["Jenk's Natural Breaks", "Yellow", "Holdout"], horizontal=True)
+    style = st.pills("Outlier Handling:", options=["Jenk's Natural Breaks", "Yellow", "Holdout"], default="Jenk's Natural Breaks", label_visibility="collapsed")
 
     if style == "Holdout":
         # Option One:  Outliers get the top 10% of the norm (same color, just gradation shifts)
@@ -79,7 +80,8 @@ def select_dataset(col, data_dict, label_prefix):
     """
     Helper func for the comparison tab to select two different datasets to compare. 
     """
-    select_val = col.selectbox(f"Select **{label_prefix} Dataset**", data_dict.keys())
+    label_color = "blue" if label_prefix == "Base" else "orange"
+    select_val = col.selectbox(f"Select :{label_color}[**{label_prefix} Dataset**]", data_dict.keys())
     df = data_dict.get(select_val)
     select_col = col.selectbox("Select **County**", df['County'].unique(), key=f"{label_prefix}_select_col")
     df = df[df['County'] == select_col].copy()
@@ -159,16 +161,11 @@ def barplot_by_county(grouped, label_prefixs):
 
         st.markdown(f"#### {var_name}")
         st.altair_chart(
-            alt.Chart(totals_df)
-            .mark_bar()
-            .encode(
-                x=alt.X("Dataset:N", title="Dataset", axis=alt.Axis(labelAngle=-60)),
+            alt.Chart(totals_df).mark_bar().encode(
+                x=alt.X("Dataset:N", title="Dataset", axis=alt.Axis(labelAngle=0)),
                 y=alt.Y("Total:Q", title="Value"),
-                color="Dataset:N"
-            )
-            .properties(height=300),
-            use_container_width=True
-        )
+                color=alt.Color("Dataset:N", scale=alt.Scale(domain=["Base", "Comparison"], range=["#1f77b4", "#ff7f0e"]))
+            ).properties(height=300), use_container_width=True)
 
 
 def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
@@ -183,17 +180,18 @@ def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
             dfs[1][["Jurisdiction", "Value"]].rename(columns={"Value": f"{label_prefixs[1]}"}),
             on="Jurisdiction",
             how="outer"
-        ).fillna(0) 
+        ).fillna(0)
 
         merged_long = merged.reset_index(drop=True).melt(id_vars="Jurisdiction", var_name="Dataset", value_name="Value")
-
+        
+        st.markdown(f"#### {var_name}")
+        
         chart = alt.Chart(merged_long).mark_bar().encode(
-            x=alt.X("Jurisdiction", title="Jurisdiction", axis=alt.Axis(labelAngle=-90)), ## this is just flat; not sure the best angle
+            x=alt.X("Jurisdiction", title="Jurisdiction", axis=alt.Axis(labelAngle=-90), sort=None), ## this is just flat; not sure the best angle
             y="Value",
-            color='Dataset',
+            color=alt.Color("Dataset:N", scale=alt.Scale(domain=["Base", "Comparison"], range=["#1f77b4", "#ff7f0e"])),
             tooltip=['Jurisdiction', 'Dataset', 'Value'],
             xOffset='Dataset:N'
         ).properties(width=700, height=400)
 
-        st.markdown(f"#### {var_name}")
         st.altair_chart(chart)

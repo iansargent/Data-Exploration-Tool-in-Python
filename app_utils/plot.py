@@ -844,3 +844,22 @@ def group_by_plot(df, num_op, num_var, grp_by):
     # Return the aggregated DataFrame and the corresponsing bar chart
     return df_grouped, grouped_chart
 
+
+def sort_select():
+    # Use a select box to sort the plot (Defualt, Ascending, or Descending)
+    c1, _, _ = st.columns(3)
+    
+    sort_option = c1.selectbox(
+        label = "Sort option",
+        options=["None", "Ascending", "Descending"],
+        index=0)
+    
+    # Change the sort variable based on the sorting selection
+    if sort_option == "Ascending":
+        sort = 'y'
+    elif sort_option == "Descending":
+        sort = '-y'
+    else:
+        sort = None
+
+    return sort 
