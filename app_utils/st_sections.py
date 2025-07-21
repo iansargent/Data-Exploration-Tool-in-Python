@@ -93,7 +93,7 @@ def select_dataset(col, data_dict, label_prefix):
     return df
 
 
-def get_sets_and_filter(data_dict, label_prefixs):
+def get_sets_and_filter(data_dict, label_prefixs, drop_cols=["GEOID", "geometry"], filter_columns=["Category", "Subcategory", "Variable", "Measure"]):
     """
     Function to let the user:
         select datasets, county, and towns to compare
@@ -104,7 +104,7 @@ def get_sets_and_filter(data_dict, label_prefixs):
     """
     st.subheader("Select Datasets and Variables")
     dfs = [
-        select_dataset(col, data_dict, label_prefix=label).drop(columns=["GEOID", "geometry"])
+        select_dataset(col, data_dict, label_prefix=label).drop(columns=drop_cols)
         for col, label in zip(st.columns(2), label_prefixs)
     ]
     st.markdown("### Select Number of Variables")
@@ -116,7 +116,7 @@ def get_sets_and_filter(data_dict, label_prefixs):
         for df_idx, (df, selected) in enumerate(ensure_list(
             filter_dataframe(
                 dfs,
-                filter_columns=["Category", "Subcategory", "Variable", "Measure"],
+                filter_columns=filter_columns,
                 key_prefix=f"results{var_i+1}",
                 header=f"#### Select Variable {var_i + 1}: "
             )
@@ -124,9 +124,9 @@ def get_sets_and_filter(data_dict, label_prefixs):
     }
     return results_dict
 
-def compare_tab(data_dict):
+def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Category", "Subcategory", "Variable", "Measure"]):
     label_prefixs = ["Base", "Comparison"]
-    results_dict = get_sets_and_filter(data_dict, label_prefixs)
+    results_dict = get_sets_and_filter(data_dict, label_prefixs, drop_cols=drop_cols, filter_columns=filter_columns)
 
     grouped = defaultdict(dict)
     for key, df in results_dict.items():
