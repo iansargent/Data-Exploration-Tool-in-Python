@@ -5,13 +5,14 @@ import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pydeck as pdk
 from streamlit_rendering import filter_dataframe, ensure_list
+from app_utils.plot import sort_bar_chart
 from collections import defaultdict
 import altair as alt
 import pandas as pd
+from streamlit_extras.chart_container import chart_container
 
 
 def mapping_tab(data): 
-    st.subheader("Mapping")
     
     # Project meaningful columns to lat/long
     filtered_2023, selected_value = filter_dataframe(data, filter_columns=["Category", "Subcategory", "Variable", "Measure"], key_prefix="mapping_filter")
@@ -74,22 +75,27 @@ def mapping_tab(data):
         initial_view_state=view_state,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         tooltip={"text": "{Jurisdiction}: {Value}"}), height=550)
+    
 
 def select_dataset(col, data_dict, label_prefix):
     """
     Helper func for the comparison tab to select two different datasets to compare. 
     """
-    select_val = col.selectbox(f"Select **{label_prefix} Dataset**", data_dict.keys())
+    base_comparison__color = "blue" if label_prefix == "Base" else "orange"
+    
+    select_val = col.selectbox(f":{base_comparison__color}[**{label_prefix} Dataset**]", data_dict.keys())
     df = data_dict.get(select_val)
-    select_col = col.selectbox("Select **County**", df['County'].unique(), key=f"{label_prefix}_select_col")
+    subcol1, subcol2 = col.columns(2)
+    select_col = subcol1.selectbox("**County**", df['County'].unique(), key=f"{label_prefix}_select_col")
     df = df[df['County'] == select_col].copy()
-    select_juridisdictions = col.multiselect(
-        "Select **Towns**", 
+    select_juridisdictions = subcol2.multiselect(
+        "**Towns**", 
         options=sorted(list(df['Jurisdiction'].unique())+["All"]), 
         default="All", key=f"{label_prefix}_select_jur"
         )
     select_juridisdictions = select_juridisdictions if "All" not in select_juridisdictions else list(df['Jurisdiction'].unique())
     df = df[df['Jurisdiction'].isin(select_juridisdictions)]
+    
     return df
 
 
@@ -102,27 +108,33 @@ def get_sets_and_filter(data_dict, label_prefixs):
 
     Returns a dictionary where keys are complicated format strings and values are filtered dataframes (2 for each var)
     """
-    st.subheader("Select Datasets and Variables")
+    st.subheader("Select Datasets")
     dfs = [
         select_dataset(col, data_dict, label_prefix=label).drop(columns=["GEOID", "geometry"])
-        for col, label in zip(st.columns(2), label_prefixs)
+        for col, label in zip(st.columns([10, 1, 10]), [label_prefixs[0], None, label_prefixs[1]])
+        if label is not None
     ]
-    st.markdown("### Select Number of Variables")
-    var_count = st.slider("Select number of variables", 1, 5, 1, label_visibility="collapsed")
+    
+    st.divider()
+    
+    c1, c2, c3 = st.columns([6, 5, 6])
+    c2.markdown("##### Select the Number of Variables")
+    var_count = c2.slider("Select **Number of Variables**", 1, 5, 1, label_visibility="collapsed")
     
     results_dict = {
-        f"**Variable {var_i+1}**: {' | '.join(selected.values())} : **{label_prefixs[df_idx]} Dataset**": df
+        f"**Variable {var_i+1}**: {' | '.join(selected.values())} : **{label_prefixs[df_idx]} Dataset**": df 
         for var_i in range(var_count)
         for df_idx, (df, selected) in enumerate(ensure_list(
             filter_dataframe(
                 dfs,
                 filter_columns=["Category", "Subcategory", "Variable", "Measure"],
                 key_prefix=f"results{var_i+1}",
-                header=f"#### Select Variable {var_i + 1}: "
+                header=f"#### Variable {var_i + 1} "
             )
         ))
     }
     return results_dict
+
 
 def compare_tab(data_dict):
     label_prefixs = ["Base", "Comparison"]
@@ -133,17 +145,19 @@ def compare_tab(data_dict):
         var_name, dataset_name = key.rsplit(':', 1)
         grouped[var_name][f"{dataset_name}"] = df
 
-
     ## run plots
     plotting_dict = {
         "Jurisdiction Barplot" : grouped_barplot_by_jurisdiction,
         "County Barplot" : barplot_by_county,
+        "County Boxplot" : boxplot_by_county, # NOTE: Only is meaningful when datasets are at the county level
     }
 
+    st.divider()
     st.subheader("Plotting")
-    plots = st.multiselect("Select which plots to show", options=plotting_dict.keys())
+    plots = st.pills("Select which plots to show", options=plotting_dict.keys(), selection_mode="multi", label_visibility="collapsed")
     for plot in plots:
         plotting_dict[plot](grouped, label_prefixs)
+
 
 def barplot_by_county(grouped, label_prefixs):
     for var_name, datasets in grouped.items():
@@ -158,17 +172,19 @@ def barplot_by_county(grouped, label_prefixs):
         totals_df = pd.DataFrame(totals)
 
         st.markdown(f"#### {var_name}")
-        st.altair_chart(
-            alt.Chart(totals_df)
-            .mark_bar()
-            .encode(
-                x=alt.X("Dataset:N", title="Dataset", axis=alt.Axis(labelAngle=-60)),
-                y=alt.Y("Total:Q", title="Value"),
-                color="Dataset:N"
+        
+        with chart_container(totals_df):
+            st.altair_chart(
+                alt.Chart(totals_df)
+                .mark_bar()
+                .encode(
+                    x=alt.X("Dataset:N", title="Dataset", axis=alt.Axis(labelAngle=-60)),
+                    y=alt.Y("Total:Q", title="Value"),
+                    color="Dataset:N"
+                )
+                .properties(height=300),
+                use_container_width=True
             )
-            .properties(height=300),
-            use_container_width=True
-        )
 
 
 def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
@@ -187,13 +203,55 @@ def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
 
         merged_long = merged.reset_index(drop=True).melt(id_vars="Jurisdiction", var_name="Dataset", value_name="Value")
 
+        st.markdown(f"#### {var_name}")
+        
+        c1,_, _, _, _ = st.columns(5)
+        
+        with c1:
+            sort = sort_bar_chart(merged_long)
+
         chart = alt.Chart(merged_long).mark_bar().encode(
-            x=alt.X("Jurisdiction", title="Jurisdiction", axis=alt.Axis(labelAngle=-90)), ## this is just flat; not sure the best angle
-            y="Value",
+            x=alt.X("Jurisdiction", title="Jurisdiction", axis=alt.Axis(labelAngle=-90), sort=sort), ## this is just flat; not sure the best angle
+            y=alt.Y("Value"),
             color='Dataset',
             tooltip=['Jurisdiction', 'Dataset', 'Value'],
             xOffset='Dataset:N'
         ).properties(width=700, height=400)
+        
+        with chart_container(merged_long):
+            st.altair_chart(chart)
 
+
+def boxplot_by_county(grouped, label_prefixs):
+    # For each variable, ensure there are two datasets
+    for var_name, datasets in grouped.items():
+        if len(datasets) != 2:
+            continue
+        
+        # Get a list of the two dataset values
+        dfs = list(datasets.values())
+
+        # Merge the two datasets on County (including the datasets prefix)
+        merged = pd.merge(
+            dfs[0][["County", "Value"]].rename(columns={"Value": f"{label_prefixs[0]}"}),
+            dfs[1][["County", "Value"]].rename(columns={"Value": f"{label_prefixs[1]}"}),
+            on="County",
+            how="outer"
+        )
+
+        # Melt into long format for plotting
+        merged_long = merged.reset_index(drop=True).melt(id_vars="County", var_name="Dataset", value_name="Value")
+        
+        # Create the comparison boxplot
+        boxplot = alt.Chart(merged_long).mark_boxplot().encode(
+            x="Value",
+            y=alt.Y("County", title=None, axis=alt.Axis(labelAngle=0)),
+            color='Dataset',
+            tooltip=['County', 'Dataset', 'Value']
+        ).configure_boxplot(size=100).properties(width=700, height=400)
+
+        # Display the plot
         st.markdown(f"#### {var_name}")
-        st.altair_chart(chart)
+        with chart_container(merged_long.dropna()):
+            st.altair_chart(boxplot)
+

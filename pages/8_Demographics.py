@@ -22,7 +22,7 @@ def load_2023_demographics():
 def render_demographics():
     # Page header
     st.header("Demographics", divider="grey")   
-    mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
+    mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Report", "Compare"])
 
     demographics_gdf_2023 = load_2023_demographics()
     tidy_2023 = rename_and_merge_census_cols(demographics_gdf_2023)
@@ -30,9 +30,9 @@ def render_demographics():
     with mapping:
         mapping_tab(data=tidy_2023)
 
-    ## Census Snapshot section (Housing) ##
+    # Demographic Report
     with snapshot:
-        st.subheader("Demographic Snapshot")
+        st.subheader("Demographic Report")
 
     with compare:
         data_dict = {

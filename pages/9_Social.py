@@ -21,7 +21,7 @@ def load_2023_social():
 def render_social():
     # Page header
     st.header("Social", divider="grey")
-    mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
+    mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Report", "Compare"])
 
     social_gdf_2023 = load_2023_social()
     tidy_2023 = rename_and_merge_census_cols(social_gdf_2023)
@@ -30,9 +30,9 @@ def render_social():
         mapping_tab(data=tidy_2023)
         
 
-    # Social Snapshot
+    # Social Report
     with snapshot:
-        st.subheader("Social Snapshot")
+        st.subheader("Social Report")
 
     with compare:
         data_dict = {

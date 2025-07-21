@@ -26,7 +26,7 @@ def census_economics_page():
     # Page header
     st.header("Economics", divider="grey")
 
-    mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
+    mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Report", "Compare"])
 
     econ_gdf_2023 = load_2023_economics()
     tidy_2023 = rename_and_merge_census_cols(econ_gdf_2023)
@@ -34,9 +34,9 @@ def census_economics_page():
     with mapping:
         mapping_tab(tidy_2023)
 
-    ## Economic Snapshot
+    ## Economic Report
     with snapshot:
-        st.subheader("Economic Snapshot")
+        st.subheader("Economic Report")
         st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP03: Selected Economic Characteristics - " \
         "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
         "Retrieved from https://data.census.gov/")

@@ -42,7 +42,7 @@ def census_housing():
 def census_housing_page():
     # Page title and tabs
     st.header("Housing", divider="grey")
-    mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
+    mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Report", "Compare"])
 
     # Define and load the datasets
     housing_gdf_2023, housing_gdf_2013, med_val_df, med_smoc_df, tidy_2023 = census_housing()
@@ -56,9 +56,9 @@ def census_housing_page():
     with mapping:
         mapping_tab(tidy_2023, )
     
-    # Housing Snapshot
+    # Housing Report
     with snapshot:
-        st.subheader("Housing Snapshot")
+        st.subheader("Housing Report")
         # Include a source for the dataset (Census DP04 2023 5-year estimates)
         st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP04: Selected Housing Characteristics - " \
         "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \

@@ -844,3 +844,29 @@ def group_by_plot(df, num_op, num_var, grp_by):
     # Return the aggregated DataFrame and the corresponsing bar chart
     return df_grouped, grouped_chart
 
+
+def sort_bar_chart(df):
+    """
+    Sorts the bar chart based on the selected sort option.
+
+    @param df: A pandas DataFrame object.
+    @param chart: The Altair bar chart to be sorted.
+    @param sort_option: The selected sort option ("None", "Ascending", or "Descending").
+    @return: The sorted Altair bar chart.
+    """
+    
+    # Use a select box to sort the plot (Defualt, Ascending, or Descending)
+    sort_option = st.selectbox(
+        label = "Select a sort option",
+        options=["None", "Ascending", "Descending"],
+        index=0)
+    
+    # Change the sort variable based on the sorting selection
+    if sort_option == "Ascending":
+        sort = 'y'
+    elif sort_option == "Descending":
+        sort = '-y' 
+    else:
+        sort = list(df[df.columns[0]])
+    
+    return sort
