@@ -105,7 +105,7 @@ def get_sets_and_filter(data_dict, label_prefixs, drop_cols=["GEOID", "geometry"
     """
     st.subheader("Select Datasets and Variables")
 
-    # Dataset selection (left = base, right = comparison)
+    # Dataset selection (left = base, right = comparison)u
     dfs = [
         select_dataset(col, data_dict, label_prefix=label).drop(columns=drop_cols)
         for col, label in zip(st.columns(2), label_prefixs)
@@ -160,6 +160,7 @@ def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Cat
     plotting_dict = {
         "Jurisdiction Barplot" : grouped_barplot_by_jurisdiction,
         "County Barplot" : barplot_by_county,
+        "County Boxplot" : boxplot_by_county,
     }
 
     st.divider()
@@ -218,3 +219,31 @@ def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
         ).properties(width=700, height=400)
 
         plot_container(merged_long, chart)
+
+
+def boxplot_by_county(grouped, label_prefixs):
+    for var_name, datasets in grouped.items():
+        if len(datasets) != 2:
+            continue
+
+        dfs = list(datasets.values())
+        merged = pd.merge(
+            dfs[0][["County", "Value"]].rename(columns={"Value": f"{label_prefixs[0]}"}),
+            dfs[1][["County", "Value"]].rename(columns={"Value": f"{label_prefixs[1]}"}),
+            on="County",
+            how="outer"
+        )
+
+        merged_long = merged.reset_index(drop=True).melt(id_vars="County", var_name="Dataset", value_name="Value")
+
+        st.markdown(f"#### {var_name}")
+
+        chart = alt.Chart(merged_long).mark_boxplot().encode(
+            x=alt.X("Value:Q", title="Value"),
+            y=alt.Y("County:N", title="County", axis=alt.Axis(labelAngle=-90), sort=None),
+            color=alt.Color("Dataset:N", scale=alt.Scale(domain=["Base", "Comparison"], range=["#1f77b4", "#ff7f0e"]))
+        ).configure_boxplot(size=100).properties(width=700, height=400)
+
+        plot_container(merged_long.dropna(), chart)
+
+
