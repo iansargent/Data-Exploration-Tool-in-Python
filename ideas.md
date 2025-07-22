@@ -9,8 +9,9 @@
         --ooh, I like this. -FJK
 
 ### Zoning Page
-- [ ] Separate mapping, area stats, and law comparisons into three separate tabs
-- [ ] Do not load the zoning dataset until geographic filters are selected (to speed up map rendering time)
+- [X] Separate mapping, area stats, and law comparisons into three separate tabs
+- [X] Do not load the zoning dataset until geographic filters are selected (to speed up map rendering time)
+- [ ] Find better way for district selection for comparison (Get rid of Aggrid Select Table)
 
 
 ## Coding Improvements and refafctoring
