@@ -162,8 +162,14 @@ def zoning_geography(zoning_gdf):
 
         district_opts = sorted(district_filter["District Name"].dropna().unique())
         districts = st.multiselect("**District(s)**", ["All Districts"] + district_opts, default=["All Districts"])
+        
+        if jurisdiction == "All Jurisdictions" and county == "All Counties" and "All Districts" in districts:
+            refined = False
+        else:
+            refined = True
 
-        return county, jurisdiction, districts
+
+        return county, jurisdiction, districts, refined
 
 
 def filtered_zoning_df(zoning_gdf):
@@ -175,13 +181,20 @@ def filtered_zoning_df(zoning_gdf):
     from streamlit_extras.dataframe_explorer import dataframe_explorer
 
     # Define the filtered geography
-    county, jurisdiction, districts = zoning_geography(zoning_gdf)
+    county, jurisdiction, districts, refined = zoning_geography(zoning_gdf)
+
+    if not refined:
+        return gpd.GeoDataFrame()
+    
     # Apply all filters
     filtered_gdf = filter_zoning_data(zoning_gdf, county, jurisdiction, districts)
 
     if filtered_gdf.empty:
         st.warning("No districts match your filters.")
         return gpd.GeoDataFrame()
+
+    if county == "All Counties" and jurisdiction == "All Jurisdictions" and "All Districts" in districts:
+        st.warning("Refine your filters to see zoning districts to see the map.")
 
     # Allow user filtering via dataframe_explorer
     filtered_pd = dataframe_explorer(filtered_gdf, case=False)
