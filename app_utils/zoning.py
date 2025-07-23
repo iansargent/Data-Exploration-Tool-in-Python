@@ -38,45 +38,26 @@ def zoning_district_map(filtered_geojson, filtered_gdf_map):
     return map
 
 
-def selection_table(gdf):
+def district_comparison(filtered_gdf):
     """
     Displays an interactive AgGrid table and returns selected rows.
 
     @param gdf: A GeoDataFrame.
     @return: The selected rows in the AgGrid Table.
     """
-    from st_aggrid import AgGrid, ColumnsAutoSizeMode, GridOptionsBuilder, GridUpdateMode
     
-    df = gdf.copy()
+    df = filtered_gdf.copy()
     if "geometry" in df.columns:
         df = df.drop(columns=["geometry"])
 
-    first_cols = ["OBJECTID", "Jurisdiction District Name", "Abbreviated District Name", "County"]
-    remaining_cols = [col for col in df.columns if col not in first_cols]
-    df = df[first_cols + remaining_cols].sort_values(by="Jurisdiction District Name")
+    districts = st.multiselect(
+        label="Select Districts to Compare",
+        options=sorted(df["Jurisdiction District Name"].dropna().unique()))
 
-    gb = GridOptionsBuilder.from_dataframe(df)
-    gb.configure_selection(selection_mode="multiple", use_checkbox=True)
-    grid_options = gb.build()
-
-    grid_height = 40 * (len(df) + 1.45)
-    grid_height = min(grid_height, 600)
-
-    grid_response = AgGrid(
-        df,
-        theme="material",
-        gridOptions=grid_options,
-        update_mode=GridUpdateMode.SELECTION_CHANGED,
-        columns_auto_size_mode=ColumnsAutoSizeMode.FIT_CONTENTS,
-        height=grid_height
-    )
-    
-    selected_rows = grid_response.get("selected_rows", [])
-
-    return selected_rows
+    return districts
 
 
-def zoning_comparison_table(selected_rows):
+def zoning_comparison_table(filtered_gdf, selected_districts):
     """
     Takes selected rows from AgGrid, creates a comparison table, and displays it.
 
@@ -87,23 +68,19 @@ def zoning_comparison_table(selected_rows):
     from functools import reduce
     from streamlit_extras.dataframe_explorer import dataframe_explorer
 
-    if len(selected_rows) == 0:
+    if len(selected_districts) == 0:
         return
 
-    selected_df = pd.DataFrame(selected_rows)
+    filtered_gdf = filtered_gdf[filtered_gdf["Jurisdiction District Name"].isin(selected_districts)]
+    
     dfs = []
-
-    for _, row in selected_df.iterrows():
+    for _, row in filtered_gdf.iterrows():
         district_name = row.get("Jurisdiction District Name", "District")
         df_long = pd.DataFrame(row).reset_index()
         df_long.columns = ["Variable", district_name]
         dfs.append(df_long)
 
     combined_df = reduce(lambda left, right: pd.merge(left, right, on="Variable", how="outer"), dfs)
-    # # If you wanted to sort with empty rows at the bottom
-    # combined_df_sorted = combined_df.copy()
-    # combined_df_sorted["na_count"] = combined_df_sorted.isna().sum(axis=1)
-    # combined_df_sorted = combined_df_sorted.sort_values("na_count").drop(columns="na_count")
 
     st.subheader("District Comparisons")
     filtered_combined_df_sorted = dataframe_explorer(combined_df, case=False)
@@ -183,8 +160,6 @@ def filtered_zoning_df(zoning_gdf):
     # Define the filtered geography
     county, jurisdiction, districts, refined = zoning_geography(zoning_gdf)
 
-    if not refined:
-        return gpd.GeoDataFrame()
     
     # Apply all filters
     filtered_gdf = filter_zoning_data(zoning_gdf, county, jurisdiction, districts)
@@ -192,9 +167,6 @@ def filtered_zoning_df(zoning_gdf):
     if filtered_gdf.empty:
         st.warning("No districts match your filters.")
         return gpd.GeoDataFrame()
-
-    if county == "All Counties" and jurisdiction == "All Jurisdictions" and "All Districts" in districts:
-        st.warning("Refine your filters to see zoning districts to see the map.")
 
     # Allow user filtering via dataframe_explorer
     filtered_pd = dataframe_explorer(filtered_gdf, case=False)
@@ -205,5 +177,5 @@ def filtered_zoning_df(zoning_gdf):
         geometry=zoning_gdf.loc[filtered_pd.index, "geometry"],
         crs=zoning_gdf.crs)
 
-    return filtered_gdf
+    return filtered_gdf, refined
 

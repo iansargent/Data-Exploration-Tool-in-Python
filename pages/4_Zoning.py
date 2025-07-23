@@ -12,7 +12,7 @@ import altair as alt
 import geopandas as gpd
 import json
 from streamlit_extras.metric_cards import style_metric_cards 
-from app_utils.zoning import filtered_zoning_df, selection_table, zoning_comparison_table, zoning_district_map
+from app_utils.zoning import filtered_zoning_df, district_comparison, zoning_comparison_table, zoning_district_map
 
 
 @st.cache_data
@@ -45,15 +45,14 @@ def zoning():
     st.header("Zoning")
     # Load the zoning data from GitHub and filter it
     zoning_gdf = load_zoning_data()
-    filtered_gdf = filtered_zoning_df(zoning_gdf)
-
-    if filtered_gdf.empty:
-        st.warning("Please refine your filters to see zoning districts.")
-        return
+    filtered_gdf, refined = filtered_zoning_df(zoning_gdf)
     
     mapping, report, compare = st.tabs(["Map", "Report", "Compare"])
     
     with mapping:
+
+        if not refined:
+            st.warning("Please refine your search criteria to map zoning districts.")
         # Select only relevant columns to map
         filtered_gdf_map = filtered_gdf[["Jurisdiction District Name", "District Type", "geometry"]]
         filtered_gdf_map = filtered_gdf_map.to_crs(epsg=4326)
@@ -102,14 +101,11 @@ def zoning():
     # Selectable Table for comparisons
     with compare:
         st.subheader("Zoning Districts Table")
-        selected = selection_table(filtered_gdf)
-        
-        try:
-            # If a district(s) is selected from the table above, show the comparison table
-            if not selected.empty:
-                zoning_comparison_table(selected)
-        except:
-            st.warning(f"No Selected Districts to Compare")
+        districts = district_comparison(filtered_gdf)
+
+        # If a district(s) is selected from the table above, show the comparison table
+        if districts:
+            zoning_comparison_table(filtered_gdf, districts)
 
 
 def show_zoning():
