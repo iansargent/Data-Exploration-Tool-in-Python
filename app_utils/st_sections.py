@@ -80,19 +80,20 @@ def mapping_tab(data):
 def select_dataset(col, data_dict, label_prefix):
     """
     Helper func for the comparison tab to select two different datasets to compare. 
-    """
+    """    
     label_color = "blue" if label_prefix == "Base" else "orange"
-    select_val = col.selectbox(f"Select :{label_color}[**{label_prefix} Dataset**]", data_dict.keys())
-    df = data_dict.get(select_val)
-    select_col = col.selectbox("Select **County**", df['County'].unique(), key=f"{label_prefix}_select_col")
-    df = df[df['County'] == select_col].copy()
+    select_dataset = col.selectbox(f"Select :{label_color}[**{label_prefix} Dataset**]", data_dict.keys())
+    df = data_dict.get(select_dataset)
+    select_county = col.selectbox("Select **County**", df['County'].unique(), key=f"{label_prefix}_select_col")
+    df = df[df['County'] == select_county].copy()
     select_juridisdictions = col.multiselect(
         "Select **Towns**", 
         options=sorted(list(df['Jurisdiction'].unique())+["All"]), 
         default="All", key=f"{label_prefix}_select_jur"
         )
-    select_juridisdictions = select_juridisdictions if "All" not in select_juridisdictions else list(df['Jurisdiction'].unique())
-    df = df[df['Jurisdiction'].isin(select_juridisdictions)]
+    select_juridisdictions_df = select_juridisdictions if "All" not in select_juridisdictions else list(df['Jurisdiction'].unique())
+    df = df[df['Jurisdiction'].isin(select_juridisdictions_df)]
+        
     return df
 
 
@@ -112,27 +113,14 @@ def get_sets_and_filter(data_dict, label_prefixs, drop_cols=["GEOID", "geometry"
     ]
 
     # Initialize a session state
-    if "var_count" not in st.session_state:
-        st.session_state.var_count = 1
-
-    # Button row (above variable filters)
-    st.markdown("\2")
-    _, col1, col2, _ = st.columns([2, 1, 1, 2])
-    max_variables = 5
-    with col1:
-        add_clicked = st.button("➕Add Variable", disabled=st.session_state.var_count >= max_variables)
-    with col2:
-        remove_clicked = st.button("－Remove Variable", disabled=st.session_state.var_count <= 1)
-
-    # Update variable count AFTER buttons render (avoids Streamlit rerun issues)
-    if add_clicked:
-        st.session_state.var_count += 1
-    if remove_clicked:
-        st.session_state.var_count -= 1
+    if "comparison_var_count" not in st.session_state:
+        st.session_state.comparison_var_count = 1
+    
+    st.session_state.comparison_var_count = add_remove_compare_variables(st.session_state.comparison_var_count)
 
     # Render variable selectors
     results_dict = {}
-    for var_i in range(st.session_state.var_count):
+    for var_i in range(st.session_state.comparison_var_count):
         filtered = ensure_list(filter_dataframe(
             dfs,
             filter_columns=filter_columns,
@@ -247,3 +235,23 @@ def boxplot_by_county(grouped, label_prefixs):
         plot_container(merged_long.dropna(), chart)
 
 
+def add_remove_compare_variables(comparison_var_count):
+    """
+    Adds and removes comparison variables from the comparison page.
+    """
+
+    # Button row (above variable filters)
+    st.markdown("\2")
+    _, col1, col2, _ = st.columns([2, 1, 1, 2])
+    with col1:
+        add_clicked = st.button(label="Add Variable", key="add_btn", disabled=comparison_var_count == 5)
+    with col2:
+        remove_clicked = st.button(label="Remove Variable", key="remove_btn", disabled=comparison_var_count == 1)
+
+    # Update variable count AFTER buttons render (avoids Streamlit rerun issues)
+    if add_clicked:
+        comparison_var_count += 1
+    if remove_clicked:
+        comparison_var_count -= 1
+
+    return comparison_var_count
