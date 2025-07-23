@@ -8,7 +8,7 @@ from streamlit_rendering import filter_dataframe, ensure_list
 from collections import defaultdict
 import altair as alt
 import pandas as pd
-from app_utils.plot import sort_select
+from app_utils.plot import plot_container
 
 
 def mapping_tab(data): 
@@ -76,6 +76,7 @@ def mapping_tab(data):
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
         tooltip={"text": "{Jurisdiction}: {Value}"}), height=550)
 
+
 def select_dataset(col, data_dict, label_prefix):
     """
     Helper func for the comparison tab to select two different datasets to compare. 
@@ -98,33 +99,52 @@ def select_dataset(col, data_dict, label_prefix):
 def get_sets_and_filter(data_dict, label_prefixs, drop_cols=["GEOID", "geometry"], filter_columns=["Category", "Subcategory", "Variable", "Measure"]):
     """
     Function to let the user:
-        select datasets, county, and towns to compare
-        select number of variables to filter
-        filter dataframes as they select those variables
-
+        - select datasets, county, and towns to compare
+        - click buttons to add or remove variables
     Returns a dictionary where keys are complicated format strings and values are filtered dataframes (2 for each var)
     """
     st.subheader("Select Datasets and Variables")
+
+    # Dataset selection (left = base, right = comparison)u
     dfs = [
         select_dataset(col, data_dict, label_prefix=label).drop(columns=drop_cols)
         for col, label in zip(st.columns(2), label_prefixs)
     ]
-    st.markdown("### Select Number of Variables")
-    var_count = st.slider("Select number of variables", 1, 5, 1, label_visibility="collapsed")
-    
-    results_dict = {
-        f"**Variable {var_i+1}**: {' | '.join(selected.values())} : **{label_prefixs[df_idx]} Dataset**": df
-        for var_i in range(var_count)
-        for df_idx, (df, selected) in enumerate(ensure_list(
-            filter_dataframe(
-                dfs,
-                filter_columns=filter_columns,
-                key_prefix=f"results{var_i+1}",
-                header=f"#### Select Variable {var_i + 1}: "
-            )
+
+    # Initialize a session state
+    if "var_count" not in st.session_state:
+        st.session_state.var_count = 1
+
+    # Button row (above variable filters)
+    st.markdown("\2")
+    _, col1, col2, _ = st.columns([2, 1, 1, 2])
+    max_variables = 5
+    with col1:
+        add_clicked = st.button("➕Add Variable", disabled=st.session_state.var_count >= max_variables)
+    with col2:
+        remove_clicked = st.button("－Remove Variable", disabled=st.session_state.var_count <= 1)
+
+    # Update variable count AFTER buttons render (avoids Streamlit rerun issues)
+    if add_clicked:
+        st.session_state.var_count += 1
+    if remove_clicked:
+        st.session_state.var_count -= 1
+
+    # Render variable selectors
+    results_dict = {}
+    for var_i in range(st.session_state.var_count):
+        filtered = ensure_list(filter_dataframe(
+            dfs,
+            filter_columns=filter_columns,
+            key_prefix=f"results{var_i + 1}",
+            header=f"#### Variable {var_i + 1}"
         ))
-    }
+        for df_idx, (df, selected) in enumerate(filtered):
+            key=f"**Variable {var_i + 1}**: {' | '.join(selected.values())} : **{label_prefixs[df_idx]} Dataset**"
+            results_dict[key] = df
+
     return results_dict
+
 
 def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Category", "Subcategory", "Variable", "Measure"]):
     label_prefixs = ["Base", "Comparison"]
@@ -136,16 +156,19 @@ def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Cat
         grouped[var_name][f"{dataset_name}"] = df
 
 
-    ## run plots
+    # Run plots
     plotting_dict = {
         "Jurisdiction Barplot" : grouped_barplot_by_jurisdiction,
         "County Barplot" : barplot_by_county,
+        "County Boxplot" : boxplot_by_county,
     }
 
+    st.divider()
     st.subheader("Plotting")
     plots = st.multiselect("Select which plots to show", options=plotting_dict.keys())
     for plot in plots:
         plotting_dict[plot](grouped, label_prefixs)
+
 
 def barplot_by_county(grouped, label_prefixs):
     for var_name, datasets in grouped.items():
@@ -160,12 +183,13 @@ def barplot_by_county(grouped, label_prefixs):
         totals_df = pd.DataFrame(totals)
 
         st.markdown(f"#### {var_name}")
-        st.altair_chart(
-            alt.Chart(totals_df).mark_bar().encode(
+        chart = alt.Chart(totals_df).mark_bar().encode(
                 x=alt.X("Dataset:N", title="Dataset", axis=alt.Axis(labelAngle=0)),
                 y=alt.Y("Total:Q", title="Value"),
                 color=alt.Color("Dataset:N", scale=alt.Scale(domain=["Base", "Comparison"], range=["#1f77b4", "#ff7f0e"]))
-            ).properties(height=300), use_container_width=True)
+            ).properties(height=300)
+        
+        plot_container(totals_df, chart)
 
 
 def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
@@ -194,4 +218,32 @@ def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
             xOffset='Dataset:N'
         ).properties(width=700, height=400)
 
-        st.altair_chart(chart)
+        plot_container(merged_long, chart)
+
+
+def boxplot_by_county(grouped, label_prefixs):
+    for var_name, datasets in grouped.items():
+        if len(datasets) != 2:
+            continue
+
+        dfs = list(datasets.values())
+        merged = pd.merge(
+            dfs[0][["County", "Value"]].rename(columns={"Value": f"{label_prefixs[0]}"}),
+            dfs[1][["County", "Value"]].rename(columns={"Value": f"{label_prefixs[1]}"}),
+            on="County",
+            how="outer"
+        )
+
+        merged_long = merged.reset_index(drop=True).melt(id_vars="County", var_name="Dataset", value_name="Value")
+
+        st.markdown(f"#### {var_name}")
+
+        chart = alt.Chart(merged_long).mark_boxplot().encode(
+            x=alt.X("Value:Q", title="Value"),
+            y=alt.Y("County:N", title="County", axis=alt.Axis(labelAngle=-90), sort=None),
+            color=alt.Color("Dataset:N", scale=alt.Scale(domain=["Base", "Comparison"], range=["#1f77b4", "#ff7f0e"]))
+        ).configure_boxplot(size=100).properties(width=700, height=400)
+
+        plot_container(merged_long.dropna(), chart)
+
+

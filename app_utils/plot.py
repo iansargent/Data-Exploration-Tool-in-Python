@@ -863,3 +863,43 @@ def sort_select():
         sort = None
 
     return sort 
+
+
+def plot_container(df, altiar_chart):
+    """
+    Display a tabbed container housing a chart and a table with an Excel/csv download option.
+    """
+    import io
+    from datetime import datetime
+    # Create a tabbed container 
+    with st.container():
+        tab1, tab2 = st.tabs(["Visualize", "Table"])
+
+        with tab1:
+            # Display the Altair chart
+            st.altair_chart(altiar_chart, use_container_width=True)
+        with tab2:
+            # Display the DataFrame table
+            st.dataframe(df, hide_index=True, use_container_width=True)
+
+            # Excel download option
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
+            
+            c1, c2, _ = st.columns([1, 1, 12])
+            
+            # Download Buttons
+            c1.download_button(
+                label="Excel",
+                data=(lambda buf=io.BytesIO(): (df.to_excel(buf, index=False, engine="openpyxl"), buf.seek(0), buf)[2])(),
+                file_name=f"table_{timestamp}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"download_excel_{timestamp}")
+            
+            c2.download_button(
+                label="CSV",
+                data=df.to_csv(index=False).encode('utf-8'),
+                file_name=f"table_{timestamp}.csv",
+                key=f"download_csv_{timestamp}"
+            )
+                
+        
