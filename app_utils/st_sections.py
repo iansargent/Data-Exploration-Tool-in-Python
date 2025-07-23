@@ -82,17 +82,18 @@ def select_dataset(col, data_dict, label_prefix):
     Helper func for the comparison tab to select two different datasets to compare. 
     """    
     label_color = "blue" if label_prefix == "Base" else "orange"
-    select_val = col.selectbox(f"Select :{label_color}[**{label_prefix} Dataset**]", data_dict.keys())
-    df = data_dict.get(select_val)
-    select_col = col.selectbox("Select **County**", df['County'].unique(), key=f"{label_prefix}_select_col")
-    df = df[df['County'] == select_col].copy()
+    select_dataset = col.selectbox(f"Select :{label_color}[**{label_prefix} Dataset**]", data_dict.keys())
+    df = data_dict.get(select_dataset)
+    select_county = col.selectbox("Select **County**", df['County'].unique(), key=f"{label_prefix}_select_col")
+    df = df[df['County'] == select_county].copy()
     select_juridisdictions = col.multiselect(
         "Select **Towns**", 
         options=sorted(list(df['Jurisdiction'].unique())+["All"]), 
         default="All", key=f"{label_prefix}_select_jur"
         )
-    select_juridisdictions = select_juridisdictions if "All" not in select_juridisdictions else list(df['Jurisdiction'].unique())
-    df = df[df['Jurisdiction'].isin(select_juridisdictions)]
+    select_juridisdictions_df = select_juridisdictions if "All" not in select_juridisdictions else list(df['Jurisdiction'].unique())
+    df = df[df['Jurisdiction'].isin(select_juridisdictions_df)]
+        
     return df
 
 
@@ -232,7 +233,6 @@ def boxplot_by_county(grouped, label_prefixs):
         ).configure_boxplot(size=100).properties(width=700, height=400)
 
         plot_container(merged_long.dropna(), chart)
-
 
 
 def add_remove_compare_variables(comparison_var_count):
