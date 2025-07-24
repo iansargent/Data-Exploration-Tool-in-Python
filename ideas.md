@@ -11,7 +11,7 @@
 ### Zoning Page
 - [X] Separate mapping, area stats, and law comparisons into three separate tabs
 - [X] Do not load the zoning dataset until geographic filters are selected (to speed up map rendering time)
-- [ ] Find better way for district selection for comparison (Get rid of Aggrid Select Table)
+- [X] Find better way for district selection for comparison (Get rid of Aggrid Select Table)
 
 ### Budgeting Data
 - [ ] Decide if we need data upload feature
