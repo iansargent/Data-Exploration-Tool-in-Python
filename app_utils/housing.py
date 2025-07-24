@@ -393,12 +393,7 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
     filtered_gdf_pop = pd.merge(left=filtered_gdf, right=pop_df, how="left", left_on="GEOID", right_on="_geoid")
     
     # For the plot title, dynamically change the area of interest based on user filter selections
-    if county == "All Counties" and jurisdiction == "All Jurisdictions":
-        title_geo = "Vermont (Statewide)"
-    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
-        title_geo = f"{county} County"
-    elif jurisdiction != "All Jurisdictions":
-        title_geo = f"{jurisdiction}"
+    title_geo = get_geography_title(county, jurisdiction)
     
     # Define a list of housing counts for each year range
     raw_housing_counts = [
@@ -450,7 +445,7 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
     base = alt.Chart(house_pop_plot_df).encode(
         x=alt.X('Year Range:N', title="Year", axis=alt.Axis(labelAngle=-45)),
         color=alt.Color('Metric:N', legend=alt.Legend(
-            title="", orient="top-left", direction='horizontal', offset=-38)),
+            title=None, orient="top-left", direction='horizontal', offset=-38)),
         tooltip=[alt.Tooltip('Metric'), alt.Tooltip('Value', title="Count", format=",")],
         opacity=alt.when(selection).then(alt.value(1)).otherwise(alt.value(0.2))
     ).add_params(selection)

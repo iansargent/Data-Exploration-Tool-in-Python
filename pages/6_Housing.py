@@ -54,7 +54,7 @@ def census_housing_page():
     # st.write(housing_gdf_2023.columns) debug
     ##  The map section ## 
     with mapping:
-        mapping_tab(tidy_2023, )
+        mapping_tab(tidy_2023)
     
     # Housing Snapshot
     with snapshot:
@@ -118,12 +118,13 @@ def census_housing_page():
                         statewide_avg_val_df, statewide_avg_smoc_df, compare_to)
         
     with compare:
-        data_dict = {
+        housing_dict = {
             "Housing 2023" : tidy_2023,
             "Housing 2013" : rename_and_merge_census_cols(housing_gdf_2013)
         }
-        compare_tab(data_dict)
-        
+        compare_tab(housing_dict)
+
+
 def show_housing():
     # Display the page
     census_housing_page()

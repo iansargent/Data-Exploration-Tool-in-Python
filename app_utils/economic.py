@@ -9,14 +9,91 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from streamlit_extras.metric_cards import style_metric_cards 
-from app_utils.census import get_geography_title
+from app_utils.census import get_geography_title, split_name_col
 
 
+@st.cache_data
+def load_unemployment_df():
+    import requests
+    import io
+    unemployment_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/unemployment_rate_by_year.csv"
+    response = requests.get(unemployment_url, verify=False)
+    unemployment_df = pd.read_csv(io.StringIO(response.text))
+    unemployment_df = split_name_col(unemployment_df)
+    # Convert the 'year' column to an object type for proper plotting
+    unemployment_df['year'] = unemployment_df['year'].astype(str)
+
+    return unemployment_df
+
+
+def unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo):
+    """
+    Create a time series plot of the unemployment rate for the selected geography 
+    using a time slider to select the year range.
+    """
+    unemployment_df = unemployment_df.copy()
+    unemployment_df["Unemployment_Rate"] = unemployment_df["Unemployment_Rate"] / 100
+    
+    # Filter data based on selection
+    if county == "All Counties" and jurisdiction == "All Jurisdictions":
+        filtered_unemployment_df = unemployment_df.copy()
+        title_geo = "Statewide"
+    else:
+        filtered_unemployment_df = unemployment_df.copy()
+        if county != "All Counties":
+            filtered_unemployment_df = filtered_unemployment_df[filtered_unemployment_df["County"] == county]
+        if jurisdiction != "All Jurisdictions":
+            filtered_unemployment_df = filtered_unemployment_df[filtered_unemployment_df["Jurisdiction"] == jurisdiction]
+
+    plot_df = filtered_unemployment_df.groupby("year").agg(Unemployment_Rate=("Unemployment_Rate", "mean")).reset_index()
+    plot_df["Geography"] = title_geo
+    statewide_avg_df = unemployment_df.groupby("year").agg(Unemployment_Rate=("Unemployment_Rate", "mean")).reset_index().assign(Geography="Statewide Average")
+
+    # If we’re statewide only, skip adding the comparison line
+    if title_geo != "Vermont (Statewide)":
+        plot_df = pd.concat([plot_df, statewide_avg_df], ignore_index=True)
+
+    if len(plot_df[plot_df["Geography"] != "Statewide Average"]) <= 1:
+        st.warning("Not enough unemployment data available for the selected geography.")
+        return None
+    
+    ymax = plot_df["Unemployment_Rate"].max() + 0.01
+    ymin = plot_df["Unemployment_Rate"].min() - 0.01
+
+    # Create a time series plot of the unemployment rate
+    unemployment_ts = alt.Chart(plot_df).mark_line(point=True).encode(
+        x=alt.X("year:O", title="Year"),
+        y=alt.Y("Unemployment_Rate:Q", title="Unemployment Rate (%)", 
+                axis=alt.Axis(format="%"),
+                scale=alt.Scale(domain=(ymin, ymax))),
+        color=alt.Color("Geography:O", title=None, scale=alt.Scale(
+            domain=["Statewide Average", title_geo],
+            range=["#83C299", "darkgreen"]),
+            legend=alt.Legend(orient="top-left", direction="horizontal", offset=-38)),
+        tooltip=[alt.Tooltip("year", title="Year"), 
+                 alt.Tooltip("Unemployment_Rate", title="Unemployment Rate (%)", format=".1%"),
+                 alt.Tooltip("Geography")]
+    ).properties(height=550, title=f"Unemployment Rate Over Time in {title_geo}"
+    ).configure_title(fontSize=19,offset=45).interactive()
+    
+    return unemployment_ts
+
+    
 def economic_snapshot(county, jurisdiction, economic_gdf_2023):    
+    # Get the title of the geography for plotting
     title_geo = get_geography_title(county, jurisdiction)
 
-    st.subheader("Employment")
+    # Employment Section
+    unemployment_df = load_unemployment_df()
+    unemployment_chart = unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo)
+    if unemployment_chart is None:
+        return
+    st.altair_chart(unemployment_chart)
     
+
+
+    
+    # Display the current unemployment rate
     unemployment_rate = economic_gdf_2023['DP03_0009PE'].mean()
     
     in_labor_force = economic_gdf_2023['DP03_0002E'].mean()

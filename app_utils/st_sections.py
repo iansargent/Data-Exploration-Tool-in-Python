@@ -104,18 +104,20 @@ def get_sets_and_filter(data_dict, label_prefixs, drop_cols=["GEOID", "geometry"
         - click buttons to add or remove variables
     Returns a dictionary where keys are complicated format strings and values are filtered dataframes (2 for each var)
     """
-    st.subheader("Select Datasets and Variables")
+    st.subheader("Select Datasets to Compare")
 
     # Dataset selection (left = base, right = comparison)u
-    dfs = [
-        select_dataset(col, data_dict, label_prefix=label).drop(columns=drop_cols)
-        for col, label in zip(st.columns(2), label_prefixs)
-    ]
+    with st.expander("Select Datasets and Variables", expanded=True):
+        dfs = [
+            select_dataset(col, data_dict, label_prefix=label).drop(columns=drop_cols)
+            for col, label in zip(st.columns(2), label_prefixs)
+        ]
 
     # Initialize a session state
     if "comparison_var_count" not in st.session_state:
         st.session_state.comparison_var_count = 1
     
+    st.subheader("Variables to Investigate")
     st.session_state.comparison_var_count = add_remove_compare_variables(st.session_state.comparison_var_count)
 
     # Render variable selectors
@@ -241,7 +243,6 @@ def add_remove_compare_variables(comparison_var_count):
     """
 
     # Button row (above variable filters)
-    st.markdown("\2")
     _, col1, col2, _ = st.columns([2, 1, 1, 2])
     with col1:
         add_clicked = st.button(label="Add Variable", key="add_btn", disabled=comparison_var_count == 5)

@@ -14,6 +14,7 @@ from app_utils.economic import economic_snapshot
 from app_utils.census import rename_and_merge_census_cols, load_census_data
 from app_utils.st_sections import mapping_tab, compare_tab
 
+
 @st.cache_data
 def load_2023_economics():
     return load_census_data(
@@ -71,17 +72,15 @@ def census_economics_page():
                 options = ["2013 Local Data (10-Year Change)", "2023 Vermont Statewide Averages"],
                 index=0)
 
-        # Read in VT historical population data on the census tract level
-        # Display the time series plot of population, housing units, and new housing units
         
         # Display formatted housing metrics vs statewide averages
         economic_snapshot(county, jurisdiction, filtered_gdf_2023)
 
     with compare:
-        data_dict = {
+        econ_dict = {
             "Economics 2023" : tidy_2023,
         }
-        compare_tab(data_dict)
+        compare_tab(econ_dict)
             
 def show_economics():
     # Display the page
