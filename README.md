@@ -83,10 +83,8 @@ This project is open-source under the **MIT License**.
 
 ## Credits
 
-- Created by Ian Sargent  
-- Developed under the Open Research Community Accelerator (ORCA) 
+- Developed by Ian Sargent and Fitzwilliam Keenan-Koch
+- Created under the Open Research Community Accelerator (ORCA) 
 - Built using Streamlit and Python
 
 ---
-
-### Enjoy & Have Fun Exploring!
