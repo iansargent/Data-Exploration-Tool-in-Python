@@ -27,7 +27,8 @@ def filter_dataframe(dfs, filter_columns, key_prefix="filter_dataframe", header=
         selected_value = cols1[i].selectbox(
             col_name,
             options=sorted(unique_values), 
-            key=keys[i]
+            key=keys[i],
+            index=0
         )
         selected_values[col_name] = selected_value
         dfs = [df[df[col_name] == selected_value] for df in dfs]

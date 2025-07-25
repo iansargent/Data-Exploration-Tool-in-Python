@@ -84,7 +84,7 @@ def select_dataset(col, data_dict, label_prefix):
     label_color = "blue" if label_prefix == "Base" else "orange"
     select_dataset = col.selectbox(f"Select :{label_color}[**{label_prefix} Dataset**]", data_dict.keys())
     df = data_dict.get(select_dataset)
-    select_county = col.selectbox("Select **County**", df['County'].unique(), key=f"{label_prefix}_select_col")
+    select_county = col.selectbox("Select **County**", sorted(df['County'].unique().tolist()), key=f"{label_prefix}_select_col")
     df = df[df['County'] == select_county].copy()
     select_juridisdictions = col.multiselect(
         "Select **Towns**", 
@@ -107,7 +107,7 @@ def get_sets_and_filter(data_dict, label_prefixs, drop_cols=["GEOID", "geometry"
     st.subheader("Select Datasets to Compare")
 
     # Dataset selection (left = base, right = comparison)u
-    with st.expander("Select Datasets and Variables", expanded=True):
+    with st.expander("**Filter Datasets**", expanded=True):
         dfs = [
             select_dataset(col, data_dict, label_prefix=label).drop(columns=drop_cols)
             for col, label in zip(st.columns(2), label_prefixs)
@@ -154,7 +154,7 @@ def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Cat
     }
 
     st.divider()
-    st.subheader("Plotting")
+    st.subheader("Results")
     plots = st.multiselect("Select which plots to show", options=plotting_dict.keys())
     for plot in plots:
         plotting_dict[plot](grouped, label_prefixs)
