@@ -15,6 +15,7 @@ import io
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.colorbar import ColorbarBase
+import matplotlib.cm as cm
 
 
 def get_colornorm_stats(df, cutoff_scalar):
@@ -121,3 +122,31 @@ def hex_to_rgb255(hex_color):
     return [int(255 * c) for c in rgb] + [180]
 
 
+def generate_geojson_colormap(df, column):
+    unique_keys = df[column].unique()
+    cmap = cm.get_cmap('tab20', len(unique_keys))
+    return {
+        key: [int(255 * c) for c in cmap(i)[:3]] + [180]  # RGBA
+        for i, key in enumerate(unique_keys)
+    }
+
+def geojson_add_fill_colors(filtered_geojson, df, column):
+    color_map = generate_geojson_colormap(df, column)
+    for feature in filtered_geojson["features"]:
+        district_type = feature["properties"].get(column)
+        feature["properties"]["fill_color"] = color_map.get(district_type, [150, 150, 150, 180]) ## default grey
+    return filtered_geojson, color_map
+
+def render_rgba_colormap_legend(color_map, title="Legend"):
+    st.markdown(f"### {title}")
+    for label, rgba in color_map.items():
+        rgb_str = f"rgb({rgba[0]}, {rgba[1]}, {rgba[2]})"
+        st.markdown(
+            f"""
+            <div style='display: flex; align-items: center; margin-bottom: 4px;'>
+                <div style='width: 16px; height: 16px; background-color: {rgb_str}; margin-right: 8px; border: 1px solid #aaa;'></div>
+                <div>{label}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )

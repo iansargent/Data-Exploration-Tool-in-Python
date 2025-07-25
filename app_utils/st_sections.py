@@ -4,7 +4,7 @@ from  matplotlib import colormaps
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pydeck as pdk
-from streamlit_rendering import filter_dataframe, ensure_list
+from app_utils.df_filtering import filter_dataframe, ensure_list
 from collections import defaultdict
 import altair as alt
 import pandas as pd
@@ -25,7 +25,8 @@ def mapping_tab(data):
     norm = colors.Normalize(vmin=vmin, vmax=vmax)
     cmap = cm.get_cmap("Reds")
 
-    style = st.pills("Outlier Handling:", options=["Jenk's Natural Breaks", "Yellow", "Holdout"], default="Jenk's Natural Breaks", label_visibility="collapsed")
+    # style = st.pills("Outlier Handling:", options=["Jenk's Natural Breaks", "Yellow", "Holdout"], default="Jenk's Natural Breaks", label_visibility="collapsed") # if you want options
+    style = "Jenk's Natural Breaks"
 
     if style == "Holdout":
         # Option One:  Outliers get the top 10% of the norm (same color, just gradation shifts)

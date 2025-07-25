@@ -23,7 +23,6 @@ def load_soil_septic(rpc):
     suit_response.raise_for_status()
     suit_gdf = gpd.read_file(BytesIO(suit_response.content))
     suit_gdf = suit_gdf.to_crs("EPSG:4326")
-
     return suit_gdf
     
 
