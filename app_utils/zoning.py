@@ -10,29 +10,36 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import io
+import pydeck as pdk
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 
 def zoning_district_map(filtered_geojson, filtered_gdf_map):
-    import pydeck as pdk
-    
+
     layer = pdk.Layer(
         "GeoJsonLayer",
         data=filtered_geojson,
-        get_fill_color=[95, 165, 231, 200],
+        get_fill_color="properties.fill_color",
         get_line_color=[80, 80, 80, 80],
         highlight_color=[222, 102, 0, 200],
         line_width_min_pixels=0.5,
         pickable=True,
-        auto_highlight=True)
+        auto_highlight=True,
+        )
 
     # Calculate the center and zoom level of the map
     bounds = filtered_gdf_map.total_bounds
     center_lon = (bounds[0] + bounds[2]) / 2
     center_lat = (bounds[1] + bounds[3]) / 2
-    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, min_zoom=6.5)
-   
+    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, min_zoom=6.5, zoom=10)
+
+    ## generate tooltip
+    tooltip={"html": "<b>District:</b> {Jurisdiction District Name} <br/> <b>Type:</b> {District Type}"}
+
     # Display the map to the page
-    map = pdk.Deck(layers=[layer], initial_view_state=view_state,
+    map = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip,
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json")
     
     return map

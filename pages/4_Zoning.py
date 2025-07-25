@@ -13,6 +13,8 @@ import geopandas as gpd
 import json
 from streamlit_extras.metric_cards import style_metric_cards 
 from app_utils.zoning import filtered_zoning_df, district_comparison, zoning_comparison_table, zoning_district_map
+from app_utils.df_filtering import filter_dataframe_multiselect
+from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
 
 
 @st.cache_data
@@ -45,25 +47,42 @@ def zoning():
     st.header("Zoning")
     # Load the zoning data from GitHub and filter it
     zoning_gdf = load_zoning_data()
-    filtered_gdf, refined = filtered_zoning_df(zoning_gdf)
+    # filtered_gdf, _ = filter_dataframe( dfs=zoning_gdf, filter_columns=['County', 'Jurisdiction', 'Jurisdiction District Name'], )
+    filtered_gdf, _ = filter_dataframe_multiselect(
+        dfs=zoning_gdf, filter_columns=['County', 'Jurisdiction', 'District Name'], 
+        presented_cols=['County', 'Jurisdiction', 'District'],
+        allow_all = {
+            "County": False,
+            "Jurisdiction": True,
+            "District Name": True
+        })
+    
+
+    ## Mapping Logic separated because we need colormap for all areas
+    # Select only relevant columns to map
+    filtered_gdf_map = filtered_gdf[["Jurisdiction District Name", "District Type", "geometry"]].copy()
+
+    if filtered_gdf_map.empty:
+        st.warning("No zoning data available for the selected filters.")
+        return
+    filtered_gdf_map = filtered_gdf_map.set_crs("EPSG:4326") if filtered_gdf_map.crs is None else filtered_gdf_map.to_crs("EPSG:4326")
+
+
+    # Convert gdf into GeoJSON format and add colors
+    filtered_geojson = json.loads(filtered_gdf_map.to_json())
+    filtered_geojson, color_map = geojson_add_fill_colors(filtered_geojson, filtered_gdf_map, "District Type")
+
+    map = zoning_district_map(filtered_geojson, filtered_gdf_map)
     
     mapping, report, compare = st.tabs(["Map", "Report", "Compare"])
     
     with mapping:
-
-        if not refined:
-            st.warning("Please refine your search criteria to map zoning districts.")
-        # Select only relevant columns to map
-        filtered_gdf_map = filtered_gdf[["Jurisdiction District Name", "District Type", "geometry"]]
-        filtered_gdf_map = filtered_gdf_map.to_crs(epsg=4326)
-        # Convert gdf into GeoJSON format
-        filtered_geojson = json.loads(filtered_gdf_map.to_json())
-        # Define the pydeck map object and display it
-        map = zoning_district_map(filtered_geojson, filtered_gdf_map)
         st.pydeck_chart(map, height=550)
+        render_rgba_colormap_legend(color_map)
     
     # Total acres of land plotted on the map
-    with report:
+    ## TODO: use the same colormap here.
+    with report: 
         st.header("Land Area")
         
         col1, col2 = st.columns(2)
