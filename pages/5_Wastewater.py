@@ -9,11 +9,11 @@ Wastewater Page
 # Necessary imports
 import streamlit as st
 import geopandas as gpd
-import pydeck as pdk
 import requests
 from io import BytesIO
 from app_utils.data_cleaning import convert_all_timestamps_to_str
-from app_utils.wastewater import land_suitability_metric_cards
+from app_utils.wastewater import land_suitability_metric_cards, plot_wastewater, render_soil_colormap
+from app_utils.df_filtering import filter_dataframe_multiselect
 
 
 @st.cache_data
@@ -25,80 +25,73 @@ def load_soil_septic(rpc):
     suit_gdf = suit_gdf.to_crs("EPSG:4326")
     return suit_gdf
     
+def select_soil_suitability():
+    ## dictionary of RPCs to select from
+    rpcs = {
+        "Addison County": "ACRPC",
+        "Bennington County": "BCRC",
+        "Chittenden County": "CCRPC",
+        "Central Vermont": "CVRPC",
+        "Lamoille County": "LCPC",
+        "Mount Ascutney": "MARC",
+        "Northeastern Vermont": "NVDA",
+        "Northwest Regional": "NWRPC",
+        "Rutland Regional": "RRPC",
+        "Two Rivers-Ottauquechee": "TRORC",
+        "Windham": "WRC",
+    }
+    
+    # Set columns to display the filter boxes
+    column1, column2, column_3= st.columns(3)
+
+    # On the left, display the RPC selection
+    with column1:
+        rpc = st.selectbox("Regional Planning Comission", options=rpcs.keys(), index=0)
+        selected_rpc = rpcs.get(rpc)
+
+    # LAND SUITABILITY DATA
+    suit_gdf = load_soil_septic(selected_rpc)
+    suit_gdf["geometry"] = suit_gdf["geometry"].simplify(0.0001, preserve_topology=True)
+    # Filter by Jurisdiction (or All Jurisdictions)
+    filtered_gdf, filter_selections = filter_dataframe_multiselect(
+        suit_gdf,
+        filter_columns=["Jurisdiction", "Suitability"],
+        presented_cols=["Municipality", "Soil Suitability"],
+        allow_all={
+            "Jurisdiction" : True,
+            "Suitability": True
+        },
+        defaults = {
+            "Suitability": ['Well Suited', 'Moderately Suited']
+        },
+        passed_cols=[column2, column_3]
+    )
+    # Convert all timestamps to string for easier mapping
+    filtered_gdf = convert_all_timestamps_to_str(filtered_gdf)
+
+    # get a total_acerage of all the jurisdictions selected. re-filter the gdf JUST on jurisdiction
+    total_acreage = suit_gdf[suit_gdf['Jurisdiction'].isin(filter_selections['Jurisdiction'])]['Acres'].sum()
+    return filtered_gdf, total_acreage
 
 def render_wastewater():
     # Page header
     st.header("Wastewater Infrastructure")
-
-    # Set columns to display the filter boxes
-    column1, column2 = st.columns(2)
-    # Define a list of RPCs for the RPC filter selection box
-    rpcs = ["ACRPC", "BCRC", "CCRPC", "CVRPC", "LCPC", "MARC", "NVDA", "NWRPC", "RRPC", "TRORC", "WRC"]
+    suit_gdf, total_acreage = select_soil_suitability()
     
-    # On the left, display the RPC selection
-    with column1:
-        selected_rpc = st.selectbox("RPC", options=rpcs, index=0)
-
-    # Take the index of that selection for data loading
-    i = rpcs.index(selected_rpc)
-
-    # LAND SUITABILITY DATA
-    suit_gdf = load_soil_septic(rpcs[i])
-    suit_gdf["geometry"] = suit_gdf["geometry"].simplify(0.0001, preserve_topology=True)
-
-    # Filter by Jurisdiction (or All Jurisdictions)
-    jurisdictions = ["All Jurisdictions"] + sorted(suit_gdf["Jurisdiction"].dropna().unique().tolist())
-    with column2:
-        selected_jurisdiction = st.multiselect("Jurisdiction", options=jurisdictions, default=["All Jurisdictions"])
-    if selected_jurisdiction and "All Jurisdictions" not in selected_jurisdiction:
-        suit_gdf = suit_gdf[suit_gdf["Jurisdiction"].isin(selected_jurisdiction)]
-    # Convert all timestamps to string for easier mapping
-    suit_gdf = convert_all_timestamps_to_str(suit_gdf)
-
-    # Define soil suitability colors to be shown on the map
-    category_colors = {"Well Suited": [44, 160, 44, 180],
-                       "Moderately Suited": [255, 204, 0, 180]}
-    suit_filtered = suit_gdf[suit_gdf["Suitability"].isin(category_colors.keys())].copy()        
-    suit_filtered["fill_color"] = suit_filtered["Suitability"].apply(lambda x: category_colors.get(x))
-
-    # Extract the coordinates from the geometry column to map the polygon layer
-    def extract_2d_coords(g):
-        return [[ [x, y] for x, y in g.exterior.coords ]]
-    suit_filtered["polygon_coords"] = suit_filtered.geometry.apply(extract_2d_coords)
-
-    # Land suitability map layer
-    soil_layer = pdk.Layer(
-        "PolygonLayer",
-        data=suit_filtered,
-        get_polygon="polygon_coords",
-        get_fill_color="fill_color",
-        get_line_color=[20, 20, 20, 180],
-        pickable=True,
-        auto_highlight=True,
-        stroked=True,
-        filled=True
-    )
-
-    # Calculate the center and zoom level of the map
-    bounds = suit_filtered.total_bounds
-    center_lon = (bounds[0] + bounds[2]) / 2
-    center_lat = (bounds[1] + bounds[3]) / 2
-    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, zoom=9)
-
-    # Display the map to the page
-    st.pydeck_chart(pdk.Deck(
-        layers=[soil_layer],
-        initial_view_state=view_state,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-    ), use_container_width=True)
+    map_col, legend_col = st.columns([4, 1])
+    map = plot_wastewater(suit_gdf)
+    map_col.pydeck_chart(map)
+    with legend_col:
+        render_soil_colormap()
 
     # Suitability metric cards
-    land_suitability_metric_cards(suit_filtered)
-    
-            
-def show_wastewater(): 
-    render_wastewater()
+    land_suitability_metric_cards(suit_gdf, total_acreage)
 
 
 if __name__ == "__main__":
-    show_wastewater()
+    st.set_page_config(
+    page_title="Vermont Data App",
+    layout="wide",
+    page_icon="🍁"
+)
+    render_wastewater()

@@ -18,7 +18,7 @@ def filter_dataframe(dfs, filter_columns, key_prefix="filter_dataframe", header=
     dfs = ensure_list(dfs) 
     df = dfs[0]
 
-    selected_values = {}
+    filter_selections = {}
 
     if header:
         st.markdown(header)
@@ -30,14 +30,25 @@ def filter_dataframe(dfs, filter_columns, key_prefix="filter_dataframe", header=
             options=sorted(unique_values), 
             key=keys[i]
         )
-        selected_values[col_name] = selected_value
+        filter_selections[col_name] = selected_value
         dfs = [df[df[col_name] == selected_value] for df in dfs]
         df = dfs[0]
         
-    return (dfs[0], selected_values) if len(dfs) == 1 else [(df, selected_values) for df in dfs]
+    return (dfs[0], filter_selections) if len(dfs) == 1 else [(df, filter_selections) for df in dfs]
 
 
-def filter_dataframe_multiselect(dfs, filter_columns, key_prefix="filter_dataframe", header=None, allow_all=None, presented_cols=None):
+def filter_dataframe_multiselect(
+        dfs, 
+        filter_columns, 
+        key_prefix="filter_dataframe",
+
+        ## keyword arguments
+        header=None, 
+        passed_cols=None,
+        defaults=None,
+        allow_all=None, 
+        presented_cols=None,
+        ):
     """
     Create cascading multiselect filters for a DataFrame, with optional 'All' support per column.
     
@@ -53,35 +64,39 @@ def filter_dataframe_multiselect(dfs, filter_columns, key_prefix="filter_datafra
     """
     dfs = ensure_list(dfs)
     df = dfs[0]
-    selected_values = {}
-    allow_all = allow_all or {}
+    filter_selections = {}
 
     if header:
         st.markdown(header)
 
-    cols1 = st.columns(len(filter_columns))
+
     keys = [f"{key_prefix}_{i}" for i in range(len(filter_columns))]
 
-    presented_cols = presented_cols if presented_cols else filter_columns
+    #keyword arguments
+    presented_cols = presented_cols or filter_columns
+    cols = passed_cols or st.columns(len(filter_columns))
+    defaults = defaults or {}
+    allow_all = allow_all or {}
+
 
     for i, col_name in enumerate(filter_columns):
         unique_values = sorted(df[col_name].dropna().unique())
         col_allow_all = allow_all.get(col_name, False)
 
         options = ["All"] + unique_values if col_allow_all else unique_values
-        default = ["All"] if col_allow_all else unique_values[0]  ## could also just default to first
+        default = defaults.get(col_name) if defaults.get(col_name)  else ["All"] if col_allow_all else unique_values[0]  ## could also just default to first
 
-        selected = cols1[i].multiselect(presented_cols[i], options=options, default=default, key=keys[i])
-        selected_values[col_name] = selected
+        selected = cols[i].multiselect(presented_cols[i], options=options, default=default, key=keys[i])
+        selected = unique_values if "All" in selected else selected
+        filter_selections[col_name] = selected
 
-        if "All" in selected: 
-            pass
-        else:
-            dfs = [df[df[col_name].isin(selected)] for df in dfs]
-            df = dfs[0]
+        dfs = [df[df[col_name].isin(selected)] for df in dfs]
+        df = dfs[0]
 
-    return (dfs[0], selected_values) if len(dfs) == 1 else [(df, selected_values) for df in dfs]
+    return (dfs[0], filter_selections) if len(dfs) == 1 else [(df, filter_selections) for df in dfs]
+
 
 
 def ensure_list(x):
     return x if isinstance(x, list) else [x]
+

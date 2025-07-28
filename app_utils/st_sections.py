@@ -17,7 +17,7 @@ def mapping_tab(data):
     # Project meaningful columns to lat/long
     filtered_2023, selected_value = filter_dataframe(data, filter_columns=["Category", "Subcategory", "Variable", "Measure"], key_prefix="mapping_filter")
     filtered_2023.to_crs(epsg=4326)
-
+ 
     # Normalize the housing variable for monochromatic chloropleth coloring
     vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 5)
     cmap = colormaps["Reds"]
