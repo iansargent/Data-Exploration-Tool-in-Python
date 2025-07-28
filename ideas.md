@@ -20,4 +20,5 @@
 
 ## Coding Improvements and refafctoring
 - [ ] Create a central dictionary (via a class) that holds all the data we'll use imported. then just grab them from there rather than copying and pasting names. Also means we have one central location to change import / cleaning logic, etc. 
-- [ ] In general, functionalize and modularize throughout. Remove as many if/else as possible; replace with dictionaries and more extensible behavior. 
+- [ ] In general, functionalize and modularize throughout. Remove as many if/else as possible; replace with dictionaries and more extensible behavior.
+- [ ] Set up a PostGreSQL Database to house all datasets in a relational model. Allows for spatial joins + complex queries using `st.connection()`
