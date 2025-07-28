@@ -15,6 +15,8 @@ from streamlit_extras.metric_cards import style_metric_cards
 from app_utils.zoning import filtered_zoning_df, district_comparison, zoning_comparison_table, zoning_district_map
 from app_utils.df_filtering import filter_dataframe_multiselect
 from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
+import streamlit.components.v1 as components
+
 
 
 @st.cache_data
@@ -77,8 +79,10 @@ def zoning():
     mapping, report, compare = st.tabs(["Map", "Report", "Compare"])
     
     with mapping:
-        st.pydeck_chart(map, height=550)
-        render_rgba_colormap_legend(color_map)
+        map_col, legend_col = st.columns([4, 1])
+        map_col.pydeck_chart(map, height=550)
+        with legend_col:
+            render_rgba_colormap_legend(color_map)
     
     # Total acres of land plotted on the map
     ## TODO: use the same colormap here.
@@ -86,7 +90,7 @@ def zoning():
         st.header("Land Area")
         
         col1, col2 = st.columns(2)
-        col1.metric(label="Districts", value=f"{len(filtered_gdf):,}")
+        col1.metric(label="**Zoning Districts**", value=f"{len(filtered_gdf):,}")
         total_acre = filtered_gdf["Acres"].sum()
         col2.metric(label="**Total Acreage**", value=f"{total_acre:,.0f} acres")
 
@@ -115,7 +119,10 @@ def zoning():
         st.altair_chart(bar_chart, use_container_width=True)
 
         # Style cards to look better
-        style_metric_cards(background_color="whitesmoke", border_left_color="mediumseagreen")
+        # style_metric_cards(background_color="whitesmoke", border_left_color="mediumseagreen")
+
+        st.write("Bar Graph of Family Allowance (1F - 5F Dropdown)")
+        st.write("Affordable Housing Allowance")
 
     # Selectable Table for comparisons
     with compare:

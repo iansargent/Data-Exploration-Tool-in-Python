@@ -130,6 +130,7 @@ def generate_geojson_colormap(df, column):
         for i, key in enumerate(unique_keys)
     }
 
+
 def geojson_add_fill_colors(filtered_geojson, df, column):
     color_map = generate_geojson_colormap(df, column)
     for feature in filtered_geojson["features"]:
@@ -137,10 +138,12 @@ def geojson_add_fill_colors(filtered_geojson, df, column):
         feature["properties"]["fill_color"] = color_map.get(district_type, [150, 150, 150, 180]) ## default grey
     return filtered_geojson, color_map
 
+
 def render_rgba_colormap_legend(color_map, title="Legend"):
     st.markdown(f"### {title}")
     for label, rgba in color_map.items():
         rgb_str = f"rgb({rgba[0]}, {rgba[1]}, {rgba[2]})"
+        
         st.markdown(
             f"""
             <div style='display: flex; align-items: center; margin-bottom: 4px;'>
