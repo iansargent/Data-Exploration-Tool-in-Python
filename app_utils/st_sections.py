@@ -47,7 +47,8 @@ def mapping_tab(data):
         # Option Two: Jenk's Natural Breaks Algorithm
         # Using a slider, adjust the number of "groups" in the data
         col1, _, _ = st.columns(3)
-        n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
+        n_classes=10
+        # n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
         # Define the Jenk's colormap and apply it to the dataframe
         jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes, "Reds")
         filtered_2023['fill_color'] = filtered_2023['color_groups'].astype(str).map(jenks_cmap_dict)
