@@ -11,9 +11,7 @@ import pandas as pd
 import geopandas as gpd
 import io
 import pydeck as pdk
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
+import altair as alt 
 
 
 def zoning_district_map(filtered_geojson, filtered_gdf_map):
@@ -21,7 +19,7 @@ def zoning_district_map(filtered_geojson, filtered_gdf_map):
     layer = pdk.Layer(
         "GeoJsonLayer",
         data=filtered_geojson,
-        get_fill_color="properties.fill_color",
+        get_fill_color="properties.rgba_color",
         get_line_color=[80, 80, 80, 80],
         highlight_color=[222, 102, 0, 200],
         line_width_min_pixels=0.5,
@@ -36,7 +34,7 @@ def zoning_district_map(filtered_geojson, filtered_gdf_map):
     view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, min_zoom=6.5, zoom=10)
 
     ## generate tooltip
-    tooltip={"html": "<b>District:</b> {Jurisdiction District Name} <br/> <b>Type:</b> {District Type}"}
+    tooltip={"html": "<b>District:</b> {Jurisdiction District Name} <br/> <b>Type:</b> {District Type} <br/> <b> Acreage: </b> {Acres_fmt} "}
 
     # Display the map to the page
     map = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip,
@@ -105,25 +103,82 @@ def zoning_comparison_table(filtered_gdf, selected_districts):
     return combined_df
 
 
-def filter_zoning_data(_gdf, county, jurisdiction, districts):
-    """
-    Filters the zoning GeoDataFrame based on selected county, jurisdiction, and districts.
+def get_acerage_metrics(gdf):
+        col1, col2 = st.columns(2)
+        col1.metric(label="Districts", value=f"{len(gdf):,}")
+        total_acre = gdf["Acres"].sum()
+        col2.metric(label="**Total Acreage**", value=f"{total_acre:,.0f} acres")
 
-    @param gdf: The original GeoDataFrame containing zoning data.
-    @param county: Selected county name as a string, or "All Counties" for no filter.
-    @param jurisdiction: Selected jurisdiction name as a string, or "All Jurisdictions" for no filter.
-    @param districts: List of selected district names, or a list containing "All Districts" for no filter.
-    @return: A filtered GeoDataFrame based on the specified criteria.
-    """
-    df = _gdf.copy()
-    if county != "All Counties":
-        df = df[df["County"] == county]
-    if jurisdiction != "All Jurisdictions":
-        df = df[df["Jurisdiction"] == jurisdiction]
-    if "All Districts" not in districts:
-        df = df[df["District Name"].isin(districts)]
+def plot_acreage(gdf):
+    acres_by_type = gdf.groupby("District Type")["Acres"].sum().fillna(0)
+    colors = gdf.drop_duplicates("District Type")[["District Type", "hex_color"]]
     
-    return df
+    acres_df = acres_by_type.reset_index().merge(colors, on="District Type", how="left")
+    total_acres = acres_df["Acres"].sum()
+    acres_df["Percent"] = 100 * acres_df["Acres"] / total_acres
+
+    bar_chart = alt.Chart(acres_df).mark_bar().encode(
+        x=alt.X("District Type:N", sort="-y", title="Zoning Type", axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("Acres:Q", title="Total Acres"),
+        color=alt.Color("hex_color:N", scale=None, legend=None),
+        tooltip=[
+            "District Type",
+            alt.Tooltip("Acres:Q", format=",.0f"),
+            alt.Tooltip("Percent:Q", format=".1f", title="% of Total")
+        ]
+    ).properties(height=500, title="Zoning Acreage by District Type")
+
+    return bar_chart
+
+
+def clean_zoning_gdf(gdf):
+    """
+    Place to hold general pands operations, including hardcoded, to clean a zoning gdf. 
+    """
+    gdf["District Type"] = gdf["District Type"].replace({
+        "Primarily Residential": "Residential",
+        "Mixed with Residential": "Mixed",
+        "Nonresidential": "Nonresidential",
+        "Overlay not Affecting Use": "Overlay"
+    })
+    return gdf
+        
+
+
+
+
+#################################### Unused, possible to delete
+def filtered_zoning_df(zoning_gdf):
+    """
+    Applies filters to the zoning GeoDataFrame and returns the filtered results.
+
+    @return: Filtered GeoDataFrame based on sidebar selections.
+    """
+    from streamlit_extras.dataframe_explorer import dataframe_explorer
+
+    # Define the filtered geography
+    county, jurisdiction, districts, refined = zoning_geography(zoning_gdf)
+
+    
+    # Apply all filters
+    filtered_gdf = filter_zoning_data(zoning_gdf, county, jurisdiction, districts)
+
+    if filtered_gdf.empty:
+        st.warning("No districts match your filters.")
+        return gpd.GeoDataFrame()
+
+    # Allow user filtering via dataframe_explorer
+    filtered_pd = dataframe_explorer(filtered_gdf, case=False)
+
+    # Re-attach geometry from original GeoDataFrame using index
+    filtered_gdf = gpd.GeoDataFrame(
+        filtered_pd,
+        geometry=zoning_gdf.loc[filtered_pd.index, "geometry"],
+        crs=zoning_gdf.crs)
+
+    return filtered_gdf, refined
+
+
 
 
 def zoning_geography(zoning_gdf):
@@ -156,33 +211,26 @@ def zoning_geography(zoning_gdf):
         return county, jurisdiction, districts, refined
 
 
-def filtered_zoning_df(zoning_gdf):
+
+
+def filter_zoning_data(_gdf, county, jurisdiction, districts):
     """
-    Applies filters to the zoning GeoDataFrame and returns the filtered results.
+    Filters the zoning GeoDataFrame based on selected county, jurisdiction, and districts.
 
-    @return: Filtered GeoDataFrame based on sidebar selections.
+    @param gdf: The original GeoDataFrame containing zoning data.
+    @param county: Selected county name as a string, or "All Counties" for no filter.
+    @param jurisdiction: Selected jurisdiction name as a string, or "All Jurisdictions" for no filter.
+    @param districts: List of selected district names, or a list containing "All Districts" for no filter.
+    @return: A filtered GeoDataFrame based on the specified criteria.
     """
-    from streamlit_extras.dataframe_explorer import dataframe_explorer
-
-    # Define the filtered geography
-    county, jurisdiction, districts, refined = zoning_geography(zoning_gdf)
-
+    df = _gdf.copy()
+    if county != "All Counties":
+        df = df[df["County"] == county]
+    if jurisdiction != "All Jurisdictions":
+        df = df[df["Jurisdiction"] == jurisdiction]
+    if "All Districts" not in districts:
+        df = df[df["District Name"].isin(districts)]
     
-    # Apply all filters
-    filtered_gdf = filter_zoning_data(zoning_gdf, county, jurisdiction, districts)
+    return df
 
-    if filtered_gdf.empty:
-        st.warning("No districts match your filters.")
-        return gpd.GeoDataFrame()
-
-    # Allow user filtering via dataframe_explorer
-    filtered_pd = dataframe_explorer(filtered_gdf, case=False)
-
-    # Re-attach geometry from original GeoDataFrame using index
-    filtered_gdf = gpd.GeoDataFrame(
-        filtered_pd,
-        geometry=zoning_gdf.loc[filtered_pd.index, "geometry"],
-        crs=zoning_gdf.crs)
-
-    return filtered_gdf, refined
 
