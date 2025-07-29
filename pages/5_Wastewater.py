@@ -14,17 +14,8 @@ from io import BytesIO
 from app_utils.data_cleaning import convert_all_timestamps_to_str
 from app_utils.wastewater import land_suitability_metric_cards, plot_wastewater, render_soil_colormap
 from app_utils.df_filtering import filter_dataframe_multiselect
+from app_utils.data_loading import load_soil_septic
 
-
-@st.cache_data
-def load_soil_septic(rpc):
-    land_suit_url = f"https://github.com/VERSO-UVM/Vermont-Livability-Map/raw/main/data/{rpc}_Soil_Septic.fgb"
-    suit_response = requests.get(land_suit_url)
-    suit_response.raise_for_status()
-    suit_gdf = gpd.read_file(BytesIO(suit_response.content))
-    suit_gdf = suit_gdf.to_crs("EPSG:4326")
-    return suit_gdf
-    
 def select_soil_suitability():
     ## dictionary of RPCs to select from
     rpcs = {
