@@ -18,10 +18,7 @@ from app_utils.zoning import (
 )
 from app_utils.df_filtering import filter_dataframe_multiselect
 from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
-import streamlit.components.v1 as components
 from app_utils.color import rgba_to_hex, tab20_rgba, add_fill_colors
-
-
 
 
 @st.cache_data
@@ -79,6 +76,7 @@ def zoning():
     filtered_geojson = json.loads(filtered_gdf_map.to_json())
 
     mapping, report, compare = st.tabs(["Map", "Report", "Compare"])
+    
     with mapping:
         map = zoning_district_map(filtered_geojson, filtered_gdf_map)
         map_col, legend_col = st.columns([4, 1])
@@ -86,8 +84,6 @@ def zoning():
         with legend_col:
             render_rgba_colormap_legend(color_map)  
     
-
-
     with report: 
 
         st.header("Land Area")

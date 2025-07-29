@@ -69,12 +69,16 @@ def unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo):
         color=alt.Color("Geography:O", title=None, scale=alt.Scale(
             domain=["Statewide Average", title_geo],
             range=["#83C299", "darkgreen"]),
-            legend=alt.Legend(orient="top-left", direction="horizontal", offset=-38)),
+            legend=alt.Legend(
+                orient="bottom-left", 
+                direction="horizontal", 
+                offset=20, 
+                fillColor="whitesmoke")),
         tooltip=[alt.Tooltip("year", title="Year"), 
                  alt.Tooltip("Unemployment_Rate", title="Unemployment Rate", format=".1%"),
                  alt.Tooltip("Geography")]
     ).properties(height=500, title=f"Unemployment Rate Over Time | {title_geo}"
-    ).configure_title(fontSize=19,offset=45).interactive()
+    ).configure_title(fontSize=19, anchor="middle").interactive()
     
     return unemployment_ts
 
@@ -86,6 +90,8 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     # Employment Section
     unemployment_df = load_unemployment_df()
 
+    st.divider()
+    st.subheader("Employment")
     metric_col, chart_col = st.columns([1, 4])
     with chart_col:
         unemployment_chart = unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo)
@@ -96,14 +102,15 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     with metric_col:
         # Display the current unemployment rate
         unemployment_rate = economic_gdf_2023['DP03_0009PE'].mean() / 100
+        pct_in_labor_force = economic_gdf_2023['DP03_0002PE'].mean()
+        pct_employed = economic_gdf_2023['DP03_0004PE'].mean()
+        pct_female_in_labor_force = economic_gdf_2023['DP03_0011PE'].mean()
 
-        # in_labor_force = economic_gdf_2023['DP03_0002E'].mean()
-        # pct_in_labor_force = economic_gdf_2023['DP03_0002PE'].mean()
-        # not_in_labor_force = economic_gdf_2023['DP03_0007E'].mean()
-        # pct_not_in_labor_force = economic_gdf_2023['DP03_0007PE'].mean()
-
-        st.markdown("\2")
-        st.metric(label="**Unemployment Rate (2023)**", value=f"{unemployment_rate * 100:.1f}%")
+        st.markdown("\1")
+        st.metric(label="**Unemployment Rate (2023)**", value=f"{unemployment_rate * 100:.1f}%", delta=f"{0.8}%")
+        st.metric(label="**Civilian Employment Rate**", value=f"{pct_employed:.1f}%", delta=f"{2}%")
+        st.metric(label="**In Labor Force**", value=f"{pct_in_labor_force:.1f}%", delta=f"{-3}%")
+        st.metric(label="**Females in Labor Force**", value=f"{pct_female_in_labor_force:.1f}%", delta=f"{10}%")
 
     
     st.divider()
@@ -113,8 +120,8 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     pct_no_hc_coverage = economic_gdf_2023['DP03_0099PE'].mean()
     no_hc_coverage_u19 = economic_gdf_2023['DP03_0101E'].mean()
     pct_no_hc_coverage_u19 = economic_gdf_2023['DP03_0101PE'].mean()
-    public_hc_coverage = economic_gdf_2023['DP03_0098E'].mean()
     pct_public_hc_coverage = economic_gdf_2023['DP03_0098PE'].mean()
+    pct_employed_no_hc_coverage = economic_gdf_2023['DP03_0108PE'].mean()
     
     public_private_coverage_df = pd.DataFrame({
         "Coverage Type": ["_Private Insurance", "Public Insurance"],
@@ -125,24 +132,19 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
         color=alt.Color("Coverage Type:N", scale=alt.Scale(
             domain=["Public Insurance", "_Private Insurance"],
             range=["mediumseagreen", "whitesmoke"]), legend=None)
-        ).properties(title="Public Health Insurance"
-        ).configure_title(fontSize=18, dy=150, anchor="middle", font="Helvetica Neue", fontWeight="bold")
+        ).properties(title="Public Health Insurance", height=350, width=200
+        ).configure_title(fontSize=18, dy=150, anchor="middle")
         
-    h_col1, h_col2 = st.columns(2)
+    h_col1, _, h_col2 = st.columns([3, 1, 3])
     h_col1.markdown("\2")
     h_col1.altair_chart(public_private_pie_chart)
-    
-    
-    col3, col4 = st.columns(2)
+    h_col2.markdown("\2")
+    h_col2.metric(label="**No Health Coverage**", value=f"{pct_no_hc_coverage:.1f}%", delta=f"{0.5}%")
+    h_col2.metric(label="**No Health Coverage (Age 0-19)**", 
+                  value=f"{pct_no_hc_coverage_u19:.1f}%", delta=f"{0.5}%")
+    h_col2.metric(label="**Employed without Health Coverage (19-64)**", 
+                  value=f"{pct_employed_no_hc_coverage:.1f}%", delta=f"{0.5}%")
 
-    col3.metric(label="**No Health Insurance Coverage**", value=f"{no_hc_coverage:,.0f}")
-    col4.metric(label="**% No Health Insurance Coverage**", value=f"{pct_no_hc_coverage:.1f}%")
-
-    col3.metric(label="**No Health Insurance Coverage (Age 19 and Under)**", value=f"{no_hc_coverage_u19:,.0f}")
-    col4.metric(label="**% No Health Insurance Coverage (Age 19 and Under)**", value=f"{pct_no_hc_coverage_u19:.1f}%")
-
-    col3.metric(label="**Public Insurance Coverage**", value=f"{public_hc_coverage:,.0f}")
-    col4.metric(label="**% Public Insurance Coverage**", value=f"{pct_public_hc_coverage:.1f}%")
 
     st.markdown("---")
 
