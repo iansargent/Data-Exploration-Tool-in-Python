@@ -10,6 +10,7 @@ import pandas as pd
 import requests
 import pyogrio  
 import io
+from app_utils.data_loading import load_data
 
 import requests
 from bs4 import BeautifulSoup
@@ -127,37 +128,11 @@ def get_geography_title(county, jurisdiction):
     
     return title_geo
 
-import requests
-import io
-import pyogrio
-import pandas as pd
-import geopandas as gpd
-
 def load_census_data(url, is_geospatial=False):
-    """
-    Load census data from URL.
-    Supports GeoDataFrames (via pyogrio) and standard CSV.
-
-    Returns:
-        pd.DataFrame or gpd.GeoDataFrame
-    """
-    if is_geospatial:
-        try:
-            df = pyogrio.read_dataframe(url)
-            print(df.crs)
-        except Exception as e:
-            raise RuntimeError(f"Failed to read geospatial data: {e}")
-    else:
-        try:
-            response = requests.get(url, verify=True)
-            response.raise_for_status()
-            df = pd.read_csv(io.StringIO(response.text))
-        except Exception as e:
-            raise RuntimeError(f"Failed to load tabular data: {e}")
-
-    return split_name_col(df)
-
-
+    return load_data(
+        url = url,
+        postprocess_fn=split_name_col
+    )
 
 def calculate_delta_values(filtered_gdf_2023, baseline, filtered_gdf_2013, housing_gdf):
 

@@ -19,32 +19,8 @@ from app_utils.zoning import (
 from app_utils.df_filtering import filter_dataframe_multiselect
 from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
 from app_utils.color import rgba_to_hex, tab20_rgba, add_fill_colors
+from app_utils.data_loading import load_zoning_data
 
-
-@st.cache_data
-def load_zoning_data():
-    """
-    Loads the Vermont Zoning dataset as a GeoDataFrame.
-
-    @return: The geopandas zoning dataset as a GeoDataFrame object.
-    """
-    from io import BytesIO
-    import requests
-    
-    zoning_url = 'https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/data/vt-zoning-update.fgb'
-
-    # Stream download to avoid issues with large files
-    response = requests.get(zoning_url)
-    response.raise_for_status()  # raises an error if download failed
-
-    gdf = gpd.read_file(BytesIO(response.content))
-    
-    gdf = gdf.drop(columns=["Bylaw Date"], errors="ignore")
-
-    gdf["geometry"] = gdf["geometry"].simplify(0.0001, preserve_topology=True)
-
-    return gdf
-  
 
 def zoning():
     # Page header
@@ -85,7 +61,6 @@ def zoning():
             render_rgba_colormap_legend(color_map)  
     
     with report: 
-
         st.header("Land Area")
         get_acerage_metrics(filtered_gdf)
 
