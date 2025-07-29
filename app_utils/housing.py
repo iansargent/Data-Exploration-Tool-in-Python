@@ -24,9 +24,10 @@ def housing_snapshot(county, jurisdiction,
     # Housing Units Section
     st.subheader("Occupancy")
     # Split section into two colunms
-    left_col1, right_col2 = st.columns(2)
+    left_col1, right_col2 = st.columns([2, 3])
     # In the left column, show the metrics
     with left_col1:
+        st.markdown("\2")
         # Caclulate total units, vacant units, and occupied units (2013 + 2023) with percentages
         total_units_2023 = filtered_gdf_2023['DP04_0001E'].sum()
 
@@ -367,12 +368,12 @@ def housing_snapshot(county, jurisdiction,
     st.altair_chart(units_in_structure_chart, use_container_width=True)
     
     # Style the metric cards
-    style_metric_cards(
-        background_color="whitesmoke",
-        border_left_color="salmon",
-        box_shadow=True,
-        border_size_px=0.5
-    )
+    # style_metric_cards(
+    #     background_color="whitesmoke",
+    #     border_left_color="salmon",
+    #     box_shadow=True,
+    #     border_size_px=0.5
+    # )
 
 
 def housing_pop_plot(county, jurisdiction, filtered_gdf, pop_df):
