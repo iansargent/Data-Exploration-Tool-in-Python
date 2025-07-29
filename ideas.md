@@ -28,3 +28,4 @@
 
 # TODOs
 * [ ] Rename Jurisdiction to Municipality throughout
+* [ ] Change displayed plots using the `plot_container()` function (displays corresponding dataframe with the plot)
