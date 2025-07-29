@@ -17,7 +17,7 @@ def mapping_tab(data):
     # Project meaningful columns to lat/long
     filtered_2023, selected_value = filter_dataframe(data, filter_columns=["Category", "Subcategory", "Variable", "Measure"], key_prefix="mapping_filter")
     filtered_2023.to_crs(epsg=4326)
-
+ 
     # Normalize the housing variable for monochromatic chloropleth coloring
     vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 5)
     cmap = colormaps["Reds"]
@@ -47,7 +47,8 @@ def mapping_tab(data):
         # Option Two: Jenk's Natural Breaks Algorithm
         # Using a slider, adjust the number of "groups" in the data
         col1, _, _ = st.columns(3)
-        n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
+        n_classes=10
+        # n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
         # Define the Jenk's colormap and apply it to the dataframe
         jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes, "Reds")
         filtered_2023['fill_color'] = filtered_2023['color_groups'].astype(str).map(jenks_cmap_dict)

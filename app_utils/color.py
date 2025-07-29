@@ -131,8 +131,8 @@ def generate_geojson_colormap(df, column):
     }
 
 
-def geojson_add_fill_colors(filtered_geojson, df, column):
-    color_map = generate_geojson_colormap(df, column)
+def geojson_add_fill_colors(filtered_geojson, df, column, color_map=None):
+    color_map = color_map if color_map else generate_geojson_colormap(df, column)
     for feature in filtered_geojson["features"]:
         district_type = feature["properties"].get(column)
         feature["properties"]["fill_color"] = color_map.get(district_type, [150, 150, 150, 180]) ## default grey
@@ -140,6 +140,9 @@ def geojson_add_fill_colors(filtered_geojson, df, column):
 
 
 def render_rgba_colormap_legend(color_map, title="Legend"):
+    """
+    Function to render a colormap. Note that this shows everything in the cmap, not just what's being used.
+    """
     st.markdown(f"### {title}")
     for label, rgba in color_map.items():
         rgb_str = f"rgb({rgba[0]}, {rgba[1]}, {rgba[2]})"
@@ -153,3 +156,42 @@ def render_rgba_colormap_legend(color_map, title="Legend"):
             """,
             unsafe_allow_html=True
         )
+
+def rgba_to_hex(rgba):
+    return '#{:02x}{:02x}{:02x}{:02x}'.format(*rgba)
+
+def tab20_rgba(alpha=180):
+    cmap = cm.get_cmap('tab20', 20)
+    return [
+        [int(255 * r), int(255 * g), int(255 * b), alpha]
+        for r, g, b, _ in [cmap(i) for i in range(20)]
+    ]
+
+
+def add_fill_colors(df, column, cmap='tab20', alpha=180):
+    """
+    Add RGBA fill colors to a DataFrame based on a categorical column.
+
+    Args:
+        df (pd.DataFrame): The filtered DataFrame to modify.
+        column (str): The column to base the color mapping on.
+        cmap (str or Colormap): Matplotlib colormap name or object.
+        alpha (int): Alpha value (0–255) to append.
+
+    Returns:
+        pd.DataFrame: A copy with a 'fill_color' column (RGBA lists).
+        dict: The category-to-color mapping used.
+    """
+    df = df.copy()
+    unique_keys = sorted(df[column].dropna().unique())
+    cmap_obj = cm.get_cmap(cmap, len(unique_keys)) if isinstance(cmap, str) else cmap
+
+    color_map = {
+        key: [int(255 * c) for c in cmap_obj(i)[:3]] + [alpha]
+        for i, key in enumerate(unique_keys)
+    }
+
+    df['rgba_color'] = df[column].map(lambda k: color_map.get(k, [150, 150, 150, alpha]))
+    df['hex_color'] = df['rgba_color'].apply(lambda k : rgba_to_hex(k))
+
+    return df, color_map
