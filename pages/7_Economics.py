@@ -43,10 +43,11 @@ def census_economics_page():
         "Retrieved from https://data.census.gov/")
         # Allow user to filter on the county and jurisdiction level for tailored reports 
         # TODO: (maybe) put the filtering into it's own logic so that we can use it across pages. 
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         # County selection
         with col1:
-            county = st.selectbox("**County**", ["All Counties"] + sorted(econ_gdf_2023["County"].dropna().unique()))
+            county_list = sorted(econ_gdf_2023["County"].dropna().unique())
+            county = st.selectbox("**County**", ["All Counties"] + county_list)
         # Jurisdiction selection
         with col2:
             if county != "All Counties":
@@ -64,15 +65,7 @@ def census_economics_page():
         if jurisdiction != "All Jurisdictions":
             filtered_gdf_2023 = filtered_gdf_2023[filtered_gdf_2023["Jurisdiction"] == jurisdiction]
         
-        # Selection for the baseline comparison (same area 10 years ago OR current statewide averages)
-        with col3:
-            # Add a selection for the baseline metrics to compare to
-            compare_to = st.selectbox(
-                label = "**Comparison Basis**",
-                options = ["2013 Local Data (10-Year Change)", "2023 Vermont Statewide Averages"],
-                index=0)
-
-        
+        st.markdown("\1")
         # Display formatted housing metrics vs statewide averages
         economic_snapshot(county, jurisdiction, filtered_gdf_2023)
 

@@ -15,7 +15,6 @@ from streamlit_extras.metric_cards import style_metric_cards
 from app_utils.zoning import filtered_zoning_df, district_comparison, zoning_comparison_table, zoning_district_map
 from app_utils.df_filtering import filter_dataframe_multiselect
 from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
-import streamlit.components.v1 as components
 
 
 

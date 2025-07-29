@@ -62,8 +62,8 @@ def unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo):
 
     # Create a time series plot of the unemployment rate
     unemployment_ts = alt.Chart(plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year"),
-        y=alt.Y("Unemployment_Rate:Q", title="Unemployment Rate (%)", 
+        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0)),
+        y=alt.Y("Unemployment_Rate:Q", title="Unemployment Rate", 
                 axis=alt.Axis(format="%"),
                 scale=alt.Scale(domain=(ymin, ymax))),
         color=alt.Color("Geography:O", title=None, scale=alt.Scale(
@@ -71,9 +71,9 @@ def unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo):
             range=["#83C299", "darkgreen"]),
             legend=alt.Legend(orient="top-left", direction="horizontal", offset=-38)),
         tooltip=[alt.Tooltip("year", title="Year"), 
-                 alt.Tooltip("Unemployment_Rate", title="Unemployment Rate (%)", format=".1%"),
+                 alt.Tooltip("Unemployment_Rate", title="Unemployment Rate", format=".1%"),
                  alt.Tooltip("Geography")]
-    ).properties(height=550, title=f"Unemployment Rate Over Time in {title_geo}"
+    ).properties(height=500, title=f"Unemployment Rate Over Time | {title_geo}"
     ).configure_title(fontSize=19,offset=45).interactive()
     
     return unemployment_ts
@@ -85,55 +85,55 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
 
     # Employment Section
     unemployment_df = load_unemployment_df()
-    unemployment_chart = unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo)
-    if unemployment_chart is None:
-        return
-    st.altair_chart(unemployment_chart)
+
+    metric_col, chart_col = st.columns([1, 4])
+    with chart_col:
+        unemployment_chart = unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo)
+        if unemployment_chart is None:
+            return
+        st.altair_chart(unemployment_chart)
     
+    with metric_col:
+        # Display the current unemployment rate
+        unemployment_rate = economic_gdf_2023['DP03_0009PE'].mean() / 100
 
+        # in_labor_force = economic_gdf_2023['DP03_0002E'].mean()
+        # pct_in_labor_force = economic_gdf_2023['DP03_0002PE'].mean()
+        # not_in_labor_force = economic_gdf_2023['DP03_0007E'].mean()
+        # pct_not_in_labor_force = economic_gdf_2023['DP03_0007PE'].mean()
+
+        st.markdown("\2")
+        st.metric(label="**Unemployment Rate (2023)**", value=f"{unemployment_rate * 100:.1f}%")
 
     
-    # Display the current unemployment rate
-    unemployment_rate = economic_gdf_2023['DP03_0009PE'].mean()
-    
-    in_labor_force = economic_gdf_2023['DP03_0002E'].mean()
-    pct_in_labor_force = economic_gdf_2023['DP03_0002PE'].mean()
-
-    not_in_labor_force = economic_gdf_2023['DP03_0007E'].mean()
-    pct_not_in_labor_force = economic_gdf_2023['DP03_0007PE'].mean()
-
-
-    labor_force_df = pd.DataFrame({
-        'Status': ["Labor Force", "Not in Labor Force"], 
-        'People': [in_labor_force, not_in_labor_force],
-        'Percentage': [pct_in_labor_force, pct_not_in_labor_force]
-    })
-    
-    labor_force_pie_chart = alt.Chart(labor_force_df).mark_arc(innerRadius=130).encode(
-        theta=alt.Theta("People:Q", aggregate="sum"),
-        color=alt.Color("Status:N", scale=alt.Scale(
-            domain=["Labor Force", "Not in Labor Force"],
-            range=["mediumseagreen", "whitesmoke"])),
-        tooltip=[alt.Tooltip("Status:N"), 
-                 alt.Tooltip("People:Q", format=",.0f"),
-                 alt.Tooltip("Percentage:Q", format=".1f")]
-    ).properties(width=300, height=440).configure_legend(orient='top-left')
-
-
-    st.metric(label="**Unemployment Rate**", value=f"{unemployment_rate:.1f}%")
-    st.altair_chart(labor_force_pie_chart)
-
-
+    st.divider()
     st.subheader("Health Insurance Coverage")
     
-    col3, col4 = st.columns(2)
-
     no_hc_coverage = economic_gdf_2023['DP03_0099E'].mean()
     pct_no_hc_coverage = economic_gdf_2023['DP03_0099PE'].mean()
     no_hc_coverage_u19 = economic_gdf_2023['DP03_0101E'].mean()
     pct_no_hc_coverage_u19 = economic_gdf_2023['DP03_0101PE'].mean()
     public_hc_coverage = economic_gdf_2023['DP03_0098E'].mean()
     pct_public_hc_coverage = economic_gdf_2023['DP03_0098PE'].mean()
+    
+    public_private_coverage_df = pd.DataFrame({
+        "Coverage Type": ["_Private Insurance", "Public Insurance"],
+        "Value": [100 - pct_public_hc_coverage, pct_public_hc_coverage]})
+
+    public_private_pie_chart = alt.Chart(public_private_coverage_df).mark_arc(innerRadius=130).encode(
+        theta=alt.Theta("Value:Q"),
+        color=alt.Color("Coverage Type:N", scale=alt.Scale(
+            domain=["Public Insurance", "_Private Insurance"],
+            range=["mediumseagreen", "whitesmoke"]), legend=None)
+        ).properties(title="Public Health Insurance"
+        ).configure_title(fontSize=18, dy=150, anchor="middle", font="Helvetica Neue", fontWeight="bold")
+        
+    h_col1, h_col2 = st.columns(2)
+    h_col1.markdown("\2")
+    h_col1.altair_chart(public_private_pie_chart)
+    
+    
+    col3, col4 = st.columns(2)
 
     col3.metric(label="**No Health Insurance Coverage**", value=f"{no_hc_coverage:,.0f}")
     col4.metric(label="**% No Health Insurance Coverage**", value=f"{pct_no_hc_coverage:.1f}%")
@@ -205,9 +205,9 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
 
     st.markdown("---")
 
-    style_metric_cards(
-        background_color="whitesmoke",
-        border_left_color="mediumseagreen",
-        box_shadow=True,
-        border_size_px=0.5
-    )
+    # style_metric_cards(
+    #     background_color="whitesmoke",
+    #     border_left_color="mediumseagreen",
+    #     box_shadow=True,
+    #     border_size_px=0.5
+    # )
