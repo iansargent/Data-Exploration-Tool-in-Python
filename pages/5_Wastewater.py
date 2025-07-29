@@ -9,10 +9,8 @@ Wastewater Page
 # Necessary imports
 import streamlit as st
 import geopandas as gpd
-import requests
-from io import BytesIO
 from app_utils.data_cleaning import convert_all_timestamps_to_str
-from app_utils.wastewater import land_suitability_metric_cards, plot_wastewater, render_soil_colormap
+from app_utils.wastewater import *
 from app_utils.df_filtering import filter_dataframe_multiselect
 from app_utils.data_loading import load_soil_septic
 
@@ -42,7 +40,7 @@ def select_soil_suitability():
 
     # LAND SUITABILITY DATA
     suit_gdf = load_soil_septic(selected_rpc)
-    suit_gdf["geometry"] = suit_gdf["geometry"].simplify(0.0001, preserve_topology=True)
+
     # Filter by Jurisdiction (or All Jurisdictions)
     filtered_gdf, filter_selections = filter_dataframe_multiselect(
         suit_gdf,
@@ -57,9 +55,6 @@ def select_soil_suitability():
         },
         passed_cols=[column2, column_3]
     )
-    # Convert all timestamps to string for easier mapping
-    filtered_gdf = convert_all_timestamps_to_str(filtered_gdf)
-
     # get a total_acerage of all the jurisdictions selected. re-filter the gdf JUST on jurisdiction
     total_acreage = suit_gdf[suit_gdf['Jurisdiction'].isin(filter_selections['Jurisdiction'])]['Acres'].sum()
     return filtered_gdf, total_acreage
@@ -68,7 +63,8 @@ def render_wastewater():
     # Page header
     st.header("Wastewater Infrastructure")
     suit_gdf, total_acreage = select_soil_suitability()
-    
+    suit_gdf = process_soil_data(suit_gdf)
+
     map_col, legend_col = st.columns([4, 1])
     map = plot_wastewater(suit_gdf)
     map_col.pydeck_chart(map)

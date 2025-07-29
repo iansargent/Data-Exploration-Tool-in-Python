@@ -9,7 +9,7 @@ import streamlit as st
 import pandas as pd
 from app_utils.census import rename_and_merge_census_cols, load_census_data
 from app_utils.housing import housing_pop_plot, housing_snapshot
-from app_utils.st_sections import mapping_tab, compare_tab
+from app_utils.census_sections import mapping_tab, compare_tab
 from urllib.parse import urljoin
 
 
@@ -28,7 +28,7 @@ def load_combine_census():
 
     dfs = []
     for label, fname in label_to_file.items():
-        gdf = load_census_data(urljoin(base_name, fname), is_geospatial=True)
+        gdf = load_census_data(urljoin(base_name, fname))
         df = rename_and_merge_census_cols(gdf).drop(columns=gdf.geometry.name)
         df["Source"] = label
         dfs.append(df)
@@ -37,11 +37,16 @@ def load_combine_census():
     return df_combined
 
 
-def comparison_page():
+def main():
     tidy_full_data = load_combine_census()
     compare_tab({"All Census Data 2023" : tidy_full_data}, 
                 drop_cols=['GEOID'], filter_columns=["Source", "Category", "Subcategory", "Variable", "Measure"])
 
 
 if __name__ == "__main__":
-    comparison_page()
+    st.set_page_config(
+    page_title="Vermont Data App",
+    layout="wide",
+    page_icon="🍁"
+)
+    main()

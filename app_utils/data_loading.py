@@ -1,3 +1,8 @@
+"""
+Author: Fitz Koch
+Created: 2025-07-29
+Description: centralized page for data loading
+"""
 
 
 
@@ -12,7 +17,6 @@ from pathlib import Path
 
 def load_data(
     url,
-    is_geospatial=False,
     simplify_tolerance=None,
     drop_cols=None,
     postprocess_fn=None
@@ -50,7 +54,7 @@ def load_data(
     if drop_cols:
         df = df.drop(columns=drop_cols, errors="ignore")
 
-    if simplify_tolerance and is_geospatial:
+    if simplify_tolerance:
         df["geometry"] = df["geometry"].simplify(simplify_tolerance, preserve_topology=True)
 
     if postprocess_fn:
@@ -70,6 +74,7 @@ def load_zoning_data():
 def load_soil_septic(rpc):
     return load_data(
         url = f"https://github.com/VERSO-UVM/Vermont-Livability-Map/raw/main/data/{rpc}_Soil_Septic.fgb",
+        simplify_tolerance=0.0001
     )
 
 
@@ -78,4 +83,5 @@ def load_soil_septic(rpc):
 def load_flood_data():
     return load_data(
         url = "Data/large-data/Flood_Hazard_Areas_(Only_FEMA_-_digitized_data).geojson",
+        simplify_tolerance=0.0001
     )

@@ -14,19 +14,17 @@ import requests
 import io
 from app_utils.census import rename_and_merge_census_cols, load_census_data
 from app_utils.housing import housing_pop_plot, housing_snapshot
-from app_utils.st_sections import mapping_tab, compare_tab
+from app_utils.census_sections import mapping_tab, compare_tab
 
 
 @st.cache_data
 def census_housing():
     housing_gdf_2023 = load_census_data(
         "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL.fgb",
-        is_geospatial=True
     )
-    
+
     housing_gdf_2013 = load_census_data(
         "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_HOUSING_ALL_2013.fgb",
-        is_geospatial=True
     )
     
     med_value_df = load_census_data(
@@ -39,7 +37,7 @@ def census_housing():
     return housing_gdf_2023, housing_gdf_2013, med_value_df, med_smoc_df, tidy_2023
 
 
-def census_housing_page():
+def main():
     # Page title and tabs
     st.header("Housing", divider="grey")
     mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
@@ -51,7 +49,6 @@ def census_housing_page():
     statewide_avg_val_df = (med_val_df.groupby("year", as_index=False)["estimate"].mean())
     statewide_avg_smoc_df = (med_smoc_df.groupby(["year", "variable"], as_index=False)["estimate"].mean())
 
-    # st.write(housing_gdf_2023.columns) debug
     ##  The map section ## 
     with mapping:
         mapping_tab(tidy_2023)
@@ -125,10 +122,11 @@ def census_housing_page():
         compare_tab(housing_dict)
 
 
-def show_housing():
-    # Display the page
-    census_housing_page()
-
 
 if __name__ == "__main__":
-    show_housing()
+    st.set_page_config(
+    page_title="Vermont Data App",
+    layout="wide",
+    page_icon="🍁"
+)
+    main()

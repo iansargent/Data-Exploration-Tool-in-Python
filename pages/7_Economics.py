@@ -12,18 +12,17 @@ import pydeck as pdk
 import pyogrio
 from app_utils.economic import economic_snapshot
 from app_utils.census import rename_and_merge_census_cols, load_census_data
-from app_utils.st_sections import mapping_tab, compare_tab
+from app_utils.census_sections import mapping_tab, compare_tab
 
 
 @st.cache_data
 def load_2023_economics():
     return load_census_data(
         "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_ECONOMIC_ALL.fgb",
-        is_geospatial=True
         )
 
 
-def census_economics_page():
+def main():
     # Page header
     st.header("Economics", divider="grey")
 
@@ -75,10 +74,10 @@ def census_economics_page():
         }
         compare_tab(econ_dict)
             
-def show_economics():
-    # Display the page
-    census_economics_page()
-
-
 if __name__ == "__main__":
-    show_economics()
+    st.set_page_config(
+    page_title="Vermont Data App",
+    layout="wide",
+    page_icon="🍁"
+)
+    main()
