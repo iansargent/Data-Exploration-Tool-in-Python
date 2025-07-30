@@ -2,6 +2,7 @@
 import pydeck as pdk
 import json
 import geopandas as gpd
+import streamlit as st
 
 
 def build_layer(geojson, name="GeoJsonLayer"):
@@ -22,10 +23,27 @@ def build_layer(geojson, name="GeoJsonLayer"):
 
     return layer
 
+
+def pydeck_basemap_theme(key):
+    from streamlit_theme import st_theme
+
+    theme_dict = st_theme(key=f"{key}")
+    if theme_dict is not None:
+        theme = theme_dict["base"]
+    else:
+        theme = "light"
+    
+    map_style = "dark" if theme == "dark" else "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+
+    return map_style
+
+
+
 def map_gdf_single_layer(gdf, view_state=None):
     """
     Function to convert gdf into geojson and then map it with tooltip. 
     """
+
     geojson = json.loads(gdf.to_json())
 
     ## create the layer
@@ -38,11 +56,12 @@ def map_gdf_single_layer(gdf, view_state=None):
         center_lat = (bounds[1] + bounds[3]) / 2
         view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, min_zoom=6.5, zoom=10)
 
-    tooltip = {"html" : "{tooltip}"}
 
+    tooltip = {"html" : "{tooltip}"}
+    map_style = pydeck_basemap_theme(key="theme_mapping")
     # return the map with layer
     return pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json")
+        map_style=map_style)
 
 def add_tooltip_from_dict(gdf, label_to_col):
     """
