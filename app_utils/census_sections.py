@@ -9,7 +9,6 @@ from collections import defaultdict
 import altair as alt
 import pandas as pd
 from app_utils.plot import plot_container
-from streamlit_theme import st_theme
 from app_utils.mapping import map_gdf_single_layer, add_tooltip_from_dict
 
 
@@ -54,6 +53,7 @@ def process_census_data(gdf, selected_values):
         lambda geom: geom.__geo_interface__["coordinates"]) 
     return gdf
 
+
 def add_census_tooltip(gdf, selected_values):
     ## hardcode a string to callout the variable we're mapping
     tooltip_fmt = f"{selected_values['Variable']} {selected_values['Measure']}".upper() 
@@ -62,17 +62,16 @@ def add_census_tooltip(gdf, selected_values):
         tooltip_fmt : "Value"
     })
 
+
 def mapping_tab(data): 
     st.subheader("Mapping")
-    theme_dict = st_theme(key="theme_mapping")
-    if theme_dict is not None:
-        theme = theme_dict["base"]
-    else:
-        theme = "light"  # or your fallback default
-    map_style = "dark" if theme == "dark" else "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-    # Project meaningful columns to lat/long
-    filtered_2023, selected_value = filter_dataframe(data, filter_columns=["Category", "Subcategory", "Variable", "Measure"], key_prefix="mapping_filter")
-    filtered_2023.to_crs(epsg=4326)
+    
+    ## filter down to column to map
+    filtered_2023, selected_values = filter_dataframe(
+        data, 
+        filter_columns=["Category", "Subcategory", "Variable", "Measure"], 
+        key_prefix="mapping_filter_2023")
+    filtered_2023 = process_census_data(filtered_2023, selected_values)
  
     # Normalize the housing variable for monochromatic chloropleth coloring
     vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 5)
@@ -100,9 +99,7 @@ def mapping_tab(data):
         render_colorbar(cmap=cmap, norm=norm, vmin=vmin, vmax=vmax, cutoff=cutoff, style=style)
     
     elif style == "Jenk's Natural Breaks":
-        # Option Two: Jenk's Natural Breaks Algorithm
-        # Using a slider, adjust the number of "groups" in the data
-        col1, _, _ = st.columns(3)
+        # Option Three: Jenk's Natural Breaks Algorithm
         n_classes=10
         # n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
         # Define the Jenk's colormap and apply it to the dataframe
@@ -111,42 +108,12 @@ def mapping_tab(data):
         # Fill null values with a transparent color
         filtered_2023['fill_color'] = filtered_2023['fill_color'].fillna("(0, 0, 0, 0)")
 
-    # Convert the geometry column to GeoJSON coordinates
-    filtered_2023["coordinates"] = filtered_2023.geometry.apply(
-        lambda geom: geom.__geo_interface__["coordinates"]) 
-
-    # Chloropleth map layer
-    polygon_layer = pdk.Layer(
-        "PolygonLayer",
-        data=filtered_2023,
-        get_polygon="coordinates[0]",
-        get_fill_color="fill_color",
-        pickable=True,
-        auto_highlight=True)
-
-    # Set the map center and zoom settings
-    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, min_zoom=6.5, zoom=7)
-
-    # Display the map to the page
-    st.pydeck_chart(pdk.Deck(
-        layers=[polygon_layer],
-        initial_view_state=view_state,
-        map_style=map_style,
-        tooltip={"text": "{Jurisdiction}: {Value}"}), height=550)
-    
-    ## filter down to column to map
-    filtered_2023, selected_values = filter_dataframe(
-        data, 
-        filter_columns=["Category", "Subcategory", "Variable", "Measure"], 
-        key_prefix="mapping_filter")
-    filtered_2023 = process_census_data(filtered_2023, selected_values)
-
     # generate and display map
     map = map_gdf_single_layer(
         gdf=filtered_2023,
         view_state=pdk.ViewState(latitude=44.26, longitude=-72.57, min_zoom=6.5, zoom=7)
     )
-    st.pydeck_chart(map)
+    st.pydeck_chart(map, height=550)
 
 
 def select_dataset(col, data_dict, label_prefix):

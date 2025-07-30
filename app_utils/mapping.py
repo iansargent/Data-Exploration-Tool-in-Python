@@ -2,6 +2,7 @@
 import pydeck as pdk
 import json
 import geopandas as gpd
+import streamlit as st
 
 
 def build_layer(geojson, name="GeoJsonLayer"):
@@ -22,10 +23,12 @@ def build_layer(geojson, name="GeoJsonLayer"):
 
     return layer
 
+
 def map_gdf_single_layer(gdf, view_state=None):
     """
     Function to convert gdf into geojson and then map it with tooltip. 
     """
+
     geojson = json.loads(gdf.to_json())
 
     ## create the layer
@@ -38,11 +41,13 @@ def map_gdf_single_layer(gdf, view_state=None):
         center_lat = (bounds[1] + bounds[3]) / 2
         view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, min_zoom=6.5, zoom=10)
 
-    tooltip = {"html" : "{tooltip}"}
 
+    tooltip = {"html" : "{tooltip}"}
+    map_style = st.session_state.map_style
     # return the map with layer
     return pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json")
+        map_style=map_style)
+
 
 def add_tooltip_from_dict(gdf, label_to_col):
     """
@@ -57,16 +62,19 @@ def add_tooltip_from_dict(gdf, label_to_col):
     )
     return gdf
 
-def mulit_layer_map(gdfs):
+
+def multi_layer_map(gdfs):
     geojsons = [json.loads(gdf.to_json()) for gdf in gdfs]
     layers = [build_layer(jsn) for jsn in geojsons]
     view_state=pdk.ViewState(latitude=44.26, longitude=-72.57, min_zoom=6.5, zoom=7)
     tooltip = {"html" : "{tooltip}"}
+    map_style = st.session_state.map_style
 
     return pdk.Deck(layers=layers, initial_view_state=view_state, tooltip=tooltip,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json")
+        map_style=map_style)
 
-def spatial_join(core_gdf, alt_gdf, columns = ['County', 'District']):
+
+def spatial_join(core_gdf, alt_gdf, columns=['County', 'District']):
 
     joined=gpd.sjoin(alt_gdf, core_gdf, how="left", predicate="intersects")
     st.write(joined)
