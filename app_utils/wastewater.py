@@ -7,18 +7,16 @@ Wastewater Utility Functions
 
 import streamlit as st
 from streamlit_extras.metric_cards import style_metric_cards 
-import pydeck as pdk
 from app_utils.color import render_rgba_colormap_legend
-import json
-
-
+from app_utils.mapping import *
+from app_utils.data_cleaning import convert_all_timestamps_to_str
 
 SOIL_COLOR = {
-    "Well Suited": [44, 160, 44, 180],
-    "Moderately Suited": [255, 204, 0, 180],
-    "Marginally Suited" : [253, 126, 20, 180],
-    "Not Suited" : [ 220, 53, 69, 180],
-    "Not Rated" : [108, 117, 125, 180]
+        "Well Suited": [44, 160, 44, 180],
+        "Moderately Suited": [255, 204, 0, 180],
+        "Marginally Suited" : [253, 126, 20, 180],
+        "Not Suited" : [ 220, 53, 69, 180],
+        "Not Rated" : [108, 117, 125, 180]
     }
 
 def land_suitability_metric_cards(gdf, total_acres):
@@ -51,50 +49,43 @@ def land_suitability_metric_cards(gdf, total_acres):
         border_size_px=0.5
     )
 
-def plot_wastewater(gdf):
-    # Define soil suitability colors to be shown on the map
+
+### cleaning and mapping functions  ## 
+def add_soil_tooltip(gdf):
+    return add_tooltip_from_dict(gdf, label_to_col={
+        "Suitability" : "Suitability",
+        "Acreage": "Acres_fmt",
+        "Municipality":"Jurisdiction"
+    })
+
+def define_soil_colors(gdf):
     gdf["rgba_color"] = gdf["Suitability"].apply(lambda x: SOIL_COLOR.get(x))
+    return gdf
+
+def clean_soil_frame(gdf):
     gdf["polygon_coords"] = gdf.geometry.apply(extract_2d_coords)
     gdf["Acres_fmt"] = gdf["Acres"].map(lambda x: f"{x:,.0f}")
-    gdf_map = gdf[['Suitability', 'Jurisdiction', 'Acres_fmt', 'geometry', 'rgba_color']].copy()
-    geo_json = json.loads(gdf_map.to_json())
+    gdf = gdf[['Suitability', 'Jurisdiction', 'Acres_fmt', 'geometry', 'rgba_color', "Acres"]].copy()
+    return gdf
 
-    # Land suitability map layer 
-    soil_layer = pdk.Layer(
-        "GeoJsonLayer",
-        data=geo_json,
-        get_fill_color="properties.rgba_color",
-        get_line_color=[20, 20, 20, 180],
-        pickable=True,
-        auto_highlight=True,
-        stroked=True,
-        filled=True
-    )
-
-    # Calculate the center and zoom level of the map
-    bounds = gdf.total_bounds
-    center_lon = (bounds[0] + bounds[2]) / 2
-    center_lat = (bounds[1] + bounds[3]) / 2
-    view_state = pdk.ViewState(latitude=center_lat, longitude=center_lon, zoom=9)
-
-    tooltip = {"html": "<b> Suitability: </b> {Suitability}  <br/> <b> Acreage: </b> {Acres_fmt} <br/> <b> Municipality: </b> {Jurisdiction}"}
-
-    # create and return the map
-    map = pdk.Deck(
-        layers=[soil_layer],
-        initial_view_state=view_state,
-        tooltip=tooltip,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-    )
-    return map
-
+def plot_wastewater(gdf):
+    return map_gdf_single_layer(gdf)
 
 def extract_2d_coords(g):
     return [[ [x, y] for x, y in g.exterior.coords ]]
-
 
 def render_soil_colormap():
     """
     Hard-coded wrapper to map our hardcoded soil_color global above. 
     """
     render_rgba_colormap_legend(SOIL_COLOR)
+
+def process_soil_data(gdf):
+    """
+    Wrapper for multiple functions to clean and add colors to a soil frame
+    """
+    gdf = define_soil_colors(gdf)
+    gdf = clean_soil_frame(gdf)
+    gdf = add_soil_tooltip(gdf)
+    gdf = convert_all_timestamps_to_str(gdf)
+    return gdf

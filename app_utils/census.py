@@ -128,11 +128,7 @@ def get_geography_title(county, jurisdiction):
     
     return title_geo
 
-def load_census_data(url, is_geospatial=False):
-    return load_data(
-        url = url,
-        postprocess_fn=split_name_col
-    )
+
 
 def calculate_delta_values(filtered_gdf_2023, baseline, filtered_gdf_2013, housing_gdf):
 

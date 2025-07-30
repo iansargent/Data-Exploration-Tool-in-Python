@@ -12,9 +12,10 @@ from streamlit_pandas_profiling import st_profile_report
 import geopandas as gpd
 from app_utils.file_handling import get_user_files, process_uploaded_files
 from app_utils.report import exploratory_report, quality_report, comparison_report
+from app_utils.streamlit_config import streamlit_config
 
 
-def render_data_summary():
+def main():
     # Set the page title
     st.header("Data Summary")
     
@@ -106,11 +107,7 @@ def render_data_summary():
             st_profile_report(comp_report)
 
 
-# Run the data summary page
-def show_summary():
-    # Show the data summary page
-    render_data_summary()
-
 
 if __name__ == "__main__":
-    show_summary()
+    streamlit_config()
+    main()

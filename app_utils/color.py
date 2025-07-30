@@ -91,29 +91,44 @@ def map_outlier_yellow(x, cmap, norm, cutoff):
 
 def jenks_color_map(df, n_classes, color):
     import jenkspy
+    import numpy as np
     import matplotlib.cm as cm
-    from matplotlib import colormaps
     import matplotlib.colors as colors
 
-    if df['Value'].dropna().empty:
+    # Handle empty or invalid data
+    values = df['Value'].dropna()
+    if values.empty:
         df['color_groups'] = np.nan
         st.warning("The variable you are trying to map is an invalid measure. Please select another variable.")
         return {}
 
-    # Define breaks with "n" classifications and define a "groups" to the dataframe
-    breaks = jenkspy.jenks_breaks(df['Value'].dropna(), n_classes=n_classes)            
-    group_labels = [f'group_{i+1}' for i in range(n_classes)]
-    df['color_groups'] = pd.cut(df['Value'], bins=breaks, labels=group_labels, include_lowest=True)
+    # Get Jenks breaks and remove duplicates
+    raw_breaks = jenkspy.jenks_breaks(values, n_classes=n_classes)
+    unique_breaks = sorted(set(raw_breaks))
 
-    # Define a red colormap based on the number of groups selected
+    # Adjust labels to match number of valid bins
+    actual_classes = len(unique_breaks) - 1
+    group_labels = [f'group_{i+1}' for i in range(actual_classes)]
+
+    # Assign value groups
+    df['color_groups'] = pd.cut(
+        df['Value'],
+        bins=unique_breaks,
+        labels=group_labels,
+        include_lowest=True
+    )
+
+    # Build color map
     cmap = cm.get_cmap(color)
-    color_vals = np.linspace(0.1, 0.9, n_classes)
+    color_vals = np.linspace(0.1, 0.9, actual_classes)
     jenks_colors = [colors.to_hex(cmap(val)) for val in color_vals]
 
-    # Map RGB colors to each defined category
-    jenks_cmap_dict = {str(group): hex_to_rgb255(color) for group, color in zip(group_labels, jenks_colors)}
-    
+    # Map to RGBA using your helper function (assumes it exists)
+    jenks_cmap_dict = {label: hex_to_rgb255(hex_color)
+                       for label, hex_color in zip(group_labels, jenks_colors)}
+
     return jenks_cmap_dict
+
 
 
 def hex_to_rgb255(hex_color):
