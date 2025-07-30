@@ -13,7 +13,7 @@ from app_utils.wastewater import *
 from app_utils.streamlit_config import streamlit_config
 
 def combo_map(gdfs):
-    map = mulit_layer_map(gdfs)
+    map = multi_layer_map(gdfs)
     st.pydeck_chart(map)
 
 def main ():

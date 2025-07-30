@@ -9,7 +9,6 @@ from collections import defaultdict
 import altair as alt
 import pandas as pd
 from app_utils.plot import plot_container
-from streamlit_theme import st_theme
 from app_utils.mapping import map_gdf_single_layer, add_tooltip_from_dict
 
 
