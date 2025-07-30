@@ -8,67 +8,24 @@ Flooding Page (FEMA)
 
 # Necessary imports
 import streamlit as st
-import pydeck as pdk
 import geopandas as gpd
 from app_utils.data_loading import load_flood_data
+from app_utils.flooding import *
+from app_utils.streamlit_config import streamlit_config
 
-    
-def flooding():
+def main():
     # Page header
-    st.header("VT Flood Risk")
+    st.header("Mandatory Flood Insurance")
 
-    # Load the FEMA flood hazard zones dataset
+    # Load the FEMA flood hazard zones dataset and clean it 
     flood_gdf = load_flood_data()
+    flood_gdf = process_flood_gdf(flood_gdf)
 
-    st.write(flood_gdf.head())
-
-    # Filter the data to only include high-risk FEMA flood zones
-    high_risk_zones = ["A", "AE", "A1-A30", "AH", "AO", "A99"]
-    high_risk = flood_gdf[flood_gdf["FLD_ZONE"].isin(high_risk_zones)].copy()
-
-    # Simplify the geometry for computing performance
-    high_risk["geometry"] = high_risk["geometry"].simplify(0.0001, preserve_topology=True)
-
-    # Extract polygon shapes for pydeck
-    def get_coordinates(geom):
-        if geom.geom_type == 'Polygon':
-            return [list(geom.exterior.coords)]
-        elif geom.geom_type == 'MultiPolygon':
-            return [list(poly.exterior.coords) for poly in geom.geoms]
-        return []
-    # Define a new "coordinates" column derived from geometry
-    high_risk["coordinates"] = high_risk["geometry"].apply(get_coordinates)
-
-    # "Explode" multipolygons into separate rows
-    exploded = high_risk.explode(index_parts=False)
-    exploded = exploded.explode("coordinates", ignore_index=True)
-
-    # Flood zones map layer
-    polygon_layer = pdk.Layer(
-        "PolygonLayer",
-        data=exploded,
-        get_polygon="coordinates",
-        get_fill_color=[255, 0, 0, 100],
-        pickable=True,
-        auto_highlight=True,
-        stroked=True,
-        filled=True,
-    )
-
-    # Set the map center and zoom level
-    view_state = pdk.ViewState(latitude=44.26, longitude=-72.57, zoom=7.8)
-
-    # Display map to the page
-    st.pydeck_chart(pdk.Deck(
-        layers=[polygon_layer],
-        initial_view_state=view_state,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-        tooltip={"text": "Zone: {FLD_ZONE}"}), height=550)
-
-
-def show_flooding():
-    flooding()
+    # create and display map
+    map = plot_flood_gdf(flood_gdf)
+    st.pydeck_chart(map)
 
 
 if __name__ == "__main__":
-    show_flooding()
+    streamlit_config()
+    main()

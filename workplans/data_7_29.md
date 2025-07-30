@@ -2,12 +2,13 @@
 Workplan for Mon Jul 28 10:27:45 EDT 2025
 
 FITZ
-* [ ] General Refactor -- functionalize throughout, particularly in zoning, wastewater, and flooding
+* [x] General Refactor -- functionalize throughout, particularly in zoning, wastewater, and flooding
+    * [x] Add in standard loading function // wrap calls to that
     * Add in wastewater service areas
 * [ ] Single Mapping Page
     * [ ] Standardize filtering and ui for zoning, wastewater, flooding
-    * [ ] Turn functions into multi-layering ones / wrap them in such 
-    * [ ] Integrate into a single pydeck for a rough compare page
+    * [x] Turn functions into multi-layering ones / wrap them in such 
+    * [x] Integrate into a single pydeck for a rough compare page
     * plan ahead -- dictionary for different type of data (eg, polygon, point)
 * Ideas for contacts about budgetary planning / budgetary data 
 * Stretches 

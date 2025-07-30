@@ -12,9 +12,10 @@ from app_utils.file_handling import get_user_files, process_uploaded_files
 from app_utils.analysis import descriptive_metrics, get_columns
 import geopandas as gpd
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
+from app_utils.streamlit_config import streamlit_config
 
 
-def render_table_preview():
+def main():
     # Set the page title
     st.header("Table Preview")
         
@@ -47,13 +48,7 @@ def render_table_preview():
         # Display the dataframe on the page
         st.dataframe(filtered_df, use_container_width=True)
 
-
-def show_preview():
-    # Show the table page
-    render_table_preview()
-
-
 if __name__ == "__main__":
-    show_preview()
-
+    streamlit_config()
+    main()
     

@@ -13,6 +13,7 @@ import pandas as pd
 from app_utils.file_handling import get_user_files, process_uploaded_files
 from app_utils.analysis import get_columns
 from app_utils.plot import single_column_plot, two_column_plot, group_by_plot
+from app_utils.streamlit_config import streamlit_config
 
 
 # The visualize page (with default arguments given)
@@ -125,7 +126,7 @@ def render_visualization(mode="single", processed_files=None):
         key += 3
 
 # The main function
-def visualize():
+def main():
     # Define the three plotting tabs
     tab1, tab2, tab3 = st.tabs(["Single Variable", "Two Variables", "Group By"])
     
@@ -142,4 +143,5 @@ def visualize():
         render_visualization("group-by", processed_files)
 
 if __name__ == "__main__":
-    visualize()
+    streamlit_config()
+    main()

@@ -15,9 +15,10 @@ from sklearn.preprocessing import MinMaxScaler
 from app_utils.data_cleaning import convert_all_timestamps_to_str
 from app_utils.file_handling import (get_user_files, is_latitude_longitude, 
                                      process_uploaded_files, get_lat_lon_cols)
+from app_utils.streamlit_config import streamlit_config
 
 
-def render_mapping():
+def main():
     # Page header
     st.header("General Mapping")
     # Get the user files from the file uploader
@@ -95,11 +96,7 @@ def render_mapping():
 
     return
 
-      
-def show_mapping():
-    # Display the page
-    render_mapping()
-
 
 if __name__ == "__main__":
-    show_mapping()
+    streamlit_config()
+    main()

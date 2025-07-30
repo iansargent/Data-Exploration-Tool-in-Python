@@ -10,6 +10,7 @@ About Page
 import streamlit as st
 import markdown
 import requests
+from app_utils.streamlit_config import streamlit_config
 
 def about():
     # Set the page title
@@ -36,7 +37,7 @@ def about():
             unsafe_allow_html=True
         )
 
-def show_about():
+def main():
     # Set the global font settings and display a background image
     st.markdown(
         """
@@ -80,4 +81,5 @@ def show_about():
 
 
 if __name__ == "__main__":
-    show_about()
+    streamlit_config()
+    main()
