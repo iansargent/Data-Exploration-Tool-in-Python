@@ -8,6 +8,15 @@ File Handling Utility Functions
 import pandas as pd
 import geopandas as gpd
 
+def strip_all_whitespace(df):
+    # Strip column names
+    df.columns = df.columns.str.strip()
+    
+    # Strip whitespace from all string cells
+    for col in df.select_dtypes(include='object'):
+        df[col] = df[col].str.strip()
+    
+    return df
 
 def clean_data(df):
     """

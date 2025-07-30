@@ -21,9 +21,9 @@ def process_zoning_data(gdf):
     wrapper for all the cleaning, color, tooltip functions for zoning dataset
     """
     gdf = clean_zoning_gdf(gdf)
-    gdf, color_map = add_fill_colors(gdf, column="District Type", cmap='tab20')
+    gdf = add_fill_colors(gdf, column="District Type", cmap='tab20')
     gdf = add_zoning_tooltip(gdf)
-    return gdf, color_map
+    return gdf
 
 def clean_zoning_gdf(gdf):
     """
@@ -44,7 +44,7 @@ def clean_zoning_gdf(gdf):
     return gdf
 
 def add_zoning_tooltip(gdf):
-    return add_tooltip_from_dict(gdf, label_to_col={
+    return add_tooltip_from_dict(gdf, gdf_name="Zoning", label_to_col={
         "District" : "Jurisdiction District Name",
         "Type": "District Type",
         "Acreage" : "Acres_fmt"

@@ -13,6 +13,7 @@ import requests
 import io
 import pyogrio 
 from pathlib import Path
+from app_utils.data_cleaning import strip_all_whitespace
 
 
 def load_data(
@@ -64,6 +65,7 @@ def load_data(
     if postprocess_fn:
         df = postprocess_fn(df)
 
+    df = strip_all_whitespace(df)
     return df
 
 def crs_set(df):
@@ -76,20 +78,54 @@ def crs_set(df):
 ### hard-coded wrappers for particular URLs ### 
 
 @st.cache_data
-def load_zoning_data():
-    return load_data(
+def load_zoning_data(county=None):
+    gdf = load_data(
         url='https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/data/vt-zoning-update.fgb',
         simplify_tolerance=0.0001,
         drop_cols=["Bylaw Date"]
     )
+    return gdf if not county else gdf[gdf["County"] == county].copy()
 
 @st.cache_data
-def load_soil_septic(rpc):
+def load_soil_septic_single(rpc):
     return load_data(
         url = f"https://github.com/VERSO-UVM/Vermont-Livability-Map/raw/main/data/{rpc}_Soil_Septic.fgb",
         simplify_tolerance=0.0001
     )
 
+def load_soil_septic_multi(rpcs):
+    dfs = [load_soil_septic_single(rpc) for rpc in rpcs]
+    return pd.concat(dfs, ignore_index=True, sort=False)
+
+
+# @st.cache_data
+# def load_soil_septic_full():
+#     # try:
+#     #     return gpd.read_file("Data/large-data/combined-wastewater.fgb", driver="Parquet")
+#     # except:
+#     rpcs = {
+#         "Addison County": "ACRPC",
+#         "Bennington County": "BCRC",
+#         "Chittenden County": "CCRPC",
+#         "Central Vermont": "CVRPC",
+#         "Lamoille County": "LCPC",
+#         "Mount Ascutney": "MARC",
+#         "Northeastern Vermont": "NVDA",
+#         "Northwest Regional": "NWRPC",
+#         "Rutland Regional": "RRPC",
+#         "Two Rivers-Ottauquechee": "TRORC",
+#         "Windham": "WRC",
+#     }
+
+#     gdfs = []
+#     for label, rpc in rpcs.items():
+#         gdf = load_soil_septic_partial(rpc)
+#         gdf['Source'] = label
+#         gdfs.append(gdf)
+    
+#     gdf_combined = pd.concat(gdfs, ignore_index=True, sort=False)
+#     gdf_combined.to_file("Data/large-data/combined-wastewater.fgb", driver="Parquet")
+#     return gdf_combined 
 
 ## TODO: update with actual URL. once in stored place.
 @st.cache_data

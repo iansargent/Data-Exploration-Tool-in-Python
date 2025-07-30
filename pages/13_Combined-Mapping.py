@@ -10,6 +10,7 @@ from app_utils.color import *
 from app_utils.mapping import *
 from app_utils.df_filtering import *
 from app_utils.wastewater import *
+from app_utils.flooding import *
 from app_utils.streamlit_config import streamlit_config
 
 def combo_map(gdfs):
@@ -17,23 +18,62 @@ def combo_map(gdfs):
     st.pydeck_chart(map)
 
 def main ():
-    zoning_gdf = clean_zoning_gdf(load_zoning_data())
-    zoning_gdf, zoning_color = add_fill_colors(zoning_gdf, column="District Type", cmap="tab20")
 
-    soil_gdf = load_soil_septic("ACRPC")
+    ## get rpc
+    st.header("Combined Mapping", divider="grey")
+    filter_cols = [
+        "Jurisdiction",
+        "District Name"
+        ]
+    col1, *cols = st.columns(len(filter_cols)+1)
+    rpc = get_soil_rpc(col1)
 
+    ## load data
+    zoning_gdf = process_zoning_data(load_zoning_data())
+    flooding_gdf = process_flood_gdf(load_flood_data())
+    soil_gdf = process_soil_data(load_soil_septic_single(rpc))
 
-    gdf, _ = filter_dataframe_multiselect(
-        dfs=zoning_gdf, filter_columns=['County', 'Jurisdiction', 'District Name'], 
-        presented_cols=['County', 'Municipality', 'District'],
-        allow_all = {
-            "County": False,
-            "Jurisdiction": True,
-            "District Name": True
-        })
-    gdf, _ = process_zoning_data(gdf)
-    gdfs = [gdf] + [process_soil_data(soil_gdf)]
-    combo_map(gdfs)
+    ## filter the zoning_gdf 
+    zoning_gdf = zoning_gdf[zoning_gdf['RPC'] == rpc]
+
+    ## add filtering columns to the flooding and soil_gdfs
+    flooding_gdf = add_cols_of_biggest_intersection(
+        donor_gdf=zoning_gdf,
+        altered_gdf=flooding_gdf,
+        add_columns=["County", "Jurisdiction"]
+    )
+
+    soil_gdf = add_cols_of_biggest_intersection(
+        donor_gdf=zoning_gdf,
+        altered_gdf=soil_gdf,
+        add_columns=['County']
+    )
+
+    # Layer selection
+    layer_options = {
+        "Zoning": zoning_gdf,
+        "Flooding": flooding_gdf,
+        "Wastewater": soil_gdf,
+
+    }
+    selected_layers = st.multiselect("Select data sources to display", list(layer_options.keys()), default=list(layer_options.keys())[:2])
+
+    ## get filters and then apply them
+    filter_selections = collect_filter_selections(
+        zoning_gdf,
+        filter_columns=filter_cols,
+        allow_all={
+            "Jurisdiction" : True,
+            "District Name" : True
+        },
+        passed_cols = cols
+    )
+
+    dfs = [
+        apply_filter_selections(layer_options[name], filter_selections)
+        for name in selected_layers
+    ]
+    combo_map(dfs)
 
 if __name__ == "__main__":
     streamlit_config()
