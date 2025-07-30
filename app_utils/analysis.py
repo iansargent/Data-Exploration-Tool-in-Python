@@ -82,7 +82,7 @@ def descriptive_metrics(df, filename):
     @param filename: The name of the file (string)
     """
     # Add spacer between different files
-    st.markdown("---")
+    st.divider()
     
     # Define the dimensions
     num_cols, num_rows = get_dimensions(df)
