@@ -195,7 +195,6 @@ def add_fill_colors(df, column, cmap='tab20', alpha=180):
 
     Returns:
         pd.DataFrame: A copy with a 'fill_color' column (RGBA lists).
-        dict: The category-to-color mapping used.
     """
     df = df.copy()
     unique_keys = sorted(df[column].dropna().unique())
@@ -209,4 +208,4 @@ def add_fill_colors(df, column, cmap='tab20', alpha=180):
     df['rgba_color'] = df[column].map(lambda k: color_map.get(k, [150, 150, 150, alpha]))
     df['hex_color'] = df['rgba_color'].apply(lambda k : rgba_to_hex(k))
 
-    return df, color_map
+    return df

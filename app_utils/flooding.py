@@ -40,7 +40,7 @@ def clean_flood_gdf(gdf):
     return gdf
 
 def add_flood_tooltip(gdf):
-    return add_tooltip_from_dict(gdf, label_to_col={
+    return add_tooltip_from_dict(gdf, gdf_name="Flooding", label_to_col={
         "Zone" : "FLD_ZONE",
         "Additional Info" : "ZONE_SUBTY_DISPLAY"
     })

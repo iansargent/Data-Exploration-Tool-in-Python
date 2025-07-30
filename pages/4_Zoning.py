@@ -26,7 +26,7 @@ def main():
 
     # Load the zoning data from GitHub, clean it, add colors,
     zoning_gdf = load_zoning_data()
-    zoning_gdf, color_map = process_zoning_data(zoning_gdf)
+    zoning_gdf = process_zoning_data(zoning_gdf)
 
     ## user selections
     filtered_gdf, _ = filter_dataframe_multiselect(
@@ -39,6 +39,7 @@ def main():
         })
 
     mapping, report, compare = st.tabs(["Map", "Report", "Compare"])
+    color_map = dict(zip(zoning_gdf['District Type'], zoning_gdf['rgba_color']))
     
     with mapping:
         map = zoning_district_map(filtered_gdf)

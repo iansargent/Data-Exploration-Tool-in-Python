@@ -52,7 +52,7 @@ def land_suitability_metric_cards(gdf, total_acres):
 
 ### cleaning and mapping functions  ## 
 def add_soil_tooltip(gdf):
-    return add_tooltip_from_dict(gdf, label_to_col={
+    return add_tooltip_from_dict(gdf, gdf_name="Wastewater", label_to_col={
         "Suitability" : "Suitability",
         "Acreage": "Acres_fmt",
         "Municipality":"Jurisdiction"
@@ -65,20 +65,12 @@ def define_soil_colors(gdf):
 def clean_soil_frame(gdf):
     gdf["polygon_coords"] = gdf.geometry.apply(extract_2d_coords)
     gdf["Acres_fmt"] = gdf["Acres"].map(lambda x: f"{x:,.0f}")
-    gdf = gdf[['Suitability', 'Jurisdiction', 'Acres_fmt', 'geometry', 'rgba_color', "Acres"]].copy()
+    gdf = gdf[['Suitability', 'Jurisdiction', 'Acres_fmt', 'geometry', 'rgba_color', "Acres", "polygon_coords"]].copy()
     return gdf
 
-def plot_wastewater(gdf):
-    return map_gdf_single_layer(gdf)
 
 def extract_2d_coords(g):
     return [[ [x, y] for x, y in g.exterior.coords ]]
-
-def render_soil_colormap():
-    """
-    Hard-coded wrapper to map our hardcoded soil_color global above. 
-    """
-    render_rgba_colormap_legend(SOIL_COLOR)
 
 def process_soil_data(gdf):
     """
@@ -89,3 +81,36 @@ def process_soil_data(gdf):
     gdf = add_soil_tooltip(gdf)
     gdf = convert_all_timestamps_to_str(gdf)
     return gdf
+
+
+### Front end functions
+def render_soil_colormap():
+    """
+    Hard-coded wrapper to map our hardcoded soil_color global above. 
+    """
+    render_rgba_colormap_legend(SOIL_COLOR)
+
+
+def plot_wastewater(gdf):
+    return map_gdf_single_layer(gdf)
+
+
+def get_soil_rpc(column):
+    """
+    Hardcoded frontend function for selecting a regional planning commission
+    """
+    rpcs = {
+        "Addison County": "ACRPC",
+        "Bennington County": "BCRC",
+        "Chittenden County": "CCRPC",
+        "Central Vermont": "CVRPC",
+        "Lamoille County": "LCPC",
+        "Mount Ascutney": "MARC",
+        "Northeastern Vermont": "NVDA",
+        "Northwest Regional": "NWRPC",
+        "Rutland Regional": "RRPC",
+        "Two Rivers-Ottauquechee": "TRORC",
+        "Windham": "WRC",
+    }
+    rpc = column.selectbox("Regional Planning Comission", options=rpcs.keys(), index=0)
+    return rpcs.get(rpc)
