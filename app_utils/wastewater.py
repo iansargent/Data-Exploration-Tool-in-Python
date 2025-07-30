@@ -65,7 +65,7 @@ def define_soil_colors(gdf):
 def clean_soil_frame(gdf):
     gdf["polygon_coords"] = gdf.geometry.apply(extract_2d_coords)
     gdf["Acres_fmt"] = gdf["Acres"].map(lambda x: f"{x:,.0f}")
-    gdf = gdf[['Suitability', 'Jurisdiction', 'Acres_fmt', 'geometry', 'rgba_color']].copy()
+    gdf = gdf[['Suitability', 'Jurisdiction', 'Acres_fmt', 'geometry', 'rgba_color', "Acres"]].copy()
     return gdf
 
 def plot_wastewater(gdf):

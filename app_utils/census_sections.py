@@ -47,7 +47,6 @@ def fill_census_colors(gdf):
 
 
 def process_census_data(gdf, selected_values):
-    gdf.to_crs(epsg=4326)
     gdf = fill_census_colors(gdf)
     gdf = add_census_tooltip(gdf, selected_values)
     gdf["coordinates"] = gdf.geometry.apply(

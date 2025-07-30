@@ -57,7 +57,6 @@ def add_tooltip_from_dict(gdf, label_to_col):
     )
     return gdf
 
-
 def mulit_layer_map(gdfs):
     geojsons = [json.loads(gdf.to_json()) for gdf in gdfs]
     layers = [build_layer(jsn) for jsn in geojsons]
@@ -68,8 +67,6 @@ def mulit_layer_map(gdfs):
         map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json")
 
 def spatial_join(core_gdf, alt_gdf, columns = ['County', 'District']):
-
-    core_gdf = core_gdf.to_crs(alt_gdf.crs)
 
     joined=gpd.sjoin(alt_gdf, core_gdf, how="left", predicate="intersects")
     st.write(joined)

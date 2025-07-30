@@ -10,6 +10,7 @@ from app_utils.color import *
 from app_utils.mapping import *
 from app_utils.df_filtering import *
 from app_utils.wastewater import *
+from app_utils.streamlit_config import streamlit_config
 
 def combo_map(gdfs):
     map = mulit_layer_map(gdfs)
@@ -35,9 +36,5 @@ def main ():
     combo_map(gdfs)
 
 if __name__ == "__main__":
-    st.set_page_config(
-    page_title="Vermont Data App",
-    layout="wide",
-    page_icon="🍁"
-)
+    streamlit_config()
     main()

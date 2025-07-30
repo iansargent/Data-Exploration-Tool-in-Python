@@ -11,6 +11,7 @@ import streamlit as st
 import geopandas as gpd
 from app_utils.data_loading import load_flood_data
 from app_utils.flooding import *
+from app_utils.streamlit_config import streamlit_config
 
 def main():
     # Page header
@@ -26,9 +27,5 @@ def main():
 
 
 if __name__ == "__main__":
-    st.set_page_config(
-    page_title="Vermont Data App",
-    layout="wide",
-    page_icon="🍁"
-)
+    streamlit_config()
     main()

@@ -18,11 +18,12 @@ from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
 import streamlit.components.v1 as components
 from app_utils.color import rgba_to_hex, tab20_rgba, add_fill_colors
 from app_utils.data_loading import load_zoning_data
+from app_utils.streamlit_config import streamlit_config
 
 
 def main():
     # Page header
-    st.header("Zoning")
+    st.header("Zoning", divider="grey")
 
     # Load the zoning data from GitHub, clean it, add colors,
     zoning_gdf = load_zoning_data()
@@ -69,9 +70,5 @@ def main():
 
 
 if __name__ == "__main__":
-    st.set_page_config(
-    page_title="Vermont Data App",
-    layout="wide",
-    page_icon="🍁"
-)
+    streamlit_config()
     main()

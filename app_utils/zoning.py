@@ -41,8 +41,6 @@ def clean_zoning_gdf(gdf):
     ## format the acres string 
     gdf['Acres_fmt' ] = gdf['Acres'].map(lambda x: f"{x:,.0f}")
 
-    ## get only relevant columns
-    gdf = gdf.set_crs("EPSG:4326") if gdf.crs is None else gdf.to_crs("EPSG:4326")
     return gdf
 
 def add_zoning_tooltip(gdf):

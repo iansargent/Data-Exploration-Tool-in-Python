@@ -7,10 +7,12 @@ Credits: Created as part of a Masters with VERSO
 """
 import streamlit as st
 import pandas as pd
-from app_utils.census import rename_and_merge_census_cols, load_census_data
+from app_utils.census import rename_and_merge_census_cols
 from app_utils.housing import housing_pop_plot, housing_snapshot
 from app_utils.census_sections import mapping_tab, compare_tab
 from urllib.parse import urljoin
+from app_utils.streamlit_config import streamlit_config
+from app_utils.data_loading import load_census_data
 
 
 
@@ -44,9 +46,5 @@ def main():
 
 
 if __name__ == "__main__":
-    st.set_page_config(
-    page_title="Vermont Data App",
-    layout="wide",
-    page_icon="🍁"
-)
+    streamlit_config()
     main()

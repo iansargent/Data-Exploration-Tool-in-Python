@@ -35,14 +35,18 @@ def load_data(
     """
 
     extension = Path(url).suffix.lstrip('.')
-
     if extension=='fgb':
         try:
             df = pyogrio.read_dataframe(url)
+            df= crs_set(df)
         except Exception as e:
             raise RuntimeError(f"Failed to read geospatial data: {e}")
     elif extension == 'geojson':
-        df = gpd.read_file(url)
+        try: 
+            df = gpd.read_file(url)
+            df = crs_set(df)
+        except Exception as e:
+            raise RuntimeError(f"Failed to read geospatial data: {e}")
     else:
         try:
             response = requests.get(url, verify=True)
@@ -61,6 +65,15 @@ def load_data(
         df = postprocess_fn(df)
 
     return df
+
+def crs_set(df):
+    if df.crs:
+        df.to_crs(epsg=4326)
+    else:
+        df.set_crs(epsg=4326)
+    return df
+
+### hard-coded wrappers for particular URLs ### 
 
 @st.cache_data
 def load_zoning_data():
@@ -84,4 +97,12 @@ def load_flood_data():
     return load_data(
         url = "Data/large-data/Flood_Hazard_Areas_(Only_FEMA_-_digitized_data).geojson",
         simplify_tolerance=0.0001
+    )
+
+@st.cache_data
+def load_census_data(url):
+    from app_utils.census import split_name_col
+    return load_data(
+        url = url,
+        postprocess_fn=split_name_col
     )

@@ -13,6 +13,9 @@ from app_utils.data_cleaning import convert_all_timestamps_to_str
 from app_utils.wastewater import *
 from app_utils.df_filtering import filter_dataframe_multiselect
 from app_utils.data_loading import load_soil_septic
+from app_utils.streamlit_config import streamlit_config
+
+
 
 def select_soil_suitability():
     ## dictionary of RPCs to select from
@@ -59,9 +62,9 @@ def select_soil_suitability():
     total_acreage = suit_gdf[suit_gdf['Jurisdiction'].isin(filter_selections['Jurisdiction'])]['Acres'].sum()
     return filtered_gdf, total_acreage
 
-def render_wastewater():
+def main():
     # Page header
-    st.header("Wastewater Infrastructure")
+    st.header("Wastewater Infrastructure", divider="grey")
     suit_gdf, total_acreage = select_soil_suitability()
     suit_gdf = process_soil_data(suit_gdf)
 
@@ -76,9 +79,5 @@ def render_wastewater():
 
 
 if __name__ == "__main__":
-    st.set_page_config(
-    page_title="Vermont Data App",
-    layout="wide",
-    page_icon="🍁"
-)
-    render_wastewater()
+    streamlit_config()
+    main()
