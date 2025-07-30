@@ -8,7 +8,6 @@ Economic Utility Functions
 import streamlit as st
 import pandas as pd
 import altair as alt
-from streamlit_extras.metric_cards import style_metric_cards 
 from app_utils.census import get_geography_title, split_name_col
 import requests
 import io
@@ -75,9 +74,9 @@ def unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo):
 
     # Create a time series plot of the unemployment rate
     unemployment_ts = alt.Chart(plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0)),
+        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
         y=alt.Y("Unemployment_Rate:Q", title="Unemployment Rate", 
-                axis=alt.Axis(format="%"),
+                axis=alt.Axis(format="%", labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"),
                 scale=alt.Scale(domain=(ymin, ymax))),
         color=alt.Color("Geography:O", title=None, scale=alt.Scale(
             domain=["Statewide Average", title_geo],
@@ -85,7 +84,8 @@ def unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo):
             legend=alt.Legend(
                 orient="bottom-left", 
                 direction="horizontal", 
-                offset=20)),
+                offset=20,
+                labelFont="Helvetica Neue")),
         tooltip=[alt.Tooltip("year", title="Year"), 
                  alt.Tooltip("Unemployment_Rate", title="Unemployment Rate", format=".1%"),
                  alt.Tooltip("Geography")]
@@ -127,9 +127,9 @@ def median_earnings_ts_plot(earnings_df, county, jurisdiction, title_geo):
     
     # Create a time series plot of the unemployment rate
     median_earnings_ts = alt.Chart(plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0)),
+        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
         y=alt.Y("Median_Earnings:Q", title="Median Earnings", 
-                axis=alt.Axis(format="$,.0f"),
+                axis=alt.Axis(format="$,.0f", labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"),
                 scale=alt.Scale(domain=[ymin, ymax])
                 ),
         color=alt.Color("var_name:N", title=None, scale=alt.Scale(
@@ -138,7 +138,8 @@ def median_earnings_ts_plot(earnings_df, county, jurisdiction, title_geo):
             legend=alt.Legend(
                 orient="bottom-left", 
                 direction="horizontal", 
-                offset=20))
+                offset=20,
+                labelFont="Helvetica Neue"))
     ).properties(height=475, title=f"Median Earnings Over Time | {title_geo}"
     ).configure_title(fontSize=19, anchor="middle").interactive()
     
@@ -147,12 +148,16 @@ def median_earnings_ts_plot(earnings_df, county, jurisdiction, title_geo):
 
 def economic_snapshot(county, jurisdiction, economic_gdf_2023):    
     from streamlit_theme import st_theme
-    theme = st_theme()["base"]
+    theme_dict = st_theme(key="theme_econ_snapshot")
+    if theme_dict is not None:
+        theme = theme_dict["base"]
+    else:
+        theme = "light"  # or your fallback default
+    text_color = "white" if theme == "dark" else "black"
+
 
     # Get the title of the geography for plotting
     title_geo = get_geography_title(county, jurisdiction)
-
-    st.markdown(f"##### Report for {title_geo}")
 
     # Employment Section
     unemployment_df = load_unemployment_df()
@@ -175,7 +180,7 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
         pct_female_in_labor_force = economic_gdf_2023['DP03_0011PE'].mean()
 
         st.markdown("\1")
-        st.metric(label="**Unemployment Rate (2023)**", value=f"{unemployment_rate * 100:.1f}%", delta=f"{0.8}%")
+        st.metric(label="**Unemployment Rate (2023)**", value=f"{unemployment_rate * 100:.1f}%", delta=f"{0.8}%", delta_color='inverse')
         st.metric(label="**Civilian Employment Rate**", value=f"{pct_employed:.1f}%", delta=f"{2}%")
         st.metric(label="**In Labor Force**", value=f"{pct_in_labor_force:.1f}%", delta=f"{-3}%")
         st.metric(label="**Females in Labor Force**", value=f"{pct_female_in_labor_force:.1f}%", delta=f"{10}%")
@@ -192,9 +197,6 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     public_private_coverage_df = pd.DataFrame({
         "Coverage Type": ["_Private Insurance", "Public Insurance"],
         "Value": [100 - pct_public_hc_coverage, pct_public_hc_coverage]})
-
-    is_dark_mode = st.get_option("theme.base") == "dark"
-    text_color = "white" if is_dark_mode else "black"
     
     donut = alt.Chart(public_private_coverage_df).mark_arc(innerRadius=130).encode(
         theta=alt.Theta("Value:Q"),
@@ -202,11 +204,6 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
             domain=["Public Insurance", "_Private Insurance"],
             range=["mediumseagreen", "whitesmoke"]), legend=None)
         ).properties(height=350, width=200)
-    
-    if theme == "dark":
-        text_color = "white"
-    else:
-        text_color = "black"
 
     center_label = alt.Chart(pd.DataFrame({'text': [f"{pct_public_hc_coverage:.1f}%"]})
                              ).mark_text(fontSize=45, fontWeight='lighter', font="Helvetica Neue", color=text_color).encode(
@@ -220,11 +217,11 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     h_col1.markdown("\2")
     h_col1.altair_chart(public_private_pie_chart)
     h_col2.markdown("\2")
-    h_col2.metric(label="**No Health Coverage**", value=f"{pct_no_hc_coverage:.1f}%", delta=f"{0.5}%")
+    h_col2.metric(label="**No Health Coverage**", value=f"{pct_no_hc_coverage:.1f}%", delta=f"{0.5}%", delta_color='inverse')
     h_col2.metric(label="**No Health Coverage (Age 0-19)**", 
-                  value=f"{pct_no_hc_coverage_u19:.1f}%", delta=f"{0.5}%")
+                  value=f"{pct_no_hc_coverage_u19:.1f}%", delta=f"{-0.4}%", delta_color='inverse')
     h_col2.metric(label="**Employed without Health Coverage (19-64)**", 
-                  value=f"{pct_employed_no_hc_coverage:.1f}%", delta=f"{0.5}%")
+                  value=f"{pct_employed_no_hc_coverage:.1f}%", delta=f"{1.8}%", delta_color='inverse')
 
 
     st.markdown("---")
@@ -238,25 +235,44 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     earn_metric_col3.metric(label="**Median Female Earnings** (FTYR)", 
                            value=f"${economic_gdf_2023['DP03_0094E'].mean():,.0f}", delta=f"{1047:,.0f}")
     earn_metric_col4.metric(label="**Gender Wage Gap**", 
-                           value=f"${economic_gdf_2023['DP03_0093E'].mean() - economic_gdf_2023['DP03_0094E'].mean():,.0f}", delta=f"{-749:,.0f}")
+                            value=f"${economic_gdf_2023['DP03_0093E'].mean() - economic_gdf_2023['DP03_0094E'].mean():,.0f}", 
+                            delta=f"{-749:,.0f}", delta_color='inverse')
     st.markdown("\2")
     st.altair_chart(median_earnings_ts_plot(earnings_df, county, jurisdiction, title_geo))
 
-    _, income_col1, income_col2 = st.columns([2, 4, 3])
+
+
+
+    st.markdown("\2")
+    income_col1, income_col2 = st.columns([2, 11])
+
 
     income_per_capita = economic_gdf_2023["DP03_0088E"].mean()
+    median_family_income = economic_gdf_2023["DP03_0086E"].mean()
     income_col1.metric(label="Income Per Capita", value=f"${income_per_capita:,.0f}", delta=f"{5492:,.0f}")
     income_col1.markdown("\2")
-
-    median_fam_income = economic_gdf_2023["DP03_0086E"].mean()
-    income_col1.metric(label="Median Family Income", value=f"${median_fam_income:,.0f}", delta=f"{4204:,.0f}")
+    income_col1.metric(label="Median Family Income", value=f"${median_family_income:,.0f}", delta=f"{4204:,.0f}")
     
-    
-    income_col2.markdown("##### % Families Making Less Than $35,000 (Donut Chart on Right)")
-    income_col2.write("DP03_0076PE + DP03_0077PE + DP03_0078PE + DP03_0079PE")
+    family_income_dist = pd.DataFrame({
+        "Income Bin": ["Under $10,000", "$10,000 - $14,999", "$15,000 - $24,999", "$25,000 - $34,999", "$35,000 - $49,999",
+                        "$50,000 - $74,999", "$75,000 - $99,999", "$100,000 - $149,999", "$150,000 - $199,999", "$200,000 +"],
+        "Estimated Families": [economic_gdf_2023["DP03_0076E"].sum(), economic_gdf_2023["DP03_0077E"].sum(), economic_gdf_2023["DP03_0078E"].sum(), 
+                  economic_gdf_2023["DP03_0079E"].sum(), economic_gdf_2023["DP03_0080E"].sum(), economic_gdf_2023["DP03_0081E"].sum(), 
+                  economic_gdf_2023["DP03_0082E"].sum(), economic_gdf_2023["DP03_0083E"].sum(), economic_gdf_2023["DP03_0084E"].sum(), 
+                  economic_gdf_2023["DP03_0085E"].sum()]
+    })
 
-    income_col2.markdown("##### % Families Making More Than $200,000 (Donut Chart on Right)")
-    income_col2.write("DP03_0085PE")
+    bar_chart = alt.Chart(family_income_dist).mark_bar().encode(
+            x=alt.X("Income Bin:N", title="Family Income", sort=family_income_dist['Income Bin'].tolist(),
+                    axis=alt.Axis(labelAngle=-50, labelFont="Helvetica Neue", labelFontWeight='normal', labelFontSize=10.5, titleFont="Helvetica Neue")),
+            y=alt.Y("Estimated Families:Q", axis=alt.Axis(labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"))
+        ).configure_mark(color="mediumseagreen", width=75).properties(height=400)
+    
+    # Disply the chart
+    income_col2.altair_chart(bar_chart, use_container_width=True)
+
+    st.write()
+
 
     st.divider()
     st.subheader("Poverty")
@@ -273,7 +289,7 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     st.markdown("##### People Below Poverty Level (Under 18)")
     st.write("DP03_0129PE")
 
-    st.markdown("##### People Below Poverty Level (Under 18)")
+    st.markdown("##### People Below Poverty Level (18+)")
     st.write("DP03_0133PE")
     st.markdown("---")
 
@@ -290,10 +306,3 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     st.write("DP03_0024E")
 
     st.markdown("---")
-
-    # style_metric_cards(
-    #     background_color="whitesmoke",
-    #     border_left_color="mediumseagreen",
-    #     box_shadow=True,
-    #     border_size_px=0.5
-    # )

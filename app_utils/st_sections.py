@@ -9,11 +9,17 @@ from collections import defaultdict
 import altair as alt
 import pandas as pd
 from app_utils.plot import plot_container
+from streamlit_theme import st_theme
 
 
 def mapping_tab(data): 
     st.subheader("Mapping")
-    
+    theme_dict = st_theme(key="theme_mapping")
+    if theme_dict is not None:
+        theme = theme_dict["base"]
+    else:
+        theme = "light"  # or your fallback default
+    map_style = "dark" if theme == "dark" else "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
     # Project meaningful columns to lat/long
     filtered_2023, selected_value = filter_dataframe(data, filter_columns=["Category", "Subcategory", "Variable", "Measure"], key_prefix="mapping_filter")
     filtered_2023.to_crs(epsg=4326)
@@ -75,7 +81,7 @@ def mapping_tab(data):
     st.pydeck_chart(pdk.Deck(
         layers=[polygon_layer],
         initial_view_state=view_state,
-        map_style="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+        map_style=map_style,
         tooltip={"text": "{Jurisdiction}: {Value}"}), height=550)
 
 
