@@ -15,7 +15,6 @@ from streamlit_extras.metric_cards import style_metric_cards
 from app_utils.zoning import *
 from app_utils.df_filtering import filter_dataframe_multiselect
 from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
-import streamlit.components.v1 as components
 from app_utils.color import rgba_to_hex, tab20_rgba, add_fill_colors
 from app_utils.data_loading import load_zoning_data
 from app_utils.streamlit_config import streamlit_config
@@ -40,6 +39,7 @@ def main():
         })
 
     mapping, report, compare = st.tabs(["Map", "Report", "Compare"])
+    
     with mapping:
         map = zoning_district_map(filtered_gdf)
         map_col, legend_col = st.columns([4, 1])

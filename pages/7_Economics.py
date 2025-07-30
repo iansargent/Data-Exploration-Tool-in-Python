@@ -17,10 +17,12 @@ from app_utils.data_loading import load_census_data
 from app_utils.streamlit_config import streamlit_config
 
 
-def load_2023_economics():
-    return load_census_data(
+@st.cache_data
+def census_economics():
+    econ_df_2023 = load_census_data(
         "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_ECONOMIC_ALL.fgb",
-        )
+    )
+    return econ_df_2023
 
 
 def main():
@@ -29,7 +31,7 @@ def main():
 
     mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
 
-    econ_gdf_2023 = load_2023_economics()
+    econ_gdf_2023 = census_economics()
     tidy_2023 = rename_and_merge_census_cols(econ_gdf_2023)
 
     with mapping:
@@ -65,7 +67,6 @@ def main():
         if jurisdiction != "All Jurisdictions":
             filtered_gdf_2023 = filtered_gdf_2023[filtered_gdf_2023["Jurisdiction"] == jurisdiction]
         
-        st.markdown("\1")
         # Display formatted housing metrics vs statewide averages
         economic_snapshot(county, jurisdiction, filtered_gdf_2023)
 
