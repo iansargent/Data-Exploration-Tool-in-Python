@@ -38,10 +38,34 @@ def load_median_earnings_df():
     return earnings_df
 
 
+@st.cache_data
+def load_commute_time_df():
+    commute_time_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/refs/heads/main/Data/Census/commute_time_by_year.csv"
+    response = requests.get(commute_time_url, verify=False)
+    commute_time_df = pd.read_csv(io.StringIO(response.text))
+    commute_time_df = split_name_col(commute_time_df)
+    # Convert the 'year' column to an object type for proper plotting
+    commute_time_df['year'] = commute_time_df['year'].astype(str)
+
+    return commute_time_df
+
+
+@st.cache_data
+def load_commute_habits_df():
+    commute_habits_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/refs/heads/main/Data/Census/commute_habits_by_year.csv"
+    response = requests.get(commute_habits_url, verify=False)
+    commute_habits_df = pd.read_csv(io.StringIO(response.text))
+    commute_habits_df['variable'] = commute_habits_df['variable']
+    commute_habits_df = split_name_col(commute_habits_df)
+    # Convert the 'year' column to an object type for proper plotting
+    commute_habits_df['year'] = commute_habits_df['year'].astype(str)
+
+    return commute_habits_df
+
+
 def unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo):
     """
-    Create a time series plot of the unemployment rate for the selected geography 
-    using a time slider to select the year range.
+    Create a time series plot of the unemployment rate for the selected geography.
     """
     unemployment_df = unemployment_df.copy()
     unemployment_df["Unemployment_Rate"] = unemployment_df["Unemployment_Rate"] / 100
@@ -97,8 +121,7 @@ def unemployment_rate_ts_plot(unemployment_df, county, jurisdiction, title_geo):
 
 def median_earnings_ts_plot(earnings_df, county, jurisdiction, title_geo):
     """
-    Create a time series plot of the unemployment rate for the selected geography 
-    using a time slider to select the year range.
+    Create a time series plot of the unemployment rate for the selected geography.
     """
     earnings_df = earnings_df.copy()
     
@@ -116,11 +139,11 @@ def median_earnings_ts_plot(earnings_df, county, jurisdiction, title_geo):
     plot_df = filtered_earnings_df.groupby(["year", "variable"]).agg(Median_Earnings=("estimate", "mean")).reset_index()
     
     variable_names = {
-    "DP03_0092": "Earnings for Workers",
-    "DP03_0093": "Male Earnings (FTYR)",
-    "DP03_0094": "Female Earnings (FTYR)"}
+    "DP03_0092": "All Workers",
+    "DP03_0093": "Male (FTYR)",
+    "DP03_0094": "Female (FTYR)"}
 
-    plot_df = plot_df.assign(var_name = lambda df: df["variable"].map(variable_names))
+    plot_df = plot_df.assign(Population = lambda df: df["variable"].map(variable_names))
     
     ymax = plot_df["Median_Earnings"].max() + 5000
     ymin = plot_df["Median_Earnings"].min() - 15000
@@ -132,22 +155,130 @@ def median_earnings_ts_plot(earnings_df, county, jurisdiction, title_geo):
                 axis=alt.Axis(format="$,.0f", labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"),
                 scale=alt.Scale(domain=[ymin, ymax])
                 ),
-        color=alt.Color("var_name:N", title=None, scale=alt.Scale(
-            domain=["Earnings for Workers", "Male Earnings (FTYR)", "Female Earnings (FTYR)"],
+        color=alt.Color("Population:N", title=None, scale=alt.Scale(
+            domain=["All Workers", "Male (FTYR)", "Female (FTYR)"],
             range=["forestgreen", "dodgerblue", "deeppink"]),
             legend=alt.Legend(
                 orient="bottom-left", 
                 direction="horizontal", 
                 offset=20,
                 labelFont="Helvetica Neue"))
-    ).properties(height=475, title=f"Median Earnings Over Time | {title_geo}"
+    ).properties(height=475, title=alt.Title(f"Median Earnings | {title_geo}")
     ).configure_title(fontSize=19, anchor="middle").interactive()
     
     return median_earnings_ts
 
 
+def avg_commute_time_ts_plot(commute_time_df, county, jurisdiction, title_geo):
+    """
+    Create a time series plot of the unemployment rate for the selected geography.
+    """
+    commute_time_df = commute_time_df.copy()
+    commute_time_df = commute_time_df.rename(columns={'estimate': 'Minutes'})
+    commute_time_df["Minutes"] = commute_time_df["Minutes"]
+    
+    # Filter data based on selection
+    if county == "All Counties" and jurisdiction == "All Jurisdictions":
+        filtered_commute_time_df = commute_time_df.copy()
+        title_geo = "Statewide"
+    else:
+        filtered_commute_time_df = commute_time_df.copy()
+        if county != "All Counties":
+            filtered_commute_time_df = filtered_commute_time_df[filtered_commute_time_df["County"] == county]
+        if jurisdiction != "All Jurisdictions":
+            filtered_commute_time_df = filtered_commute_time_df[filtered_commute_time_df["Jurisdiction"] == jurisdiction]
+
+    plot_df = filtered_commute_time_df.groupby("year").agg(Average_Commute=("Minutes", "mean")).reset_index()
+    plot_df["Geography"] = title_geo
+    statewide_avg_df = commute_time_df.groupby("year").agg(Average_Commute=("Minutes", "mean")).reset_index().assign(Geography="Statewide Average")
+
+    # If we’re statewide only, skip adding the comparison line
+    if title_geo != "Vermont (Statewide)":
+        plot_df = pd.concat([plot_df, statewide_avg_df], ignore_index=True)
+
+    if len(plot_df[plot_df["Geography"] != "Statewide Average"]) <= 1:
+        st.warning("Not enough commuting data available for the selected geography.")
+        return None
+    
+    ymax = plot_df["Average_Commute"].max() + 5
+    ymin = plot_df["Average_Commute"].min() - 5
+
+    # Create a time series plot of the unemployment rate
+    commute_time_ts = alt.Chart(plot_df).mark_line(point=True).encode(
+        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
+        y=alt.Y("Average_Commute:Q", title="Average Commute (Minutes)", 
+                axis=alt.Axis(labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"),
+                scale=alt.Scale(domain=(ymin, ymax))),
+        color=alt.Color("Geography:O", title=None, scale=alt.Scale(
+            domain=["Statewide Average", title_geo],
+            range=["#83C299", "darkgreen"]),
+            legend=alt.Legend(
+                orient="bottom-left", 
+                direction="horizontal", 
+                offset=20,
+                labelFont="Helvetica Neue")),
+        tooltip=[alt.Tooltip("year", title="Year"), 
+                 alt.Tooltip("Average_Commute:Q", title="Average Commute (Minutes)", format=".0f"),
+                 alt.Tooltip("Geography")]
+    ).properties(height=450, title=f"Average Commuting Time | {title_geo}"
+    ).configure_title(fontSize=19, anchor="middle").interactive()
+    
+    return commute_time_ts
+
+
+def commute_habits_ts_plot(commute_habits_df, county, jurisdiction, title_geo):
+    """
+    Create a time series plot of the unemployment rate for the selected geography.
+    """
+    commute_habits_df = commute_habits_df.copy()
+    
+    # Filter data based on selection
+    if county == "All Counties" and jurisdiction == "All Jurisdictions":
+        filtered_commute_habits_df = commute_habits_df.copy()
+        title_geo = "Statewide"
+    else:
+        filtered_commute_habits_df = commute_habits_df.copy()
+        if county != "All Counties":
+            filtered_commute_habits_df = filtered_commute_habits_df[filtered_commute_habits_df["County"] == county]
+        if jurisdiction != "All Jurisdictions":
+            filtered_commute_habits_df = filtered_commute_habits_df[filtered_commute_habits_df["Jurisdiction"] == jurisdiction]
+
+    plot_df = filtered_commute_habits_df.groupby(["year", "variable"]).agg(Percentage=("estimate", "mean")).reset_index()
+    
+    variable_names = {"DP03_0021P": "Public Transit", "DP03_0024P": "Work From Home"}
+
+    plot_df = plot_df.assign(Commute_Type = lambda df: df["variable"].map(variable_names))
+    
+    plot_df["Percentage"] = plot_df["Percentage"] / 100
+    
+    ymax = plot_df["Percentage"].max() + 0.02
+    ymin = 0 
+    
+    # Create a time series plot of the unemployment rate
+    commute_habits_ts = alt.Chart(plot_df).mark_line(point=True).encode(
+        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
+        y=alt.Y("Percentage:Q", title="Percentage of Workers (16+)", 
+                axis=alt.Axis(format=".0%", labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"),
+                scale=alt.Scale(domain=[ymin, ymax])
+                ),
+        color=alt.Color("Commute_Type:N", title=None, scale=alt.Scale(
+            domain=["Public Transit", "Work From Home"],
+            range=["dodgerblue", "tomato"]),
+            legend=alt.Legend(
+                orient="bottom-left", 
+                direction="horizontal", 
+                offset=20,
+                labelFont="Helvetica Neue")),
+        tooltip=[alt.Tooltip("year", title="Year"), alt.Tooltip("Percentage", format=".0%"), alt.Tooltip("Commute_Type", title="Commute Type")]
+    ).properties(height=450, title=alt.Title(f"Commute Habits | {title_geo}")
+    ).configure_title(fontSize=19, anchor="middle").interactive()
+    
+    return commute_habits_ts
+
+
 # NOTE: This function will get very VERY ugly before it gets refractored . . . just gotta live with it
-# NOTE: St.metric delta values are simply placeholders for now (not real data)
+# NOTE: st.metric delta (^change) values are simply placeholders for now (not real data)
+# This has officially reached full ugly stage TODO: Refractor and make it less of a mess :)
 def economic_snapshot(county, jurisdiction, economic_gdf_2023):    
     from streamlit_theme import st_theme
     theme_dict = st_theme(key="theme_econ_snapshot")
@@ -192,21 +323,22 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     
     pct_no_hc_coverage = economic_gdf_2023['DP03_0099PE'].mean()
     pct_no_hc_coverage_u19 = economic_gdf_2023['DP03_0101PE'].mean()
-    pct_public_hc_coverage = economic_gdf_2023['DP03_0098PE'].mean()
+    pct_public_hc_coverage = economic_gdf_2023['DP03_0098PE'].mean() / 100
     pct_employed_no_hc_coverage = economic_gdf_2023['DP03_0108PE'].mean()
     
     public_private_coverage_df = pd.DataFrame({
         "Coverage Type": ["_Private Insurance", "Public Insurance"],
-        "Value": [100 - pct_public_hc_coverage, pct_public_hc_coverage]})
+        "Value": [1 - pct_public_hc_coverage, pct_public_hc_coverage]})
     
     donut = alt.Chart(public_private_coverage_df).mark_arc(innerRadius=130).encode(
         theta=alt.Theta("Value:Q"),
         color=alt.Color("Coverage Type:N", scale=alt.Scale(
             domain=["Public Insurance", "_Private Insurance"],
-            range=["mediumseagreen", "whitesmoke"]), legend=None)
+            range=["mediumseagreen", "whitesmoke"]), legend=None),
+        tooltip=["Coverage Type:N", alt.Tooltip("Value:Q", title="Percentage", format=".1%")]
         ).properties(height=350, width=200)
 
-    center_label = alt.Chart(pd.DataFrame({'text': [f"{pct_public_hc_coverage:.1f}%"]})
+    center_label = alt.Chart(pd.DataFrame({'text': [f"{pct_public_hc_coverage:.1%}"]})
                              ).mark_text(fontSize=45, fontWeight='lighter', font="Helvetica Neue", color=text_color).encode(
                                 text='text:N')
         
@@ -259,10 +391,13 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
                   economic_gdf_2023["DP03_0085E"].sum()]
     })
 
+    family_income_dist["Estimated % of Families"] = family_income_dist["Estimated Families"] / family_income_dist["Estimated Families"].sum()
+
     family_income_dist_chart = alt.Chart(family_income_dist).mark_bar().encode(
             x=alt.X("Income Bin:N", title="Family Income", sort=family_income_dist['Income Bin'].tolist(),
                     axis=alt.Axis(labelAngle=-50, labelFont="Helvetica Neue", labelFontWeight='normal', labelFontSize=10.5, titleFont="Helvetica Neue")),
-            y=alt.Y("Estimated Families:Q", axis=alt.Axis(labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"))
+            y=alt.Y("Estimated Families:Q", axis=alt.Axis(labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
+            tooltip=["Income Bin", alt.Tooltip("Estimated Families", format=",.0f"), alt.Tooltip("Estimated % of Families", format=".1%")]
         ).configure_mark(color="mediumseagreen", width=75
         ).properties(height=400, title=alt.Title(f"Family Income Distribution | {title_geo}", anchor='middle', fontSize=19))
     
@@ -277,15 +412,57 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
 
     pov_col1, pov_col2 = st.columns([2, 3])
     
-    pov_col1.markdown("\2")
-    pov_col1.markdown("\2")
-    pov_col1.markdown("\2")
-    pov_col1.subheader("Donut Plots")
+    pov_col1.markdown("\2")    
+    pct_people_below_pov = economic_gdf_2023["DP03_0128PE"].mean() / 100
     
-    pov_col1.markdown("##### % People Below the Poverty Level Within Last Year")
-    pov_col1.write("DP03_0128PE")
-    pov_col1.markdown("##### % Families Below the Poverty Level Within Last Year")
-    pov_col1.write("DP03_0119PE")
+    
+    pov_people_df = pd.DataFrame({
+        "Category": ["Below Poverty Level", "Over Poverty Level"],
+        "Percentage": [pct_people_below_pov, 1 - pct_people_below_pov]})
+    
+    pov_people_donut = alt.Chart(pov_people_df).mark_arc(innerRadius=85).encode(
+        theta=alt.Theta("Percentage:Q"),
+        color=alt.Color("Category:N", scale=alt.Scale(
+            domain=["Below Poverty Level", "Over Poverty Level"],
+            range=["mediumseagreen", "whitesmoke"]), legend=None),
+        tooltip=["Category:N", alt.Tooltip("Percentage:Q", title="Percentage", format=".1%")]
+        ).properties(height=250, width=175)
+
+    pov_people_center_label = alt.Chart(pd.DataFrame({'text': [f"{pct_people_below_pov:.1%}"]})
+                             ).mark_text(fontSize=45, fontWeight='lighter', font="Helvetica Neue", color=text_color).encode(
+                                text='text:N')
+        
+    # Layer the donut and the label
+    pov_people_pie_chart = alt.layer(pov_people_donut, pov_people_center_label).properties(
+        title=f"People Below Poverty Level | {title_geo}").configure_title(fontSize=14, anchor="middle")
+    
+    pov_col1.altair_chart(pov_people_pie_chart)
+
+    
+    pct_families_below_pov = economic_gdf_2023["DP03_0119PE"].mean() / 100
+    
+    pov_families_df = pd.DataFrame({
+        "Category": ["Below Poverty Level", "Over Poverty Level"],
+        "Percentage": [pct_families_below_pov, 1 - pct_families_below_pov]})
+    
+    pov_families_donut = alt.Chart(pov_families_df).mark_arc(innerRadius=85).encode(
+        theta=alt.Theta("Percentage:Q"),
+        color=alt.Color("Category:N", scale=alt.Scale(
+            domain=["Below Poverty Level", "Over Poverty Level"],
+            range=["mediumseagreen", "whitesmoke"]), legend=None),
+        tooltip=["Category:N", alt.Tooltip("Percentage:Q", title="Percentage", format=".1%")]
+        ).properties(height=250, width=175)
+
+    pov_families_center_label = alt.Chart(pd.DataFrame({'text': [f"{pct_families_below_pov:.1%}"]})
+                             ).mark_text(fontSize=45, fontWeight='lighter', font="Helvetica Neue", color=text_color).encode(
+                                text='text:N')
+        
+    # Layer the donut and the label
+    pov_families_pie_chart = alt.layer(pov_families_donut, pov_families_center_label).properties(
+        title=f"Families Below Poverty Level | {title_geo}").configure_title(fontSize=14, anchor="middle")
+    
+    pov_col1.altair_chart(pov_families_pie_chart)
+
 
     poverty_by_age_dist = pd.DataFrame({
         "Age": ["Under 18 years", "18 - 64 years", "65+ years"],
@@ -315,7 +492,7 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
                         scale=alt.Scale(
                             domain=poverty_by_age_dist['Age'].tolist(), 
                             range=["lightgreen", "mediumseagreen", "darkgreen"]))
-        ).configure_mark(width=75).properties(height=550, title=alt.Title(f"Poverty Rate by Age Group | {title_geo}", anchor="middle", fontSize=19))
+        ).configure_mark(width=75).properties(height=600, title=alt.Title(f"Poverty Rate by Age Group | {title_geo}", anchor="middle", fontSize=19))
     
     pov_col2.altair_chart(pov_by_age_chart)
     
@@ -325,13 +502,11 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
 
     st.subheader("Work")
     
-    st.markdown("##### Average Commuting Time (Time Series)")
-    st.write("DP03_0025E")
-    
-    st.markdown("##### Commute via Public Transit")
-    st.write("DP03_0021PE")
+    commute_time_df = load_commute_time_df()
+    commute_time_ts = avg_commute_time_ts_plot(commute_time_df, county, jurisdiction, title_geo)
 
-    st.markdown("##### Work from Home")
-    st.write("DP03_0024PE")
+    st.altair_chart(commute_time_ts)
 
-    st.divider()
+    commute_habits_df = load_commute_habits_df()
+    commute_habits_ts = commute_habits_ts_plot(commute_habits_df, county, jurisdiction, title_geo)
+    st.altair_chart(commute_habits_ts)
