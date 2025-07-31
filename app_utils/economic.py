@@ -8,9 +8,9 @@ Economic Utility Functions
 import streamlit as st
 import pandas as pd
 import altair as alt
-from app_utils.census import get_geography_title, split_name_col
 import requests
 import io
+from app_utils.census import get_geography_title, split_name_col
 
 
 @st.cache_data
@@ -213,15 +213,15 @@ def avg_commute_time_ts_plot(commute_time_df, county, jurisdiction, title_geo):
             domain=["Statewide Average", title_geo],
             range=["#83C299", "darkgreen"]),
             legend=alt.Legend(
-                orient="bottom-left", 
+                orient="top", 
                 direction="horizontal", 
-                offset=20,
+                offset=0,
                 labelFont="Helvetica Neue")),
         tooltip=[alt.Tooltip("year", title="Year"), 
                  alt.Tooltip("Average_Commute:Q", title="Average Commute (Minutes)", format=".0f"),
                  alt.Tooltip("Geography")]
     ).properties(height=450, title=f"Average Commuting Time | {title_geo}"
-    ).configure_title(fontSize=19, anchor="middle").interactive()
+    ).configure_title(fontSize=19, anchor="start", dx=68, offset=10).interactive()
     
     return commute_time_ts
 
@@ -245,13 +245,13 @@ def commute_habits_ts_plot(commute_habits_df, county, jurisdiction, title_geo):
 
     plot_df = filtered_commute_habits_df.groupby(["year", "variable"]).agg(Percentage=("estimate", "mean")).reset_index()
     
-    variable_names = {"DP03_0021P": "Public Transit", "DP03_0024P": "Work From Home"}
+    variable_names = {"DP03_0019P": "Drove Alone", "DP03_0021P": "Public Transit", "DP03_0024P": "Work From Home"}
 
     plot_df = plot_df.assign(Commute_Type = lambda df: df["variable"].map(variable_names))
     
     plot_df["Percentage"] = plot_df["Percentage"] / 100
     
-    ymax = plot_df["Percentage"].max() + 0.02
+    ymax = plot_df["Percentage"].max() + 0.10
     ymin = 0 
     
     # Create a time series plot of the unemployment rate
@@ -262,16 +262,16 @@ def commute_habits_ts_plot(commute_habits_df, county, jurisdiction, title_geo):
                 scale=alt.Scale(domain=[ymin, ymax])
                 ),
         color=alt.Color("Commute_Type:N", title=None, scale=alt.Scale(
-            domain=["Public Transit", "Work From Home"],
-            range=["dodgerblue", "tomato"]),
+            domain=["Drove Alone", "Work From Home", "Public Transit"],
+            range=["tomato", "dodgerblue", "mediumseagreen"]),
             legend=alt.Legend(
-                orient="bottom-left", 
+                orient="top", 
                 direction="horizontal", 
-                offset=20,
+                offset=0,
                 labelFont="Helvetica Neue")),
-        tooltip=[alt.Tooltip("year", title="Year"), alt.Tooltip("Percentage", format=".0%"), alt.Tooltip("Commute_Type", title="Commute Type")]
+        tooltip=[alt.Tooltip("year", title="Year"), alt.Tooltip("Percentage", format=".1%"), alt.Tooltip("Commute_Type", title="Commute Type")]
     ).properties(height=450, title=alt.Title(f"Commute Habits | {title_geo}")
-    ).configure_title(fontSize=19, anchor="middle").interactive()
+    ).configure_title(fontSize=19, anchor="start", dx=78, offset=10).interactive()
     
     return commute_habits_ts
 
@@ -404,9 +404,6 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     # Disply the chart
     income_col2.altair_chart(family_income_dist_chart, use_container_width=True)
 
-    st.write()
-
-
     st.divider()
     st.subheader("Poverty")
 
@@ -501,7 +498,7 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
 
 
     st.subheader("Work")
-    
+    st.markdown("\2")
     commute_time_df = load_commute_time_df()
     commute_time_ts = avg_commute_time_ts_plot(commute_time_df, county, jurisdiction, title_geo)
 
