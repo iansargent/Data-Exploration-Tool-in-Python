@@ -52,7 +52,7 @@ def main():
 
     ##  The map section ## 
     with mapping:
-        mapping_tab(tidy_2023)
+        mapping_tab(data=tidy_2023, map_color="Reds")
     
     # Housing Snapshot
     with snapshot:

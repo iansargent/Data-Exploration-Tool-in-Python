@@ -28,7 +28,7 @@ def main():
     tidy_2023 = rename_and_merge_census_cols(social_gdf_2023)
 
     with mapping:
-        mapping_tab(data=tidy_2023)
+        mapping_tab(data=tidy_2023, map_color="Purples")
         
 
     # Social Snapshot

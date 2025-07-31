@@ -130,7 +130,6 @@ def jenks_color_map(df, n_classes, color):
     return jenks_cmap_dict
 
 
-
 def hex_to_rgb255(hex_color):
     import matplotlib.colors as colors
     rgb = colors.to_rgb(hex_color)

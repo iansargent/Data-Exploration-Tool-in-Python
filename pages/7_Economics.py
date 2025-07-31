@@ -35,9 +35,9 @@ def main():
     tidy_2023 = rename_and_merge_census_cols(econ_gdf_2023)
 
     with mapping:
-        mapping_tab(tidy_2023)
+        mapping_tab(data=tidy_2023, map_color="Greens")
 
-    ## Economic Snapshot
+    # Economic Snapshot
     with snapshot:
         st.subheader("Economic Snapshot")
         st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP03: Selected Economic Characteristics - " \
