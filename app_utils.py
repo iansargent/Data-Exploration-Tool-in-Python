@@ -826,7 +826,7 @@ def descriptive_metrics(df, filename):
     @param filename: The name of the file (string)
     """
     # Add spacer between different files
-    st.markdown("---")
+    st.divider()
     
     # Define the dimensions
     num_cols, num_rows = get_dimensions(df)
@@ -1992,7 +1992,7 @@ def housing_snapshot(county, jurisdiction,
     # Display the pie chart
     right_col2.altair_chart(pie_chart, use_container_width=True)
     # Divider
-    st.markdown("---")
+    st.divider()
     
     # HOUSING TENURE SECTION
     st.subheader("Housing Tenure")
@@ -2039,7 +2039,7 @@ def housing_snapshot(county, jurisdiction,
     
     left_col2.altair_chart(pie_chart)
     
-    st.markdown("---")
+    st.divider()
     
     chart_df = pd.DataFrame()
     statewide_line = statewide_avg_val_df.copy()
@@ -2134,7 +2134,7 @@ def housing_snapshot(county, jurisdiction,
         help="Average monthly owner costs for ***non-mortgaged*** units in the selected geography for 2023 compared to 2013.")
     
     # Create a chart for the SMOC comparison
-    st.markdown("---")
+    st.divider()
     
     smoc_chart_df = pd.DataFrame()
     statewide_smoc_line = statewide_avg_smoc_df.copy()
@@ -2221,7 +2221,7 @@ def housing_snapshot(county, jurisdiction,
 
         st.altair_chart(line_chart, use_container_width=True)
      
-    st.markdown("---")
+    st.divider()
 
     # RENTER-OCCUPIED SECTION
     st.subheader("Renter-Occupied Units")
@@ -2248,7 +2248,7 @@ def housing_snapshot(county, jurisdiction,
         delta=f"{delta_dict['rent_burden35_pct_delta']:.1f}%", delta_color="inverse",
         help="Percentage of households where rent takes up 35% or more of their household income in the selected geography for 2023 compared to 2013.")
 
-    st.markdown("---")
+    st.divider()
 
     # UNITS IN STRUCTURE SECTION
     one_unit_detached_2023 = filtered_gdf_2023['DP04_0007E'].sum()
@@ -2458,7 +2458,7 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     col3.metric(label="**Public Insurance Coverage**", value=f"{public_hc_coverage:,.0f}")
     col4.metric(label="**% Public Insurance Coverage**", value=f"{pct_public_hc_coverage:.1f}%")
 
-    st.markdown("---")
+    st.divider()
 
 
     st.subheader("Income")
@@ -2503,7 +2503,7 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
 
     st.markdown("##### People Below Poverty Level (Under 18)")
     st.write("DP03_0133PE")
-    st.markdown("---")
+    st.divider()
 
 
     st.subheader("Work")
@@ -2517,7 +2517,7 @@ def economic_snapshot(county, jurisdiction, economic_gdf_2023):
     st.markdown("##### Work from Home")
     st.write("DP03_0024E")
 
-    st.markdown("---")
+    st.divider()
 
     style_metric_cards(
         background_color="whitesmoke",

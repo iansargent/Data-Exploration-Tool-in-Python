@@ -96,7 +96,7 @@ def main():
                     st_profile_report(st.session_state[qual_key])
 
         # Visual divider
-        st.markdown("---")
+        st.divider()
 
     # If there are 2 or more uploaded files, provide a comparison report
     if len(processed_files) >= 2:
