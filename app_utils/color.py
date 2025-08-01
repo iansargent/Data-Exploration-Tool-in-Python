@@ -18,6 +18,19 @@ from matplotlib.colorbar import ColorbarBase
 import matplotlib.cm as cm
 
 
+
+def get_text_color(key):
+    from streamlit_theme import st_theme
+    theme_dict = st_theme(key=f"theme_{key}")
+    if theme_dict is not None:
+        theme = theme_dict["base"]
+    else:
+        theme = "light"  # or your fallback default
+    text_color = "white" if theme == "dark" else "black"
+
+    return text_color
+
+
 def get_colornorm_stats(df, cutoff_scalar):
     ## Simple helper func for DRY
     mean = df['Value'].mean()
