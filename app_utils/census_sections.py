@@ -12,13 +12,13 @@ from app_utils.plot import plot_container
 from app_utils.mapping import map_gdf_single_layer, add_tooltip_from_dict
 
 
-def fill_census_colors(gdf):
+def fill_census_colors(gdf, map_color):
     """
     Note some of this is uesless because it doesn;t matter 
     """
     # n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
     # Define the Jenk's colormap and apply it to the dataframe
-    jenks_cmap_dict = jenks_color_map(gdf, 10, "Reds")
+    jenks_cmap_dict = jenks_color_map(gdf, 10, map_color)
     gdf['rgba_color'] = gdf['color_groups'].astype(str).map(jenks_cmap_dict)
     # Fill null values with a transparent color
     gdf['rgba_color'] = gdf['rgba_color'].fillna("(0, 0, 0, 0)")
@@ -46,8 +46,8 @@ def fill_census_colors(gdf):
     return gdf
 
 
-def process_census_data(gdf, selected_values):
-    gdf = fill_census_colors(gdf)
+def process_census_data(gdf, selected_values, map_color):
+    gdf = fill_census_colors(gdf, map_color)
     gdf = add_census_tooltip(gdf, selected_values)
     gdf["coordinates"] = gdf.geometry.apply(
         lambda geom: geom.__geo_interface__["coordinates"]) 
@@ -63,7 +63,7 @@ def add_census_tooltip(gdf, selected_values):
     })
 
 
-def mapping_tab(data): 
+def mapping_tab(data, map_color="Reds"): 
     st.subheader("Mapping")
     
     ## filter down to column to map
@@ -71,14 +71,14 @@ def mapping_tab(data):
         data, 
         filter_columns=["Category", "Subcategory", "Variable", "Measure"], 
         key_prefix="mapping_filter_2023")
-    filtered_2023 = process_census_data(filtered_2023, selected_values)
+    filtered_2023 = process_census_data(filtered_2023, selected_values, map_color)
  
     # Normalize the housing variable for monochromatic chloropleth coloring
     vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 5)
-    cmap = colormaps["Reds"]
+    cmap = colormaps[map_color]
     
     norm = colors.Normalize(vmin=vmin, vmax=vmax)
-    cmap = cm.get_cmap("Reds")
+    cmap = cm.get_cmap(map_color)
 
     # style = st.pills("Outlier Handling:", options=["Jenk's Natural Breaks", "Yellow", "Holdout"], default="Jenk's Natural Breaks", label_visibility="collapsed") # if you want options
     style = "Jenk's Natural Breaks"
@@ -103,7 +103,7 @@ def mapping_tab(data):
         n_classes=10
         # n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
         # Define the Jenk's colormap and apply it to the dataframe
-        jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes, "Reds")
+        jenks_cmap_dict = jenks_color_map(filtered_2023, n_classes, map_color)
         filtered_2023['fill_color'] = filtered_2023['color_groups'].astype(str).map(jenks_cmap_dict)
         # Fill null values with a transparent color
         filtered_2023['fill_color'] = filtered_2023['fill_color'].fillna("(0, 0, 0, 0)")
