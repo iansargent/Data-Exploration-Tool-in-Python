@@ -12,6 +12,42 @@ from app_utils.plot import plot_container
 from app_utils.mapping import map_gdf_single_layer, add_tooltip_from_dict
 
 
+
+def select_census_geography(census_df):
+    col1, col2 = st.columns(2)
+    # County selection
+    with col1:
+        county_list = sorted(census_df["County"].dropna().unique())
+        county = st.selectbox("**County**", ["All Counties"] + county_list)
+    # Jurisdiction selection
+    with col2:
+        if county != "All Counties":
+            jurisdiction_list = sorted(census_df[census_df["County"] == county]["Jurisdiction"].dropna().unique())
+        else:
+            jurisdiction_list = sorted(census_df["Jurisdiction"].dropna().unique())
+        jurisdiction = st.selectbox("**Jurisdiction**", ["All Jurisdictions"] + jurisdiction_list)
+    
+    return county, jurisdiction
+
+
+
+def filter_census_geography(census_dfs, county, jurisdiction):
+    """
+    
+    """
+    filtered_census_dfs = []
+    for df in census_dfs:
+        filtered_df = df.copy()
+        if county != "All Counties":
+            filtered_df = filtered_df[filtered_df["County"] == county]
+        if jurisdiction != "All Jurisdictions":
+            filtered_df = filtered_df[filtered_df["Jurisdiction"] == jurisdiction]
+
+        filtered_census_dfs.append(filtered_df)
+        
+    return filtered_census_dfs
+    
+
 def fill_census_colors(gdf, map_color):
     """
     Note some of this is uesless because it doesn;t matter 

@@ -12,7 +12,7 @@ import pydeck as pdk
 import pyogrio
 from app_utils.economic import economic_snapshot
 from app_utils.census import rename_and_merge_census_cols
-from app_utils.census_sections import mapping_tab, compare_tab
+from app_utils.census_sections import mapping_tab, compare_tab, filter_census_geography, select_census_geography
 from app_utils.data_loading import load_census_data
 from app_utils.streamlit_config import streamlit_config
 
@@ -22,7 +22,22 @@ def census_economics():
     econ_df_2023 = load_census_data(
         "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_ECONOMIC_ALL.fgb",
     )
-    return econ_df_2023
+    unemployment_df = load_census_data(
+        "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/unemployment_rate_by_year.csv",
+    )
+    median_earnings_df = load_census_data(
+        "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/refs/heads/main/Data/Census/median_earnings_by_year.csv",
+    )
+    commute_time_df = load_census_data(
+        "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/refs/heads/main/Data/Census/commute_time_by_year.csv",
+    )
+    commute_habits_df = load_census_data(
+        "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/refs/heads/main/Data/Census/commute_habits_by_year.csv",
+    )
+    
+    econ_dfs = [econ_df_2023, unemployment_df, median_earnings_df, commute_time_df, commute_habits_df]
+
+    return econ_dfs
 
 
 def main():
@@ -31,49 +46,18 @@ def main():
 
     mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
 
-    econ_gdf_2023 = census_economics()
-    tidy_2023 = rename_and_merge_census_cols(econ_gdf_2023)
+    econ_dfs = census_economics()
+    economic_gdf_2023 = econ_dfs[0]
+    tidy_2023 = rename_and_merge_census_cols(economic_gdf_2023)
 
     with mapping:
         mapping_tab(data=tidy_2023, map_color="Greens")
 
-    # Economic Snapshot
     with snapshot:
-        st.subheader("Economic Snapshot")
-        st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP03: Selected Economic Characteristics - " \
-        "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
-        "Retrieved from https://data.census.gov/")
-        # Allow user to filter on the county and jurisdiction level for tailored reports 
-        # TODO: (maybe) put the filtering into it's own logic so that we can use it across pages. 
-        col1, col2 = st.columns(2)
-        # County selection
-        with col1:
-            county_list = sorted(econ_gdf_2023["County"].dropna().unique())
-            county = st.selectbox("**County**", ["All Counties"] + county_list)
-        # Jurisdiction selection
-        with col2:
-            if county != "All Counties":
-                jurisdiction_list = sorted(econ_gdf_2023[econ_gdf_2023["County"] == county]["Jurisdiction"].dropna().unique())
-            else:
-                jurisdiction_list = sorted(econ_gdf_2023["Jurisdiction"].dropna().unique())
-            jurisdiction = st.selectbox("**Jurisdiction**", ["All Jurisdictions"] + jurisdiction_list)
-
-        # Create a "filtered" 2023 dataset with the selected county and jurisdiction options
-        filtered_gdf_2023 = econ_gdf_2023.copy()
-        
-        if county != "All Counties":
-            filtered_gdf_2023 = filtered_gdf_2023[filtered_gdf_2023["County"] == county]
-        
-        if jurisdiction != "All Jurisdictions":
-            filtered_gdf_2023 = filtered_gdf_2023[filtered_gdf_2023["Jurisdiction"] == jurisdiction]
-        
-        # Display formatted housing metrics vs statewide averages
-        economic_snapshot(county, jurisdiction, filtered_gdf_2023)
+        economic_snapshot(econ_dfs)
 
     with compare:
-        econ_dict = {
-            "Economics 2023" : tidy_2023,
-        }
+        econ_dict = {"Economics 2023" : tidy_2023}
         compare_tab(econ_dict)
             
 if __name__ == "__main__":
