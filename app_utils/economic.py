@@ -215,6 +215,74 @@ def commute_habits_ts_plot(filtered_commute_habits_df, title_geo):
     return commute_habits_ts
 
 
+def econ_df_metric_dict(filtered_gdf_2023):
+    # ---- Calculate Stats (Snapshot Values) ----
+    metrics = {
+        # Employment
+        "unemployment_rate": filtered_gdf_2023['DP03_0009PE'].mean() / 100,
+        "pct_employed": filtered_gdf_2023['DP03_0004PE'].mean(),
+        "pct_in_labor_force": filtered_gdf_2023['DP03_0002PE'].mean(),
+        "pct_female_in_labor_force": filtered_gdf_2023['DP03_0011PE'].mean(),
+
+        # Healthcare Coverage
+        "pct_no_hc_coverage": filtered_gdf_2023['DP03_0099PE'].mean(),
+        "pct_no_hc_coverage_u19": filtered_gdf_2023['DP03_0101PE'].mean(),
+        "pct_public_hc_coverage": filtered_gdf_2023['DP03_0098PE'].mean() / 100,
+        "pct_employed_no_hc_coverage": filtered_gdf_2023['DP03_0108PE'].mean(),
+
+        # Income
+        "income_per_capita": filtered_gdf_2023["DP03_0088E"].mean(),
+        "median_family_income": filtered_gdf_2023["DP03_0086E"].mean(),
+        "median_earnings": filtered_gdf_2023['DP03_0092E'].mean(),
+        "male_earnings": filtered_gdf_2023['DP03_0093E'].mean(),
+        "female_earnings": filtered_gdf_2023['DP03_0094E'].mean(),
+        "wage_gap": filtered_gdf_2023['DP03_0093E'].mean() - filtered_gdf_2023['DP03_0094E'].mean(),
+
+        # Poverty
+        "pct_people_below_pov": filtered_gdf_2023["DP03_0128PE"].mean() / 100,
+        "pct_families_below_pov": filtered_gdf_2023["DP03_0119PE"].mean() / 100
+    }
+
+    # ---- DataFrames for Plotting ----
+    dfs = {
+        "public_private_coverage_df": pd.DataFrame({
+            "Coverage Type": ["Private Insurance", "Public Insurance"],
+            "Value": [1 - metrics["pct_public_hc_coverage"], metrics["pct_public_hc_coverage"]]
+        }),
+        "family_income_df": pd.DataFrame({
+            "Family Income": [
+                "Under $10,000", "$10,000 - $14,999", "$15,000 - $24,999", "$25,000 - $34,999", "$35,000 - $49,999",
+                "$50,000 - $74,999", "$75,000 - $99,999", "$100,000 - $149,999", "$150,000 - $199,999", "$200,000 +"
+            ],
+            "Estimated Families": [
+                filtered_gdf_2023["DP03_0076E"].sum(), filtered_gdf_2023["DP03_0077E"].sum(),
+                filtered_gdf_2023["DP03_0078E"].sum(), filtered_gdf_2023["DP03_0079E"].sum(),
+                filtered_gdf_2023["DP03_0080E"].sum(), filtered_gdf_2023["DP03_0081E"].sum(),
+                filtered_gdf_2023["DP03_0082E"].sum(), filtered_gdf_2023["DP03_0083E"].sum(),
+                filtered_gdf_2023["DP03_0084E"].sum(), filtered_gdf_2023["DP03_0085E"].sum()
+            ]
+        }),
+        "pov_people_df": pd.DataFrame({
+            "Category": ["Below Poverty Level", "Over Poverty Level"],
+            "Value": [metrics["pct_people_below_pov"], 1 - metrics["pct_people_below_pov"]]
+        }),
+        "pov_families_df": pd.DataFrame({
+            "Category": ["Below Poverty Level", "Over Poverty Level"],
+            "Value": [metrics["pct_families_below_pov"], 1 - metrics["pct_families_below_pov"]]
+        }),
+        "poverty_by_age_df": pd.DataFrame({
+            "Age": ["Under 18 years", "18 - 64 years", "65+ years"],
+            "Poverty Rate": [
+                filtered_gdf_2023["DP03_0129PE"].mean() / 100,
+                filtered_gdf_2023["DP03_0134PE"].mean() / 100,
+                filtered_gdf_2023["DP03_0135PE"].mean() / 100
+            ]
+        })
+    }
+
+    return metrics, dfs
+    
+
 # NOTE: The `st.metric` delta (^change) values are simply placeholders for now (not real data!)
 def economic_snapshot(econ_dfs):    
     # Display the Category Header with Data Source
@@ -237,25 +305,8 @@ def economic_snapshot(econ_dfs):
     title_geo = get_geography_title(county, jurisdiction)
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="economic_snapshot")
-
-    # Calculate all stats needed for the snapshot (By economic category)
-    # Employment
-    unemployment_rate = filtered_gdf_2023['DP03_0009PE'].mean() / 100
-    pct_employed = filtered_gdf_2023['DP03_0004PE'].mean()
-    pct_in_labor_force = filtered_gdf_2023['DP03_0002PE'].mean()
-    pct_female_in_labor_force = filtered_gdf_2023['DP03_0011PE'].mean()
-    # Healthcare Coverage
-    pct_no_hc_coverage = filtered_gdf_2023['DP03_0099PE'].mean()
-    pct_no_hc_coverage_u19 = filtered_gdf_2023['DP03_0101PE'].mean()
-    pct_public_hc_coverage = filtered_gdf_2023['DP03_0098PE'].mean() / 100
-    pct_employed_no_hc_coverage = filtered_gdf_2023['DP03_0108PE'].mean()
-    # Income
-    income_per_capita = filtered_gdf_2023["DP03_0088E"].mean()
-    median_family_income = filtered_gdf_2023["DP03_0086E"].mean()
-    # Poverty
-    pct_people_below_pov = filtered_gdf_2023["DP03_0128PE"].mean() / 100
-    pct_families_below_pov = filtered_gdf_2023["DP03_0119PE"].mean() / 100
-
+    # Define two callable dictionaries: Metrics and Plot DataFrames
+    metrics, plot_dfs = econ_df_metric_dict(filtered_gdf_2023)
 
     # The EMPLOYMENT Section ___________________________________________________________
     st.divider()
@@ -267,20 +318,20 @@ def economic_snapshot(econ_dfs):
     # Display employment metrics
     metric_col.metric(
         label="**Unemployment Rate (2023)**", 
-        value=f"{unemployment_rate * 100:.1f}%", 
+        value=f"{metrics['unemployment_rate'] * 100:.1f}%", 
         delta=f"{0.8}%", 
         delta_color='inverse')
     metric_col.metric(
         label="**Civilian Employment Rate**", 
-        value=f"{pct_employed:.1f}%", 
+        value=f"{metrics['pct_employed']:.1f}%", 
         delta=f"{2}%")
     metric_col.metric(
         label="**In Labor Force**", 
-        value=f"{pct_in_labor_force:.1f}%", 
+        value=f"{metrics['pct_in_labor_force']:.1f}%", 
         delta=f"{-3}%")
     metric_col.metric(
         label="**Females in Labor Force**", 
-        value=f"{pct_female_in_labor_force:.1f}%", 
+        value=f"{metrics['pct_female_in_labor_force']:.1f}%", 
         delta=f"{10}%")
     
     # Define and display unemployment time series plot
@@ -297,34 +348,29 @@ def economic_snapshot(econ_dfs):
     # Set two columns (with a middle spacer) for donut chart on the left and metrics on the right
     h_col1, _, h_col2 = st.columns([10, 2, 10])
     
-    # Define a DataFrame needed for the donut chart
-    public_private_coverage_df = pd.DataFrame({
-        "Coverage Type": ["Private Insurance", "Public Insurance"],
-        "Value": [1 - pct_public_hc_coverage, pct_public_hc_coverage]})
-    
+    public_private_coverage_df = plot_dfs['public_private_coverage_df']
     # Use the `donut_chart` function  to create a tailored chart using info from the dataframe above
     public_private_pie_chart = donut_chart(
         source=public_private_coverage_df, colorColumnName="Coverage Type", height=350, width=200, 
         innerRadius=130, fontSize=45, titleFontSize=18, fillColor="mediumseagreen", 
-        title=f"Private Health Coverage | {title_geo}", stat=(1 - pct_public_hc_coverage), text_color=text_color)
-    
+        title=f"Private Health Coverage | {title_geo}", stat=(1 - metrics['pct_public_hc_coverage']), text_color=text_color)
     # Display the donut chart on the left
     h_col1.altair_chart(public_private_pie_chart)
     
     # On the right, display useful insurance metrics
     h_col2.metric(
         label="**No Health Coverage**", 
-        value=f"{pct_no_hc_coverage:.1f}%", 
+        value=f"{metrics['pct_no_hc_coverage']:.1f}%", 
         delta=f"{0.5}%", 
         delta_color='inverse')
     h_col2.metric(
         label="**No Health Coverage (Age 0-19)**", 
-        value=f"{pct_no_hc_coverage_u19:.1f}%", 
+        value=f"{metrics['pct_no_hc_coverage_u19']:.1f}%", 
         delta=f"{-0.4}%", 
         delta_color='inverse')
     h_col2.metric(
         label="**Employed without Health Coverage (19-64)**", 
-        value=f"{pct_employed_no_hc_coverage:.1f}%", 
+        value=f"{metrics['pct_employed_no_hc_coverage']:.1f}%", 
         delta=f"{1.8}%", 
         delta_color='inverse')
 
@@ -335,23 +381,23 @@ def economic_snapshot(econ_dfs):
     
     # Define 4 columns (with left spacer) to display important income metrics
     _, earn_metric_col1, earn_metric_col2, earn_metric_col3, earn_metric_col4 = st.columns([0.5, 1, 1, 1, 1])
+    
     earn_metric_col1.metric(
         label="**Median Earnings** (All Workers)", 
-        value=f"${filtered_gdf_2023['DP03_0092E'].mean():,.0f}", 
+        value=f"${metrics['median_earnings']:,.0f}", 
         delta=f"{12459:,.0f}")
     earn_metric_col2.metric(
         label="**Median Male Earnings** (FTYR)", 
-        value=f"${filtered_gdf_2023['DP03_0093E'].mean():,.0f}", 
+        value=f"${metrics['male_earnings']:,.0f}", 
         delta=f"{2459:,.0f}")
     earn_metric_col3.metric(
         label="**Median Female Earnings** (FTYR)", 
-        value=f"${filtered_gdf_2023['DP03_0094E'].mean():,.0f}", 
+        value=f"${metrics['female_earnings']:,.0f}", 
         delta=f"{1047:,.0f}")
     earn_metric_col4.metric(
         label="**Gender Wage Gap**", 
-        value=f"${filtered_gdf_2023['DP03_0093E'].mean() - filtered_gdf_2023['DP03_0094E'].mean():,.0f}", 
+        value=f"${metrics['wage_gap']:,.0f}", 
         delta=f"{-749:,.0f}", delta_color='inverse')
-    
     st.markdown("\2")
     
     # Display the median earnings time series plot directly below the metrics
@@ -360,32 +406,24 @@ def economic_snapshot(econ_dfs):
     # Define two columns for metrics on the left and a bar plot on the right
     income_col1, income_col2 = st.columns([2, 11])
     income_col1.markdown("\2")
-    
+
     # On the left, display more useful income metrics
     income_col1.metric(
         label="Income Per Capita", 
-        value=f"${income_per_capita:,.0f}", 
+        value=f"${metrics['income_per_capita']:,.0f}", 
         delta=f"{5492:,.0f}")
     income_col1.markdown("\2")
     income_col1.metric(
         label="Median Family Income", 
-        value=f"${median_family_income:,.0f}", 
+        value=f"${metrics['median_family_income']:,.0f}", 
         delta=f"{4204:,.0f}")
     
     # Define a DataFrame of family income distribution to use when plotting a bar chart
-    family_income_df = pd.DataFrame({
-        "Family Income": ["Under $10,000", "$10,000 - $14,999", "$15,000 - $24,999", "$25,000 - $34,999", "$35,000 - $49,999",
-                        "$50,000 - $74,999", "$75,000 - $99,999", "$100,000 - $149,999", "$150,000 - $199,999", "$200,000 +"],
-        "Estimated Families": [filtered_gdf_2023["DP03_0076E"].sum(), filtered_gdf_2023["DP03_0077E"].sum(), filtered_gdf_2023["DP03_0078E"].sum(), 
-                  filtered_gdf_2023["DP03_0079E"].sum(), filtered_gdf_2023["DP03_0080E"].sum(), filtered_gdf_2023["DP03_0081E"].sum(), 
-                  filtered_gdf_2023["DP03_0082E"].sum(), filtered_gdf_2023["DP03_0083E"].sum(), filtered_gdf_2023["DP03_0084E"].sum(), 
-                  filtered_gdf_2023["DP03_0085E"].sum()]})
-    
+    family_income_df = plot_dfs['family_income_df']
     # Use the `census_bar_chart` function to create a highly customizable bar chart
     family_income_dist_chart = bar_chart(
         source=family_income_df, title_geo=title_geo, XcolumnName="Family Income", xType=":N", yType=":Q",
         YcolumnName="Estimated Families", barWidth=75, titleFontSize=19, title="Family Income Distribution")
-
     # Display the bar chart on the right
     income_col2.altair_chart(family_income_dist_chart, use_container_width=True)
 
@@ -397,44 +435,30 @@ def economic_snapshot(econ_dfs):
     # Define two columns with two donut charts on the left and a barplot on the right
     pov_col1, pov_col2 = st.columns([2, 3])
     
-    # Define a DataFrame of PEOPLE below the poverty level for plotting
-    pov_people_df = pd.DataFrame({
-        "Category": ["Below Poverty Level", "Over Poverty Level"],
-        "Value": [pct_people_below_pov, 1 - pct_people_below_pov]})
+    pov_people_df = plot_dfs['pov_people_df']
+    pov_families_df = plot_dfs['pov_families_df']
+    
     # Create a donut chart to show the % of people below the poverty level
     pov_people_pie_chart = donut_chart(
         source=pov_people_df, colorColumnName="Category", height=250, width=175, 
         innerRadius=85,fontSize=40, title=f"People Below Poverty Level | {title_geo}",
-        stat=pct_people_below_pov, text_color=text_color)
-    
-    # Define a DataFrame of FAMILIES below the poverty level for plotting
-    pov_families_df = pd.DataFrame({
-        "Category": ["Below Poverty Level", "Over Poverty Level"],
-        "Value": [pct_families_below_pov, 1 - pct_families_below_pov]})
+        stat=metrics['pct_people_below_pov'], text_color=text_color)
     # Create a donut chart to show the % of families below the poverty level
     pov_families_pie_chart = donut_chart(
         source=pov_families_df, colorColumnName="Category", height=250, width=175, 
         innerRadius=85, fontSize=40, titleFontSize=14, fillColor="mediumseagreen", 
-        title=f"Families Below Poverty Level | {title_geo}", stat=pct_families_below_pov, text_color=text_color)
-    
+        title=f"Families Below Poverty Level | {title_geo}", stat=metrics['pct_families_below_pov'], text_color=text_color)
     # Display the two donut charts
     pov_col1.markdown("\2") 
     pov_col1.altair_chart(pov_people_pie_chart)
     pov_col1.altair_chart(pov_families_pie_chart)
 
-    # Define a DataFrame of poverty rates among different age groups for plotting
-    poverty_by_age_dist = pd.DataFrame({
-        "Age": ["Under 18 years", "18 - 64 years", "65+ years"],
-        "Poverty Rate": [filtered_gdf_2023["DP03_0129PE"].mean(), filtered_gdf_2023["DP03_0134PE"].mean(), 
-                        filtered_gdf_2023["DP03_0135PE"].mean()]})
-    # Change the "Poverty Rate" columns from a percentage to a proportion
-    poverty_by_age_dist["Poverty Rate"] = poverty_by_age_dist["Poverty Rate"] / 100
+    poverty_by_age_df = plot_dfs['poverty_by_age_df']
     # Create a highly customizable bar chart using the `census_bar_chart` function
     pov_by_age_chart = bar_chart(
-        source=poverty_by_age_dist, title_geo=title_geo, XcolumnName="Age", YcolumnName="Poverty Rate",
+        source=poverty_by_age_df, title_geo=title_geo, XcolumnName="Age", YcolumnName="Poverty Rate",
         xType=":O", yType=":Q", yFormat=".0%", YtooltipFormat=".1%", barWidth=130, XlabelAngle=0, height=600, titleFontSize=19, 
         labelFontSize=13, title="Poverty Rate by Age Group", distribution=False)
-    
     # Display the bar chart on the right
     pov_col2.altair_chart(pov_by_age_chart)
     
