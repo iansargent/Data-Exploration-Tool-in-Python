@@ -95,10 +95,10 @@ def zoning_comparison_table(filtered_gdf, selected_districts):
     for _, row in filtered_gdf.iterrows():
         district_name = row.get("Jurisdiction District Name", "District")
         df_long = pd.DataFrame(row).reset_index()
-        df_long.columns = ["Variable", district_name]
+        df_long.columns = ["Zoning Regulation", district_name]
         dfs.append(df_long)
 
-    combined_df = reduce(lambda left, right: pd.merge(left, right, on="Variable", how="outer"), dfs)
+    combined_df = reduce(lambda left, right: pd.merge(left, right, on="Zoning Regulation", how="outer"), dfs)
 
     st.subheader("District Comparisons")
     filtered_combined_df_sorted = dataframe_explorer(combined_df, case=False)
