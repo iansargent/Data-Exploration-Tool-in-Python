@@ -11,50 +11,10 @@ import altair as alt
 import requests
 import io
 from app_utils.census import get_geography_title, split_name_col
-from app_utils.census_sections import filter_census_geography, select_census_geography
+from app_utils.census_sections import select_census_geography, filter_census_geography
 from app_utils.color import get_text_color
+from app_utils.plot import donut_chart, bar_chart
 
-
-
-def donut_chart(source, colorColumnName, height=300, width=300, innerRadius=90, fontSize=40, titleFontSize=14, fillColor="mediumseagreen", title="Donut Chart", 
-                stat=0, text_color="grey"):
-    donut = alt.Chart(source).mark_arc(innerRadius=innerRadius).encode(
-        theta=alt.Theta("Value:Q"),
-        color=alt.Color(f"{colorColumnName}:N", scale=alt.Scale(
-            range=[fillColor, "whitesmoke"]), legend=None),
-        tooltip=[f"{colorColumnName}:N", alt.Tooltip("Value:Q", title="Percentage", format=".1%")]
-        ).properties(height=height, width=width)
-
-    center_label = alt.Chart(pd.DataFrame({'text': [f"{stat:.1%}"]})
-                             ).mark_text(fontSize=fontSize, fontWeight='lighter', font="Helvetica Neue", color=text_color).encode(
-                                text='text:N')
-        
-    # Layer the donut and the label
-    donut_chart = alt.layer(donut, center_label).properties(
-        title=title).configure_title(fontSize=titleFontSize, anchor="middle")
-    
-    return donut_chart
-
-
-def bar_chart(source, title_geo, XcolumnName, YcolumnName, xType=":N", yType=":Q", YtooltipFormat=",.0f", yFormat=",.0f", XlabelAngle=-50, 
-                     fillColor="mediumseagreen", height=400, width=400, barWidth=60, title="Bar Chart", titleFontSize=17, distribution=True,
-                     labelFontSize=10.5):
-    
-    tooltip_list = [XcolumnName, alt.Tooltip(YcolumnName, format=YtooltipFormat)]
-    
-    if distribution:
-        source[f"% of {YcolumnName}"] = source[YcolumnName] / source[YcolumnName].sum()
-        tooltip_list.append(alt.Tooltip(f"% of {YcolumnName}", format=".1%"))
-
-    bar_chart = alt.Chart(source).mark_bar().encode(
-        x=alt.X(XcolumnName + xType, sort=source[XcolumnName].tolist(),
-                    axis=alt.Axis(labelAngle=XlabelAngle, labelFont="Helvetica Neue", labelFontWeight='normal', labelFontSize=labelFontSize, titleFont="Helvetica Neue")),
-        y=alt.Y(YcolumnName + yType, axis=alt.Axis(labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue", format=yFormat)),
-        tooltip=tooltip_list).configure_mark(color=fillColor, width=barWidth
-        ).properties(height=height, width=width, title=alt.Title(f"{title} | {title_geo}", anchor='middle', fontSize=titleFontSize)).interactive()
-    
-    return bar_chart
-    
 
 @st.cache_data
 def load_unemployment_df():
@@ -297,11 +257,12 @@ def economic_snapshot(econ_dfs):
     pct_families_below_pov = filtered_gdf_2023["DP03_0119PE"].mean() / 100
 
 
-    # The EMPLOYMENT Section
+    # The EMPLOYMENT Section ___________________________________________________________
     st.divider()
     st.subheader("Employment")
     # Set two columns (Left for metrics, right for line plot)
     metric_col, chart_col = st.columns([1, 4])
+    metric_col.markdown("\2")
     
     # Display employment metrics
     metric_col.metric(
@@ -328,7 +289,7 @@ def economic_snapshot(econ_dfs):
     metric_col.markdown("\2")
 
 
-    # The HEALTH INSURANCE COVERAGE Section
+    # The HEALTH INSURANCE COVERAGE Section ___________________________________________________________
     st.divider()
     st.subheader("Health Insurance Coverage")
     st.markdown("\2")
@@ -368,7 +329,7 @@ def economic_snapshot(econ_dfs):
         delta_color='inverse')
 
 
-    # The INCOME Section
+    # The INCOME Section ___________________________________________________________
     st.divider()
     st.subheader("Income")
     
@@ -429,7 +390,7 @@ def economic_snapshot(econ_dfs):
     income_col2.altair_chart(family_income_dist_chart, use_container_width=True)
 
 
-    # The POVERTY Section
+    # The POVERTY Section ___________________________________________________________
     st.divider()
     st.subheader("Poverty")
 
@@ -478,7 +439,7 @@ def economic_snapshot(econ_dfs):
     pov_col2.altair_chart(pov_by_age_chart)
     
 
-    # The WORK Section
+    # The WORK Section ___________________________________________________________
     st.divider()
     st.subheader("Work")
     st.markdown("\2")
