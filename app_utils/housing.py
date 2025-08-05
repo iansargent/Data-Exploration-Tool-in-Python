@@ -518,11 +518,11 @@ def housing_snapshot(housing_dfs):
     rent_col2.metric(
         label="Occupied Units paying 35%+ of Income on Rent", 
         value=f"{metrics['rent_burdened_35pct_or_more']:,.0f}",
-        help="Count of households where rent takes up 35% or more of their household income in the selected geography for 2023 compared to 2013.")
+        help="Count of households where rent takes up 35% or more of their household income in the selected geography for 2023")
     rent_col3.metric(
         label="% Occupied Units paying 35%+ of Income on Rent", 
         value=f"{metrics['pct_rent_burdened_35pct_or_more']:.1f}%",
-        help="Percentage of households where rent takes up 35% or more of their household income in the selected geography for 2023 compared to 2013.")
+        help="Percentage of households where rent takes up 35% or more of their household income in the selected geography for 2023.")
     
     # Define a bar chart distribution of structure types (1 unit, 2 unit, etc.)
     units_in_structure_bar_chart = bar_chart(
