@@ -39,7 +39,6 @@ def main():
     ## Census Snapshot section (Housing) ##
     with snapshot:
         demographic_snapshot(demog_dfs)
-        st.subheader("Demographic Snapshot")
 
     with compare:
         data_dict = {"Demographics 2023" : tidy_2023}
