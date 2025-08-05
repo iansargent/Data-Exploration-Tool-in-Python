@@ -10,42 +10,6 @@ import altair as alt
 import pandas as pd
 from app_utils.plot import plot_container
 from app_utils.mapping import map_gdf_single_layer, add_tooltip_from_dict
-
-
-
-def select_census_geography(census_df):
-    col1, col2 = st.columns(2)
-    # County selection
-    with col1:
-        county_list = sorted(census_df["County"].dropna().unique())
-        county = st.selectbox("**County**", ["All Counties"] + county_list)
-    # Municipality selection
-    with col2:
-        if county != "All Counties":
-            jurisdiction_list = sorted(census_df[census_df["County"] == county]["Jurisdiction"].dropna().unique())
-        else:
-            jurisdiction_list = sorted(census_df["Jurisdiction"].dropna().unique())
-        jurisdiction = st.selectbox("**Municipality**", ["All Municipalities"] + jurisdiction_list)
-    
-    return county, jurisdiction
-
-
-
-def filter_census_geography(census_dfs, county, jurisdiction):
-    """
-    
-    """
-    filtered_census_dfs = []
-    for df in census_dfs:
-        filtered_df = df.copy()
-        if county != "All Counties":
-            filtered_df = filtered_df[filtered_df["County"] == county]
-        if jurisdiction != "All Municipalities":
-            filtered_df = filtered_df[filtered_df["Jurisdiction"] == jurisdiction]
-
-        filtered_census_dfs.append(filtered_df)
-        
-    return filtered_census_dfs
     
 
 def fill_census_colors(gdf, map_color):
@@ -150,6 +114,14 @@ def mapping_tab(data, map_color="Reds"):
         view_state=pdk.ViewState(latitude=44.26, longitude=-72.57, min_zoom=6.5, zoom=7)
     )
     st.pydeck_chart(map, height=550)
+    
+    _, col1, _, _, col2, _ = st.columns(6)
+    c1, c2 = st.columns(2)
+    
+    col1.subheader("Bottom Ten")
+    c1.table(filtered_2023[["Jurisdiction", "Value"]].sort_values(by="Value", ascending=True).head(10))
+    col2.subheader("Top Ten")
+    c2.table(filtered_2023[["Jurisdiction", "Value"]].sort_values(by="Value", ascending=False).head(10))
 
 
 def select_dataset(col, data_dict, label_prefix):
