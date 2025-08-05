@@ -4,7 +4,7 @@ import altair as alt
 import requests
 import io
 from app_utils.census import get_geography_title, split_name_col
-from app_utils.census_sections import select_census_geography, filter_census_geography
+from app_utils.df_filtering import filter_dataframe
 from app_utils.color import get_text_color
 from app_utils.plot import donut_chart, bar_chart
 
@@ -20,17 +20,27 @@ def demographic_snapshot_header():
 def demographic_snapshot(demog_dfs):
     # Display the Category Header with Data Source
     demographic_snapshot_header()
-    # Define county and jurisdiction selections with select boxes
-    county, jurisdiction = select_census_geography(demog_dfs[0])
-    # Filter each dataset in "demog_dfs" to the geography needed for the snapshot 
-    # Returns a LIST of filtered DataFrames
-    filtered_demog_dfs = filter_census_geography(demog_dfs, county, jurisdiction)
-    
+    # Filter the dataframes using select boxes for "County" and "Jurisdiction"
+    filtered_demog_dfs = filter_dataframe(
+        demog_dfs, 
+        filter_columns=["County", "Jurisdiction"],
+        key_prefix="demog_snapshot", 
+        allow_all={
+            "County": True, 
+            "Jurisdiction": True
+        }
+    )
+
     # Unpack each dataset from "filtered_demog_dfs" by index
     # TODO: This unpacking process could be more reliable with a dictionary
     filtered_gdf_2023 = filtered_demog_dfs[0]
+    st.dataframe(filtered_gdf_2023)
+    selected_values = filtered_demog_dfs[1]
 
     # Get the title of the geography for plotting
+    county = selected_values["County"]
+    jurisdiction = selected_values["Jurisdiction"]
     title_geo = get_geography_title(county, jurisdiction)
+    
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="demographic_snapshot")

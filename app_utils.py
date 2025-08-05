@@ -1793,11 +1793,11 @@ def group_by_plot(df, num_op, num_var, grp_by):
 
 def get_geography_title(county, jurisdiction):
     # For the plot title, dynamically change the area of interest based on user filter selections
-    if county == "All Counties" and jurisdiction == "All Jurisdictions":
+    if "All" in county and "All" in jurisdiction:
         title_geo = "Vermont (Statewide)"
-    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
+    elif "All" not in county and "All" in jurisdiction:
         title_geo = f"{county} County"
-    elif jurisdiction != "All Jurisdictions":
+    elif "All" not in jurisdiction:
         title_geo = f"{jurisdiction}"
     
     return title_geo

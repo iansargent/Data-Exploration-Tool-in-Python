@@ -3,16 +3,19 @@ import pandas as pd
 import geopandas as gpd
 
 
-def filter_dataframe(dfs, filter_columns, key_prefix="filter_dataframe", header=None ):
+def filter_dataframe(dfs, filter_columns, key_prefix="filter_dataframe", header=None, allow_all=None):
     """
     Create cascading selectboxes to filter a DataFrame.
     
     Args:
-        dfs (pd.DataFrame): DataFrame to filter, OR a list of frames to filter. 
+        dfs (pd.DataFrame or list): DataFrame to filter, OR a list of frames to filter. 
         filter_columns (list): Columns to filter on.
+        key_prefix (str): Prefix for Streamlit widget keys.
+        header (str): Optional header to display.
+        allow_all (dict): Optional dict specifying whether to include an "All" option for specific columns.
     
     Returns:
-        tupel: (pd.DataFrame: Filtered DataFrame, selected values)
+        tuple: (pd.DataFrame: Filtered DataFrame, selected values)
     """
 
     keys = [f"{key_prefix}_{i}" for i in range(len(filter_columns))] ## so that we can have multiple layers of filter on same page
@@ -24,17 +27,22 @@ def filter_dataframe(dfs, filter_columns, key_prefix="filter_dataframe", header=
 
     if header:
         st.markdown(header)
+    
     cols1 = st.columns(len(filter_columns))
     for i, col_name in enumerate(filter_columns):
         unique_values = df[col_name].dropna().unique()
+        allow_all_option = allow_all.get(col_name, False) if allow_all else False
+        options = ["All"] + sorted(unique_values.tolist()) if allow_all_option else sorted(unique_values)
+
         selected_value = cols1[i].selectbox(
             col_name,
-            options=sorted(unique_values), 
+            options=options, 
             key=keys[i]
         )
         filter_selections[col_name] = selected_value
-        dfs = [df[df[col_name] == selected_value] for df in dfs]
-        df = dfs[0]
+        if selected_value != "All":
+            dfs = [df[df[col_name] == selected_value] for df in dfs]
+            df = dfs[0]
         
     return (dfs[0], filter_selections) if len(dfs) == 1 else [(df, filter_selections) for df in dfs]
 
@@ -86,7 +94,7 @@ def filter_dataframe_multiselect(
         col_allow_all = allow_all.get(col_name, False)
 
         options = ["All"] + unique_values if col_allow_all else unique_values
-        default = defaults.get(col_name) if defaults.get(col_name)  else ["All"] if col_allow_all else unique_values[0]  ## could also just default to first
+        default = defaults.get(col_name) if defaults.get(col_name) else ["All"] if col_allow_all else unique_values[0]  ## could also just default to first
 
         selected = cols[i].multiselect(presented_cols[i], options=options, default=default, key=keys[i])
         selected = unique_values if "All" in selected else selected

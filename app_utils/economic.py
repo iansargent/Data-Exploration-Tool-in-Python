@@ -11,7 +11,7 @@ import altair as alt
 import requests
 import io
 from app_utils.census import get_geography_title, split_name_col
-from app_utils.census_sections import select_census_geography, filter_census_geography
+from app_utils.df_filtering import filter_dataframe
 from app_utils.color import get_text_color
 from app_utils.plot import donut_chart, bar_chart
 
@@ -125,7 +125,7 @@ def median_earnings_ts_plot(filtered_earnings_df, title_geo):
     ymin = plot_df["Median_Earnings"].min() - 15000
 
     # If there is not enough available data for the filtered geography,  (1 or less years)
-    if len(plot_df <= 1):
+    if len(plot_df) <= 1:
         return None
     
     # Create a time series plot of the median earnings for three groups over time rate
@@ -229,7 +229,7 @@ def commute_habits_ts_plot(filtered_commute_habits_df, title_geo):
     final_plot_df = pd.concat([plot_df[["year", "Commute_Type", "Percentage"]], other_df], ignore_index=True)
     
     # If there is not enough available data for the filtered geography,  (1 or less years)
-    if len(final_plot_df <= 1):
+    if len(final_plot_df) <= 1:
         return None
     
     # Create a time series plot of the modes of commute to work (% share)
@@ -337,22 +337,30 @@ def econ_df_metric_dict(filtered_gdf_2023):
 def economic_snapshot(econ_dfs):    
     # Display the category header with data source
     economic_snapshot_header()
-    # Define "county" and "jurisdiction" selections with select boxes
-    county, jurisdiction = select_census_geography(econ_dfs[0])
-    # Filter each dataset in "econ_dfs" to the geography needed for the snapshot 
-    # Returns a LIST of filtered DataFrames
-    filtered_econ_dfs = filter_census_geography(econ_dfs, county, jurisdiction)
-    
+    # Filter the dataframes using select boxes for "County" and "Jurisdiction"
+    filtered_econ_dfs = filter_dataframe(
+        econ_dfs, 
+        filter_columns=["County", "Jurisdiction"],
+        key_prefix="econ_snapshot", 
+        allow_all={
+            "County": True, 
+            "Jurisdiction": True
+        }
+    )
+
     # Unpack each dataset from "filtered_econ_dfs" by index
     # TODO: This unpacking process could be more reliable with a dictionary
-    filtered_gdf_2023 = filtered_econ_dfs[0]
-    filtered_unemployment_df = filtered_econ_dfs[1]
-    filtered_median_earnings_df = filtered_econ_dfs[2]
-    filtered_commute_time_df = filtered_econ_dfs[3]
-    filtered_commute_habits_df = filtered_econ_dfs[4]
+    filtered_gdf_2023, selected_values = filtered_econ_dfs[0]
+    filtered_unemployment_df, _ = filtered_econ_dfs[1]
+    filtered_median_earnings_df, _ = filtered_econ_dfs[2]
+    filtered_commute_time_df, _ = filtered_econ_dfs[3]
+    filtered_commute_habits_df, _ = filtered_econ_dfs[4]
 
     # Get the title of the geography for plotting
+    county = selected_values["County"]
+    jurisdiction = selected_values["Jurisdiction"]
     title_geo = get_geography_title(county, jurisdiction)
+    
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="economic_snapshot")
     # Define two callable dictionaries: Metrics and Plot DataFrames

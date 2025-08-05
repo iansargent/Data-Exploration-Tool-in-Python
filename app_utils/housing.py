@@ -11,7 +11,7 @@ import altair as alt
 import io
 import requests
 from app_utils.census import get_geography_title
-from app_utils.census_sections import select_census_geography, filter_census_geography
+from app_utils.df_filtering import filter_dataframe
 from app_utils.color import get_text_color
 from app_utils.data_loading import load_census_data
 from app_utils.plot import donut_chart, bar_chart
@@ -391,20 +391,27 @@ def housing_df_metric_dict(filtered_gdf_2023):
 def housing_snapshot(housing_dfs):
     # Display the Category Header with Data Source
     housing_snapshot_header()
-    # Define county and jurisdiction selections with select boxes
-    county, jurisdiction = select_census_geography(housing_dfs[0])
-    # Filter each dataset in "housing_dfs" to the geography needed for the snapshot 
-    # Returns a LIST of filtered DataFrames
-    filtered_housing_dfs = filter_census_geography(housing_dfs, county, jurisdiction)
-
+    # Filter the dataframes using select boxes for "County" and "Jurisdiction"
+    filtered_housing_dfs = filter_dataframe(
+        housing_dfs, 
+        filter_columns=["County", "Jurisdiction"],
+        key_prefix="housing_snapshot", 
+        allow_all={
+            "County": True, 
+            "Jurisdiction": True
+        }
+    )
     # Unpack each dataset from "filtered_housing_dfs" by index
     # TODO: This unpacking process could be more reliable with a dictionary
-    filtered_gdf_2023 = filtered_housing_dfs[0]
-    filtered_med_val_df = filtered_housing_dfs[1]
-    filtered_med_smoc_df = filtered_housing_dfs[2]
+    filtered_gdf_2023, selected_values = filtered_housing_dfs[0]
+    filtered_med_val_df, selected_values = filtered_housing_dfs[1]
+    filtered_med_smoc_df, selected_values = filtered_housing_dfs[2]
     
     # Get the title of the geography for plotting
+    county = selected_values["County"]
+    jurisdiction = selected_values["Jurisdiction"]
     title_geo = get_geography_title(county, jurisdiction)
+    
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="housing_snapshot")
     # Define two callable dictionaries: Metrics and Plot DataFrames
