@@ -73,7 +73,6 @@ def unemployment_rate_ts_plot(filtered_unemployment_df, title_geo):
 
     # If there is not enough available data for the filtered geography,  (1 or less years)
     if len(plot_df[plot_df["Geography"] != "Statewide Average"]) <= 1:
-        st.warning("Not enough unemployment data available for the selected geography.")
         return None
     
     # Set the max and min of the y axis to frame the plotted data nicely
@@ -124,6 +123,10 @@ def median_earnings_ts_plot(filtered_earnings_df, title_geo):
     # Set the max and min of the y axis to frame the plotted data nicely
     ymax = plot_df["Median_Earnings"].max() + 5000
     ymin = plot_df["Median_Earnings"].min() - 15000
+
+    # If there is not enough available data for the filtered geography,  (1 or less years)
+    if len(plot_df <= 1):
+        return None
     
     # Create a time series plot of the median earnings for three groups over time rate
     median_earnings_ts = alt.Chart(plot_df).mark_line(point=True).encode(
@@ -179,7 +182,6 @@ def avg_commute_time_ts_plot(filtered_commute_time_df, title_geo):
 
     # If there is not enough available data for the filtered geography,  (1 or less years)
     if len(plot_df[plot_df["Geography"] != "Statewide Average"]) <= 1:
-        st.warning("Not enough commuting data available for the selected geography.")
         return None
     
     # Set the max and min of the y axis to frame the plotted data nicely
@@ -225,6 +227,10 @@ def commute_habits_ts_plot(filtered_commute_habits_df, title_geo):
 
     # Combine the two DataFrames so that "other" is included in the analysis
     final_plot_df = pd.concat([plot_df[["year", "Commute_Type", "Percentage"]], other_df], ignore_index=True)
+    
+    # If there is not enough available data for the filtered geography,  (1 or less years)
+    if len(final_plot_df <= 1):
+        return None
     
     # Create a time series plot of the modes of commute to work (% share)
     commute_habits_ts = alt.Chart(final_plot_df).mark_line(point=True).encode(
@@ -379,8 +385,11 @@ def economic_snapshot(econ_dfs):
         delta=f"{10}%")
     
     # Define and display unemployment time series plot
-    unemployment_chart = unemployment_rate_ts_plot(filtered_unemployment_df, title_geo)
-    chart_col.altair_chart(unemployment_chart)
+    try:
+        unemployment_chart = unemployment_rate_ts_plot(filtered_unemployment_df, title_geo)
+        chart_col.altair_chart(unemployment_chart)
+    except:
+        chart_col.warning("Not enough unemployment data available for the selected geography.")
     metric_col.markdown("\2")
 
 
@@ -445,8 +454,11 @@ def economic_snapshot(econ_dfs):
     st.markdown("\2")
     
     # Display the median earnings time series plot directly below the metrics
-    st.altair_chart(median_earnings_ts_plot(filtered_median_earnings_df, title_geo))
-
+    try:
+        st.altair_chart(median_earnings_ts_plot(filtered_median_earnings_df, title_geo))
+    except:
+        st.warning("Not enough median earnings data available for the selected geography.")
+    
     # Define two columns for metrics on the left and a bar plot on the right
     income_col1, income_col2 = st.columns([2, 11])
     income_col1.markdown("\2")
@@ -513,9 +525,15 @@ def economic_snapshot(econ_dfs):
     st.markdown("\2")
     
     # Define and display a time series plot of average commute time
-    commute_time_ts = avg_commute_time_ts_plot(filtered_commute_time_df, title_geo)
-    st.altair_chart(commute_time_ts)
+    try:
+        commute_time_ts = avg_commute_time_ts_plot(filtered_commute_time_df, title_geo)
+        st.altair_chart(commute_time_ts)
+    except:
+        st.warning("Not enough commute time data available for the selected geography.")
 
     # Define and display a time series plot of commute methods
-    commute_habits_ts = commute_habits_ts_plot(filtered_commute_habits_df, title_geo)
-    st.altair_chart(commute_habits_ts)
+    try:
+        commute_habits_ts = commute_habits_ts_plot(filtered_commute_habits_df, title_geo)
+        st.altair_chart(commute_habits_ts)
+    except:
+        st.warning("Not enough commute habit data available for the selected geography.")
