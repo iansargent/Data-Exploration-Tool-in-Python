@@ -13,6 +13,53 @@ from app_utils.analysis import get_column_type, get_skew
 from streamlit_extras.metric_cards import style_metric_cards 
 
 
+def donut_chart(source, colorColumnName, height=300, width=300, innerRadius=90, fontSize=40, titleFontSize=14, fillColor="mediumseagreen", title="Donut Chart", 
+                stat=0, text_color="grey", inverse=False):
+    
+    if inverse:
+        range=["whitesmoke", fillColor]
+        source = source.sort_values(by=colorColumnName, ascending=False)
+    else:
+        range=[fillColor, "whitesmoke"]
+        source = source.sort_values(by="Value", ascending=True)
+    
+    donut = alt.Chart(source).mark_arc(innerRadius=innerRadius).encode(
+        theta=alt.Theta("Value:Q"),
+        color=alt.Color(f"{colorColumnName}:N", scale=alt.Scale(
+            range=range), legend=None),
+        tooltip=[f"{colorColumnName}:N", alt.Tooltip("Value:Q", title="Percentage", format=".1%")]
+        ).properties(height=height, width=width)
+
+    center_label = alt.Chart(pd.DataFrame({'text': [f"{stat:.1%}"]})
+                             ).mark_text(fontSize=fontSize, fontWeight='lighter', font="Helvetica Neue", color=text_color).encode(
+                                text='text:N')
+        
+    # Layer the donut and the label
+    donut_chart = alt.layer(donut, center_label).properties(
+        title=title).configure_title(fontSize=titleFontSize, anchor="middle")
+    
+    return donut_chart
+
+
+def bar_chart(source, title_geo, XcolumnName, YcolumnName, xType=":N", yType=":Q", YtooltipFormat=",.0f", yFormat=",.0f", XlabelAngle=-50, 
+                     fillColor="mediumseagreen", height=400, width=400, barWidth=60, title="Bar Chart", titleFontSize=17, distribution=True,
+                     labelFontSize=10.5):
+    
+    tooltip_list = [XcolumnName, alt.Tooltip(YcolumnName, format=YtooltipFormat)]
+    
+    if distribution:
+        source[f"% of {YcolumnName}"] = source[YcolumnName] / source[YcolumnName].sum()
+        tooltip_list.append(alt.Tooltip(f"% of {YcolumnName}", format=".1%"))
+
+    bar_chart = alt.Chart(source).mark_bar().encode(
+        x=alt.X(XcolumnName + xType, sort=source[XcolumnName].tolist(),
+                    axis=alt.Axis(labelAngle=XlabelAngle, labelFont="Helvetica Neue", labelFontWeight='normal', labelFontSize=labelFontSize, titleFont="Helvetica Neue")),
+        y=alt.Y(YcolumnName + yType, axis=alt.Axis(labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue", format=yFormat)),
+        tooltip=tooltip_list).configure_mark(color=fillColor, width=barWidth
+        ).properties(height=height, width=width, title=alt.Title(f"{title} | {title_geo}", anchor='middle', fontSize=titleFontSize)).interactive()
+    
+    return bar_chart
+    
 
 def single_column_plot(df, selected_column):
     """
@@ -902,4 +949,3 @@ def plot_container(df, altiar_chart):
                 key=f"download_csv_{timestamp}"
             )
                 
-        

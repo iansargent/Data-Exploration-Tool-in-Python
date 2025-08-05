@@ -8,11 +8,9 @@ Economics Page (Census)
 
 # Necessary imports
 import streamlit as st
-import pydeck as pdk
-import pyogrio
 from app_utils.economic import economic_snapshot
 from app_utils.census import rename_and_merge_census_cols
-from app_utils.census_sections import mapping_tab, compare_tab, filter_census_geography, select_census_geography
+from app_utils.census_sections import mapping_tab, compare_tab
 from app_utils.data_loading import load_census_data
 from app_utils.streamlit_config import streamlit_config
 
@@ -41,9 +39,8 @@ def census_economics():
 
 
 def main():
-    # Page header
+    # Page title and tabs
     st.header("Economics", divider="grey")
-
     mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
 
     econ_dfs = census_economics()

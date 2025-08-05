@@ -19,13 +19,13 @@ def select_census_geography(census_df):
     with col1:
         county_list = sorted(census_df["County"].dropna().unique())
         county = st.selectbox("**County**", ["All Counties"] + county_list)
-    # Jurisdiction selection
+    # Municipality selection
     with col2:
         if county != "All Counties":
             jurisdiction_list = sorted(census_df[census_df["County"] == county]["Jurisdiction"].dropna().unique())
         else:
             jurisdiction_list = sorted(census_df["Jurisdiction"].dropna().unique())
-        jurisdiction = st.selectbox("**Jurisdiction**", ["All Jurisdictions"] + jurisdiction_list)
+        jurisdiction = st.selectbox("**Municipality**", ["All Municipalities"] + jurisdiction_list)
     
     return county, jurisdiction
 
@@ -40,7 +40,7 @@ def filter_census_geography(census_dfs, county, jurisdiction):
         filtered_df = df.copy()
         if county != "All Counties":
             filtered_df = filtered_df[filtered_df["County"] == county]
-        if jurisdiction != "All Jurisdictions":
+        if jurisdiction != "All Municipalities":
             filtered_df = filtered_df[filtered_df["Jurisdiction"] == jurisdiction]
 
         filtered_census_dfs.append(filtered_df)
@@ -50,7 +50,7 @@ def filter_census_geography(census_dfs, county, jurisdiction):
 
 def fill_census_colors(gdf, map_color):
     """
-    Note some of this is uesless because it doesn;t matter 
+    Note some of this is uesless because it doesn't matter  (Very well said Fitz    - Ian)
     """
     # n_classes = col1.slider(label="Adjust the level of detail", value=10, min_value=5, max_value=15)
     # Define the Jenk's colormap and apply it to the dataframe
@@ -223,7 +223,7 @@ def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Cat
 
     # Run plots
     plotting_dict = {
-        "Jurisdiction Barplot" : grouped_barplot_by_jurisdiction,
+        "Municipality Barplot" : grouped_barplot_by_jurisdiction,
         "County Barplot" : barplot_by_county,
         "County Boxplot" : boxplot_by_county,
     }
@@ -276,10 +276,10 @@ def grouped_barplot_by_jurisdiction(grouped, label_prefixs):
         st.markdown(f"#### {var_name}")
         
         chart = alt.Chart(merged_long).mark_bar().encode(
-            x=alt.X("Jurisdiction", title="Jurisdiction", axis=alt.Axis(labelAngle=-90), sort=None), ## this is just flat; not sure the best angle
+            x=alt.X("Jurisdiction", title="Municipality", axis=alt.Axis(labelAngle=-90), sort=None), ## this is just flat; not sure the best angle
             y="Value",
             color=alt.Color("Dataset:N", scale=alt.Scale(domain=["Base", "Comparison"], range=["#1f77b4", "#ff7f0e"])),
-            tooltip=['Jurisdiction', 'Dataset', 'Value'],
+            tooltip=[alt.Tooltip('Jurisdiction', title="Municipality"), 'Dataset', 'Value'],
             xOffset='Dataset:N'
         ).properties(width=700, height=400)
 
