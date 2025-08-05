@@ -464,8 +464,8 @@ def economic_snapshot(econ_dfs):
     # Display the median earnings time series plot directly below the metrics
     try:
         st.altair_chart(median_earnings_ts_plot(filtered_median_earnings_df, title_geo))
-    except Exception as e:
-        st.warning(f"Not enough median earnings data available for the selected geography. {e}")
+    except:
+        st.warning("Not enough median earnings data available for the selected geography.")
     
     # Define two columns for metrics on the left and a bar plot on the right
     income_col1, income_col2 = st.columns([2, 11])

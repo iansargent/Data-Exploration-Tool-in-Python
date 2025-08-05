@@ -30,6 +30,7 @@ def social_snapshot(social_dfs):
             "Jurisdiction": True
         }
     )
+    
     # Unpack each dataset from "filtered_social_dfs" by index
     # TODO: This unpacking process could be more reliable with a dictionary
     filtered_gdf_2023 = filtered_social_dfs[0]
