@@ -52,41 +52,55 @@ def unemployment_rate_ts_plot(filtered_unemployment_df, title_geo):
     Create a time series plot of the unemployment rate for the selected geography.
     """
     
-    unemployment_df = load_unemployment_df()
-
     # Filter data based on selection
     plot_df = filtered_unemployment_df.groupby("year").agg(Unemployment_Rate=("Unemployment_Rate", "mean")).reset_index()
     plot_df["Unemployment_Rate"] = plot_df["Unemployment_Rate"] / 100
     plot_df["Geography"] = title_geo
     
+    # Load the unemployment rate over time csv file
+    unemployment_df = load_unemployment_df()
+    # Calculate the statewide avg dataframe for plotting at the statewide level
     statewide_avg_df = unemployment_df.groupby("year").agg(Unemployment_Rate=("Unemployment_Rate", "mean")).reset_index().assign(Geography="Statewide Average")
     statewide_avg_df["Unemployment_Rate"] = statewide_avg_df["Unemployment_Rate"] / 100
 
-    # If we’re statewide only, skip adding the comparison line
+    # If not statewide scope, concatanate the filtered line DataFrame with the statewide avg DataFrame
     if title_geo != "Vermont (Statewide)":
         plot_df = pd.concat([plot_df, statewide_avg_df], ignore_index=True)
+        legend = alt.Legend(orient="bottom-left", direction="horizontal", offset=20, labelFont="Helvetica Neue")
+    # If we’re statewide only, skip adding the comparison line and don't show the color legend
+    else:
+        legend = None
 
+    # If there is not enough available data for the filtered geography,  (1 or less years)
     if len(plot_df[plot_df["Geography"] != "Statewide Average"]) <= 1:
         st.warning("Not enough unemployment data available for the selected geography.")
         return None
     
+    # Set the max and min of the y axis to frame the plotted data nicely
     ymax = plot_df["Unemployment_Rate"].max() + 0.01
     ymin = plot_df["Unemployment_Rate"].min() - 0.01
 
     # Create a time series plot of the unemployment rate
     unemployment_ts = alt.Chart(plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
+        x=alt.X("year:O", title="Year", 
+                axis=alt.Axis(
+                    labelAngle=0, 
+                    labelFontSize=15, 
+                    labelFont="Helvetica Neue", 
+                    labelFontWeight='normal', 
+                    titleFont="Helvetica Neue")),
         y=alt.Y("Unemployment_Rate:Q", title="Unemployment Rate", 
-                axis=alt.Axis(format="%", labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"),
+                axis=alt.Axis(
+                    format="%", 
+                    labelFont="Helvetica Neue", 
+                    labelFontWeight='normal', 
+                    titleFont="Helvetica Neue"),
                 scale=alt.Scale(domain=(ymin, ymax))),
-        color=alt.Color("Geography:O", title=None, scale=alt.Scale(
-            domain=["Statewide Average", title_geo],
-            range=["#83C299", "darkgreen"]),
-            legend=alt.Legend(
-                orient="bottom-left", 
-                direction="horizontal", 
-                offset=20,
-                labelFont="Helvetica Neue")),
+        color=alt.Color("Geography:O", title=None, 
+                        scale=alt.Scale(
+                            domain=["Statewide Average", title_geo],
+                            range=["#83C299", "darkgreen"]),
+                        legend=legend),
         tooltip=[alt.Tooltip("year", title="Year"), 
                  alt.Tooltip("Unemployment_Rate", title="Unemployment Rate", format=".1%"),
                  alt.Tooltip("Geography")]
@@ -100,30 +114,42 @@ def median_earnings_ts_plot(filtered_earnings_df, title_geo):
     """
     Create a time series plot of the unemployment rate for the selected geography.
     """
-
+    # Summarize earnings by both year and variable (mean): Call the summarized variable "Median_Earnings"
     plot_df = filtered_earnings_df.groupby(["year", "variable"]).agg(Median_Earnings=("estimate", "mean")).reset_index()
     
+    # Rename variables for the labels within the legend
     variable_names = {"DP03_0092": "All Workers", "DP03_0093": "Male (FTYR)", "DP03_0094": "Female (FTYR)"}
     plot_df = plot_df.assign(Population = lambda df: df["variable"].map(variable_names))
     
+    # Set the max and min of the y axis to frame the plotted data nicely
     ymax = plot_df["Median_Earnings"].max() + 5000
     ymin = plot_df["Median_Earnings"].min() - 15000
     
-    # Create a time series plot of the unemployment rate
+    # Create a time series plot of the median earnings for three groups over time rate
     median_earnings_ts = alt.Chart(plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
+        x=alt.X("year:O", title="Year", 
+                axis=alt.Axis(
+                    labelAngle=0, 
+                    labelFontSize=15, 
+                    labelFont="Helvetica Neue", 
+                    labelFontWeight='normal', 
+                    titleFont="Helvetica Neue")),
         y=alt.Y("Median_Earnings:Q", title="Median Earnings", 
-                axis=alt.Axis(format="$,.0f", labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"),
-                scale=alt.Scale(domain=[ymin, ymax])
-                ),
-        color=alt.Color("Population:N", title=None, scale=alt.Scale(
-            domain=["All Workers", "Male (FTYR)", "Female (FTYR)"],
-            range=["forestgreen", "dodgerblue", "deeppink"]),
-            legend=alt.Legend(
-                orient="bottom-left", 
-                direction="horizontal", 
-                offset=20,
-                labelFont="Helvetica Neue"))
+                axis=alt.Axis(
+                    format="$,.0f", 
+                    labelFont="Helvetica Neue", 
+                    labelFontWeight='normal', 
+                    titleFont="Helvetica Neue"),
+                scale=alt.Scale(domain=[ymin, ymax])),
+        color=alt.Color("Population:N", title=None, 
+                        scale=alt.Scale(
+                            domain=["All Workers", "Male (FTYR)", "Female (FTYR)"],
+                            range=["forestgreen", "dodgerblue", "deeppink"]),
+                        legend=alt.Legend(
+                            orient="bottom-left", 
+                            direction="horizontal", 
+                            offset=20,
+                            labelFont="Helvetica Neue"))
     ).properties(height=475, title=alt.Title(f"Median Earnings | {title_geo}")
     ).configure_title(fontSize=19, anchor="middle").interactive()
     
@@ -134,25 +160,33 @@ def avg_commute_time_ts_plot(filtered_commute_time_df, title_geo):
     """
     Create a time series plot of the unemployment rate for the selected geography.
     """
-    commute_time_df = load_commute_time_df()
-    
+    # Summarize commute time by year (mean): Call the variable "Average_Commute"    
     plot_df = filtered_commute_time_df.groupby("year").agg(Average_Commute=("estimate", "mean")).reset_index()
+    # Add a geography column for comparing to the statewide average line
     plot_df["Geography"] = title_geo
     
+    # Load the full unfiltered dataset for the statewide line
+    commute_time_df = load_commute_time_df()
     statewide_avg_df = commute_time_df.groupby("year").agg(Average_Commute=("estimate", "mean")).reset_index().assign(Geography="Statewide Average")
 
-    # If we’re statewide only, skip adding the comparison line
+    # If not statewide scope, concatanate the filtered line DataFrame with the statewide avg DataFrame
     if title_geo != "Vermont (Statewide)":
         plot_df = pd.concat([plot_df, statewide_avg_df], ignore_index=True)
+        legend=alt.Legend(orient="top", direction="horizontal", offset=0, labelFont="Helvetica Neue")
+    # If we’re statewide only, skip adding the comparison line and don't show the color legend
+    else:
+        legend=None
 
+    # If there is not enough available data for the filtered geography,  (1 or less years)
     if len(plot_df[plot_df["Geography"] != "Statewide Average"]) <= 1:
         st.warning("Not enough commuting data available for the selected geography.")
         return None
     
+    # Set the max and min of the y axis to frame the plotted data nicely
     ymax = plot_df["Average_Commute"].max() + 5
     ymin = plot_df["Average_Commute"].min() - 5
 
-    # Create a time series plot of the unemployment rate
+    # Create a time series plot of average commute time
     commute_time_ts = alt.Chart(plot_df).mark_line(point=True).encode(
         x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
         y=alt.Y("Average_Commute:Q", title="Average Commute (Minutes)", 
@@ -161,11 +195,7 @@ def avg_commute_time_ts_plot(filtered_commute_time_df, title_geo):
         color=alt.Color("Geography:O", title=None, scale=alt.Scale(
             domain=["Statewide Average", title_geo],
             range=["#83C299", "darkgreen"]),
-            legend=alt.Legend(
-                orient="top", 
-                direction="horizontal", 
-                offset=0,
-                labelFont="Helvetica Neue")),
+            legend=legend),
         tooltip=[alt.Tooltip("year", title="Year"), 
                  alt.Tooltip("Average_Commute:Q", title="Average Commute (Minutes)", format=".0f"),
                  alt.Tooltip("Geography")]
@@ -179,36 +209,50 @@ def commute_habits_ts_plot(filtered_commute_habits_df, title_geo):
     """
     Create a time series plot of the unemployment rate for the selected geography.
     """
-    filtered_commute_habits_df
+    # Summarize earnings by both year and variable (mean): Call the summarized variable "Percentage"
     plot_df = filtered_commute_habits_df.groupby(["year", "variable"]).agg(Percentage=("estimate", "mean")).reset_index()
     
+    # Rename variables for the labels within the legend
     variable_names = {"DP03_0019P": "Drove Alone", "DP03_0021P": "Public Transit", "DP03_0024P": "Work From Home"}
     plot_df = plot_df.assign(Commute_Type = lambda df: df["variable"].map(variable_names))
+    # Turn the percentage column into a proportion (for easier axis formatting in the plot)
     plot_df["Percentage"] = plot_df["Percentage"] / 100
     
-    # Pivot to calculate 'Other'
+    # Pivot the DataFrame to calculate an 'Other' variable
     pivot_df = plot_df.pivot(index="year", columns="Commute_Type", values="Percentage").fillna(0)
     pivot_df["Other"] = 1.0 - pivot_df.sum(axis=1)
-
-    # Reformat back to long form
     other_df = pivot_df[["Other"]].reset_index().melt(id_vars="year", var_name="Commute_Type", value_name="Percentage")
 
+    # Combine the two DataFrames so that "other" is included in the analysis
     final_plot_df = pd.concat([plot_df[["year", "Commute_Type", "Percentage"]], other_df], ignore_index=True)
     
-    # Create a time series plot of the unemployment rate
+    # Create a time series plot of the modes of commute to work (% share)
     commute_habits_ts = alt.Chart(final_plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
+        x=alt.X("year:O", title="Year", 
+                axis=alt.Axis(
+                    labelAngle=0, 
+                    labelFontSize=15, 
+                    labelFont="Helvetica Neue", 
+                    labelFontWeight='normal', 
+                    titleFont="Helvetica Neue")),
         y=alt.Y("Percentage:Q", title="Percentage of Workers (16+)", 
-                axis=alt.Axis(format=".0%", labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
-        color=alt.Color("Commute_Type:N", title=None, scale=alt.Scale(
-            domain=["Drove Alone", "Other", "Work From Home", "Public Transit"],
-            range=["tomato", "grey", "dodgerblue", "mediumseagreen"]),
-            legend=alt.Legend(
-                orient="top", 
-                direction="horizontal", 
-                offset=0,
-                labelFont="Helvetica Neue")),
-        tooltip=[alt.Tooltip("year", title="Year"), alt.Tooltip("Percentage", format=".1%"), alt.Tooltip("Commute_Type", title="Commute Type")]
+                axis=alt.Axis(
+                    format=".0%", 
+                    labelFont="Helvetica Neue", 
+                    labelFontWeight='normal', 
+                    titleFont="Helvetica Neue")),
+        color=alt.Color("Commute_Type:N", title=None, 
+                        scale=alt.Scale(
+                            domain=["Drove Alone", "Other", "Work From Home", "Public Transit"],
+                            range=["tomato", "grey", "dodgerblue", "mediumseagreen"]),
+                        legend=alt.Legend(
+                            orient="top", 
+                            direction="horizontal", 
+                            offset=0,
+                            labelFont="Helvetica Neue")),
+        tooltip=[alt.Tooltip("year", title="Year"), 
+                 alt.Tooltip("Percentage", format=".1%"), 
+                 alt.Tooltip("Commute_Type", title="Commute Type")]
     ).properties(height=450, title=alt.Title(f"How People Commute to Work | {title_geo}")
     ).configure_title(fontSize=19, anchor="start", dx=78, offset=10).interactive()
     
@@ -216,21 +260,21 @@ def commute_habits_ts_plot(filtered_commute_habits_df, title_geo):
 
 
 def econ_df_metric_dict(filtered_gdf_2023):
-    # ---- Calculate Stats (Snapshot Values) ----
+    # Define a dictionary of metrics to display in the snapshot
     metrics = {
-        # Employment
+        # Employment metrics
         "unemployment_rate": filtered_gdf_2023['DP03_0009PE'].mean() / 100,
         "pct_employed": filtered_gdf_2023['DP03_0004PE'].mean(),
         "pct_in_labor_force": filtered_gdf_2023['DP03_0002PE'].mean(),
         "pct_female_in_labor_force": filtered_gdf_2023['DP03_0011PE'].mean(),
 
-        # Healthcare Coverage
+        # Healthcare Coverage metrics
         "pct_no_hc_coverage": filtered_gdf_2023['DP03_0099PE'].mean(),
         "pct_no_hc_coverage_u19": filtered_gdf_2023['DP03_0101PE'].mean(),
         "pct_public_hc_coverage": filtered_gdf_2023['DP03_0098PE'].mean() / 100,
         "pct_employed_no_hc_coverage": filtered_gdf_2023['DP03_0108PE'].mean(),
 
-        # Income
+        # Income metrics
         "income_per_capita": filtered_gdf_2023["DP03_0088E"].mean(),
         "median_family_income": filtered_gdf_2023["DP03_0086E"].mean(),
         "median_earnings": filtered_gdf_2023['DP03_0092E'].mean(),
@@ -238,12 +282,12 @@ def econ_df_metric_dict(filtered_gdf_2023):
         "female_earnings": filtered_gdf_2023['DP03_0094E'].mean(),
         "wage_gap": filtered_gdf_2023['DP03_0093E'].mean() - filtered_gdf_2023['DP03_0094E'].mean(),
 
-        # Poverty
+        # Poverty metrics
         "pct_people_below_pov": filtered_gdf_2023["DP03_0128PE"].mean() / 100,
         "pct_families_below_pov": filtered_gdf_2023["DP03_0119PE"].mean() / 100
     }
 
-    # ---- DataFrames for Plotting ----
+    # Define a dictionary of DataFrames to plot in the snapshot
     dfs = {
         "public_private_coverage_df": pd.DataFrame({
             "Coverage Type": ["Private Insurance", "Public Insurance"],
@@ -285,9 +329,9 @@ def econ_df_metric_dict(filtered_gdf_2023):
 
 # NOTE: The `st.metric` delta (^change) values are simply placeholders for now (not real data!)
 def economic_snapshot(econ_dfs):    
-    # Display the Category Header with Data Source
+    # Display the category header with data source
     economic_snapshot_header()
-    # Define county and jurisdiction selections with select boxes
+    # Define "county" and "jurisdiction" selections with select boxes
     county, jurisdiction = select_census_geography(econ_dfs[0])
     # Filter each dataset in "econ_dfs" to the geography needed for the snapshot 
     # Returns a LIST of filtered DataFrames

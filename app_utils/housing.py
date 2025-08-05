@@ -46,7 +46,7 @@ def med_home_value_ts_plot(county, jurisdiction, filtered_med_val_df):
     statewide_line["Group"] = "Statewide Average"
     
     # Statewide Level
-    if county == "All Counties" and jurisdiction == "All Jurisdictions":
+    if county == "All Counties" and jurisdiction == "All Municipalities":
         ymin = statewide_line["estimate"].min() - 5000
         ymax = statewide_line["estimate"].max() + 5000
 
@@ -67,7 +67,7 @@ def med_home_value_ts_plot(county, jurisdiction, filtered_med_val_df):
         ).configure_title(fontSize=19, anchor="middle").interactive()
     
     # County Level
-    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
+    elif county != "All Counties" and jurisdiction == "All Municipalities":
         subtitle = f"{county} County vs Vermont Statewide Average"
         county_df = (filtered_med_val_df.groupby("year", as_index=False)["estimate"].mean().assign(Group=county))
         chart_df = pd.concat([county_df, statewide_line], ignore_index=True)
@@ -89,7 +89,7 @@ def med_home_value_ts_plot(county, jurisdiction, filtered_med_val_df):
         ).properties(title=alt.Title("Median Home Value Over Time", subtitle=subtitle), height=550
         ).configure_title(fontSize=19,offset=45, anchor="middle").interactive()
 
-    elif jurisdiction != "All Jurisdictions":
+    elif jurisdiction != "All Municipalities":
         subtitle = f"{jurisdiction} vs Vermont Statewide Average"
         jurisdiction_df = (filtered_med_val_df.groupby("year", as_index=False)["estimate"].mean().assign(Group=jurisdiction))
         chart_df = pd.concat([jurisdiction_df, statewide_line], ignore_index=True)
@@ -126,7 +126,7 @@ def med_smoc_ts_plot(county, jurisdiction, filtered_med_smoc_df):
     statewide_smoc_line["Group"] = "Statewide Average"
     
     # Statewide Level
-    if county == "All Counties" and jurisdiction == "All Jurisdictions":
+    if county == "All Counties" and jurisdiction == "All Municipalities":
         ymin = statewide_smoc_line["estimate"].min() - 500
         ymax = statewide_smoc_line["estimate"].max() + 500
         
@@ -152,7 +152,7 @@ def med_smoc_ts_plot(county, jurisdiction, filtered_med_smoc_df):
             height=450).configure_title(fontSize=19, anchor="middle").interactive()
     
     # County Level
-    elif county != "All Counties" and jurisdiction == "All Jurisdictions":
+    elif county != "All Counties" and jurisdiction == "All Municipalities":
         filtered_med_smoc_df = filtered_med_smoc_df.rename(columns={"County": "Group"})
         county_df_smoc = (filtered_med_smoc_df.groupby(["year", "variable", "Group"], as_index=False)["estimate"].mean())
         smoc_chart_df = pd.concat([county_df_smoc, statewide_smoc_line], ignore_index=True)
@@ -177,7 +177,7 @@ def med_smoc_ts_plot(county, jurisdiction, filtered_med_smoc_df):
         ).properties(title=alt.Title("Median Monthly Owner Costs Over Time"), height=450
         ).configure_title(fontSize=19, anchor="middle").interactive()
 
-    elif jurisdiction != "All Jurisdictions":
+    elif jurisdiction != "All Municipalities":
         filtered_med_smoc_df = filtered_med_smoc_df.rename(columns={"Jurisdiction": "Group"})
         jurisdiction_df_smoc = (filtered_med_smoc_df.groupby(["year", "variable", "Group"], as_index=False)["estimate"].mean())
         smoc_chart_df = pd.concat([jurisdiction_df_smoc, statewide_smoc_line], ignore_index=True)
