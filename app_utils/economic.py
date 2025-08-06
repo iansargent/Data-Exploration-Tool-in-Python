@@ -296,7 +296,7 @@ def econ_df_metric_dict(filtered_gdf_2023):
     dfs = build_econ_plot_dataframes(filtered_gdf_2023, metrics)
     return metrics, dfs
 
-
+## TODO: might be worth generalizing and adding to a snapshot.py file that holds useful functions for snapshots
 def filter_snapshot_data(dfs):
     filter_state = FilterState(
     df=dfs['econ_2023'], 
@@ -336,6 +336,8 @@ def economic_snapshot(econ_dfs):
     text_color = get_text_color(key="economic_snapshot")
     # Define two callable dictionaries: Metrics and Plot DataFrames
     metrics, plot_dfs = econ_df_metric_dict(filtered_dfs["econ_2023"])
+
+    ## TODO: maybe better to run all of these with **kwargs, or just all take the same args, idk
     render_employment(econ_dfs, metrics, filtered_dfs, title_geo)
     render_health_insurance(metrics, title_geo, plot_dfs, text_color)
     render_income(metrics, filtered_dfs, title_geo, plot_dfs)
