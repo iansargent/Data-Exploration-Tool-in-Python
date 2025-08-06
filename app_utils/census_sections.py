@@ -119,9 +119,9 @@ def mapping_tab(data, map_color="Reds"):
     c1, c2 = st.columns(2)
     
     col1.subheader("Bottom Ten")
-    c1.table(filtered_2023[["Jurisdiction", "Value"]].sort_values(by="Value", ascending=True).head(10))
+    c1.dataframe(filtered_2023[["Jurisdiction", "Value"]].sort_values(by="Value", ascending=True).head(10))
     col2.subheader("Top Ten")
-    c2.table(filtered_2023[["Jurisdiction", "Value"]].sort_values(by="Value", ascending=False).head(10))
+    c2.dataframe(filtered_2023[["Jurisdiction", "Value"]].sort_values(by="Value", ascending=False).head(10))
 
 
 def select_dataset(col, data_dict, label_prefix):
