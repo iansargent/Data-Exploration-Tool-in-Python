@@ -54,9 +54,20 @@ def main ():
         "Zoning": zoning_gdf,
         "Flooding": flooding_gdf,
         "Wastewater": soil_gdf,
-
     }
-    selected_layers = st.multiselect("Select data sources to display", list(layer_options.keys()), default=list(layer_options.keys())[:2])
+    
+    # selected_layers = st.multiselect("Select data sources to display", list(layer_options.keys()), default=list(layer_options.keys())[:2])
+    
+    # Use sidebar toggle buttons to switch layers "on" and "off"
+    selected_layers_toggle = []
+    st.sidebar.subheader("Map Layers")
+    for option in layer_options.keys():
+        layer = st.sidebar.toggle(label=f"{option}", value=False)
+        if layer:
+            selected_layers_toggle.append(option)
+            st.sidebar.checkbox(label=f"{option} filter 1")
+            st.sidebar.checkbox(label=f"{option} filter 2")
+            st.sidebar.checkbox(label=f"{option} filter 3")
 
     ## get filters and then apply them
     filter_selections = collect_filter_selections(
@@ -71,7 +82,7 @@ def main ():
 
     dfs = [
         apply_filter_selections(layer_options[name], filter_selections)
-        for name in selected_layers
+        for name in selected_layers_toggle
     ]
     combo_map(dfs)
 
