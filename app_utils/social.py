@@ -38,9 +38,7 @@ def social_snapshot(social_dfs):
     selected_values = filtered_social_dfs[1]
 
     # Get the title of the geography for plotting
-    county = selected_values["County"]
-    jurisdiction = selected_values["Jurisdiction"]
-    title_geo = get_geography_title(county, jurisdiction)
+    title_geo = get_geography_title(selected_values)
 
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="social_snapshot")

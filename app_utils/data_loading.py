@@ -4,8 +4,6 @@ Created: 2025-07-29
 Description: centralized page for data loading
 """
 
-
-
 import streamlit as st
 import geopandas as gpd 
 import pandas as pd 
@@ -13,7 +11,10 @@ import requests
 import io
 import pyogrio 
 from pathlib import Path
+from urllib.parse import urljoin
+
 from app_utils.data_cleaning import strip_all_whitespace
+
 
 
 def load_data(
@@ -142,3 +143,26 @@ def load_census_data(url):
         url = url,
         postprocess_fn=split_name_col
     )
+    
+@st.cache_data
+def load_census_data_dict(basename, sources):
+    return {
+        label : load_census_data(urljoin(basename, url)) for 
+        label, url in sources.items()
+    }
+
+@st.cache_data
+def load_combine_census(base_name, label_to_file):
+    from app_utils.census import rename_and_merge_census_cols
+    """
+    Function to load many census files given a dictionary. 
+    """
+    dfs = {}
+    for label, fname in label_to_file.items():
+        gdf = load_census_data(urljoin(base_name, fname))
+        df = rename_and_merge_census_cols(gdf).drop(columns=gdf.geometry.name)
+        df["Source"] = label
+        dfs[label] = df
+
+    df_combined = pd.concat(dfs.values(), ignore_index=True, sort=False)
+    return df_combined

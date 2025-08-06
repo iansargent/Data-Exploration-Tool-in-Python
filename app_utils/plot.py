@@ -13,6 +13,20 @@ from app_utils.analysis import get_column_type, get_skew
 from streamlit_extras.metric_cards import style_metric_cards 
 
 
+def safe_altair_plot(plot, data_type,chart_col=False):
+    if chart_col:
+        try:
+            chart_col.altair_chart(plot)
+        except:
+            chart_col.warning(f"Not enough {data_type} available for the selected geography.")
+
+    else:
+        try:
+            st.altair_chart(plot)
+        except:
+            st.warning(f"Not enough {data_type} data available for the selected geography.")
+
+
 def donut_chart(source, colorColumnName, height=300, width=300, innerRadius=90, fontSize=40, titleFontSize=14, fillColor="mediumseagreen", title="Donut Chart", 
                 stat=0, text_color="grey", inverse=False):
     

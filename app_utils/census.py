@@ -8,8 +8,7 @@ Census Utility Functions
 import pandas as pd
 
 import requests
-import pyogrio  
-import io
+import streamlit as st
 from app_utils.data_loading import load_data
 
 import requests
@@ -29,9 +28,11 @@ def split_name_col(census_gdf):
     # Drop the original NAME column if desired
     census_gdf = census_gdf.drop(columns='NAME')
 
+    if "year" in census_gdf.columns:
+        census_gdf['year'] = census_gdf['year'].astype(str)
     return census_gdf
 
-
+@st.cache_data
 def get_census_cols():
     r = requests.get("https://api.census.gov/data/2019/acs/acs5/profile/variables.html")
     soup = BeautifulSoup(r.content, "html.parser") 
@@ -117,15 +118,15 @@ def rename_and_merge_census_cols(census_gdf):
     return merge_census_cols(name_df, census_gdf)
 
 
-def get_geography_title(county, jurisdiction):
+def get_geography_title(selected_values):
+    county, jurisdiction = selected_values['County'], selected_values['Jurisdiction']
     # For the plot title, dynamically change the area of interest based on user filter selections
-    if county == "All" and jurisdiction == "All":
+    if county == ["All"] and jurisdiction == ["All"]:
         title_geo = "Vermont (Statewide)"
-    elif county != "All" and jurisdiction == "All":
+    elif county != ["All"] and jurisdiction == ["All"]:
         title_geo = f"{county} County"
-    elif jurisdiction != "All":
+    elif jurisdiction != ["All"]:
         title_geo = f"{jurisdiction}"
-    
     return title_geo
 
 
