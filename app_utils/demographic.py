@@ -117,8 +117,8 @@ def demographic_snapshot(demog_dfs):
 
     # Unpack each dataset from "filtered_demog_dfs" by index
     # TODO: This unpacking process could be more reliable with a dictionary
-    filtered_gdf_2023 = filtered_demog_dfs[0]
-    selected_values = filtered_demog_dfs[1]
+    filtered_gdf_2023 = filtered_dfs[0]
+    selected_values = filtered_dfs[1]
 
     # Get the title of the geography for plotting
     title_geo = get_geography_title(selected_values)
