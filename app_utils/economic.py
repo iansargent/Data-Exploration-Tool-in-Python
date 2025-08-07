@@ -429,11 +429,9 @@ def render_income(metrics, filtered_dfs, title_geo, plot_dfs):
         value=f"${metrics['median_family_income']:,.0f}", 
         delta=f"{4204:,.0f}")
     
-    # Define a DataFrame of family income distribution to use when plotting a bar chart
-    family_income_df = plot_dfs['family_income_df']
     # Use the `census_bar_chart` function to create a highly customizable bar chart
     family_income_dist_chart = bar_chart(
-        source=family_income_df, title_geo=title_geo, XcolumnName="Family Income", xType=":N", yType=":Q",
+        source=plot_dfs['family_income_df'], title_geo=title_geo, XcolumnName="Family Income", xType=":N", yType=":Q",
         YcolumnName="Estimated Families", barWidth=75, titleFontSize=19, title="Family Income Distribution")
     # Display the bar chart on the right
     income_col2.altair_chart(family_income_dist_chart, use_container_width=True)
