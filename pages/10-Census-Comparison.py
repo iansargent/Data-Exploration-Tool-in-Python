@@ -18,7 +18,9 @@ from app_utils.data_loading import load_census_data
 
 # TODO: We should make a dictionary like that below, maybe with more complicated logic, where we store all our data.
 # That way we have a clean place ot put it all.
-@st.cache_data
+
+
+
 def load_combine_census():
     base_name = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/"
     label_to_file = {

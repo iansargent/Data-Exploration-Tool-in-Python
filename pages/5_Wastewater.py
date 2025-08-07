@@ -11,7 +11,7 @@ import streamlit as st
 import geopandas as gpd
 from app_utils.data_cleaning import convert_all_timestamps_to_str
 from app_utils.wastewater import *
-from app_utils.df_filtering import filter_dataframe_multiselect
+from app_utils.df_filtering import filter_wrapper
 from app_utils.data_loading import load_soil_septic_single
 from app_utils.streamlit_config import streamlit_config
 
@@ -22,8 +22,8 @@ def main():
     rpc = get_soil_rpc(column1)
     suit_gdf = load_soil_septic_single(rpc)
 
-    filtered_gdf, filter_selections = filter_dataframe_multiselect(
-        suit_gdf,
+    filter_state = filter_wrapper(
+        df = suit_gdf,
         filter_columns=["Jurisdiction", "Suitability"],
         presented_cols=["Municipality", "Soil Suitability"],
         allow_all={
@@ -35,6 +35,7 @@ def main():
         },
         passed_cols=cols ## so that we start at col2 
     )
+    filtered_gdf = filter_state.apply_filters(suit_gdf)
     filtered_gdf = process_soil_data(filtered_gdf)
 
     map_col, legend_col = st.columns([4, 1])
@@ -44,7 +45,7 @@ def main():
         render_soil_colormap()
 
     # Suitability metric cards
-    total_acreage = filtered_gdf[filtered_gdf['Jurisdiction'].isin(filter_selections['Jurisdiction'])]['Acres'].sum()
+    total_acreage = filtered_gdf[filtered_gdf['Jurisdiction'].isin(filter_state.selections['Jurisdiction'])]['Acres'].sum()
     land_suitability_metric_cards(filtered_gdf, total_acreage)
 
 

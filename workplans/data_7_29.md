@@ -5,8 +5,8 @@ FITZ
 * [x] General Refactor -- functionalize throughout, particularly in zoning, wastewater, and flooding
     * [x] Add in standard loading function // wrap calls to that
     * Add in wastewater service areas
-* [ ] Single Mapping Page
-    * [ ] Standardize filtering and ui for zoning, wastewater, flooding
+* [x] Single Mapping Page
+    * [x] Standardize filtering and ui for zoning, wastewater, flooding
     * [x] Turn functions into multi-layering ones / wrap them in such 
     * [x] Integrate into a single pydeck for a rough compare page
     * plan ahead -- dictionary for different type of data (eg, polygon, point)
@@ -18,7 +18,7 @@ FITZ
 IAN: 
 * Getting better wastewater service areas
     * Load in wastewater service areas
-    * general  town boundaries function
+    * general town boundaries function
 * Economics Report and Zoning Report
 
 BOTH: 

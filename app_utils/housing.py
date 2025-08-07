@@ -11,12 +11,15 @@ import altair as alt
 import io
 import requests
 from app_utils.census import get_geography_title
-from app_utils.df_filtering import filter_dataframe
+from app_utils.df_filtering import filter_snapshot_data
 from app_utils.color import get_text_color
 from app_utils.data_loading import load_census_data
 from app_utils.plot import donut_chart, bar_chart
 
+from app_utils.data_loading import load_metrics
+from app_utils.constants.ACS import ACS_HOUSING_METRICS
 
+## TODO: Ian,  please integrate this into the main dictionary load at the top of housing .py and fix logic throughout to refer to it there. 
 @st.cache_data
 def load_population_df():
     # Read in VT historical population data on the census tract level
@@ -36,6 +39,9 @@ def housing_snapshot_header():
     "Retrieved from https://data.census.gov/")
 
 
+## TODO: I suggest using a single ts_plot function as I did in reworking the economics section. 
+## You could move it into plotting.py so that it's available whenever we want to do a TS plot. 
+## that way these will all be both shorter and we have a consistent paradigm for TS plots (that we can eventually swap for not altair)
 def med_home_value_ts_plot(county, jurisdiction, filtered_med_val_df):
     med_val_df = load_census_data("https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/med_home_value_by_year.csv")
     statewide_avg_val_df = (med_val_df.groupby("year", as_index=False)["estimate"].mean())
@@ -46,7 +52,7 @@ def med_home_value_ts_plot(county, jurisdiction, filtered_med_val_df):
     statewide_line["Group"] = "Statewide Average"
     
     # Statewide Level
-    if county == "All Counties" and jurisdiction == "All Municipalities":
+    if county == "All" and jurisdiction == "All":
         ymin = statewide_line["estimate"].min() - 5000
         ymax = statewide_line["estimate"].max() + 5000
 
@@ -67,7 +73,7 @@ def med_home_value_ts_plot(county, jurisdiction, filtered_med_val_df):
         ).configure_title(fontSize=19, anchor="middle").interactive()
     
     # County Level
-    elif county != "All Counties" and jurisdiction == "All Municipalities":
+    elif county != "All" and jurisdiction == "All":
         subtitle = f"{county} County vs Vermont Statewide Average"
         county_df = (filtered_med_val_df.groupby("year", as_index=False)["estimate"].mean().assign(Group=county))
         chart_df = pd.concat([county_df, statewide_line], ignore_index=True)
@@ -89,7 +95,7 @@ def med_home_value_ts_plot(county, jurisdiction, filtered_med_val_df):
         ).properties(title=alt.Title("Median Home Value Over Time", subtitle=subtitle), height=550
         ).configure_title(fontSize=19,offset=45, anchor="middle").interactive()
 
-    elif jurisdiction != "All Municipalities":
+    elif jurisdiction != "All":
         subtitle = f"{jurisdiction} vs Vermont Statewide Average"
         jurisdiction_df = (filtered_med_val_df.groupby("year", as_index=False)["estimate"].mean().assign(Group=jurisdiction))
         chart_df = pd.concat([jurisdiction_df, statewide_line], ignore_index=True)
@@ -205,8 +211,7 @@ def med_smoc_ts_plot(county, jurisdiction, filtered_med_smoc_df):
 
     return line_chart
 
-
-def housing_pop_plot(county, jurisdiction, filtered_gdf):
+def housing_pop_plot(selected_values, filtered_gdf):
     pop_df = load_population_df()
     # Define a set of year ranges corresponding to new unit construction data
     year_bins = [
@@ -225,7 +230,7 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf):
     filtered_gdf_pop = pd.merge(left=filtered_gdf, right=pop_df, how="left", left_on="GEOID", right_on="_geoid")
     
     # For the plot title, dynamically change the area of interest based on user filter selections
-    title_geo = get_geography_title(county, jurisdiction)
+    title_geo = get_geography_title(selected_values)
     
     # Define a list of housing counts for each year range
     raw_housing_counts = [
@@ -300,72 +305,32 @@ def housing_pop_plot(county, jurisdiction, filtered_gdf):
 
 
 def housing_df_metric_dict(filtered_gdf_2023):
-    # ---- Housing Metrics ----
-    total_units_2023 = filtered_gdf_2023['DP04_0001E'].sum()
-    vacant_units_2023 = filtered_gdf_2023['DP04_0003E'].sum()
-    occupied_units_2023 = filtered_gdf_2023['DP04_0002E'].sum()
-    pct_vac_2023 = vacant_units_2023 / total_units_2023
-    pct_occ_2023 = occupied_units_2023 / total_units_2023
+    metrics = load_metrics(filtered_gdf_2023, metric_source=ACS_HOUSING_METRICS)
 
-    owned_units_2023 = filtered_gdf_2023['DP04_0046E'].sum()
-    rented_units_2023 = filtered_gdf_2023['DP04_0047E'].sum()
-    pct_own_2023 = owned_units_2023 / occupied_units_2023
-    pct_rent_2023 = rented_units_2023 / occupied_units_2023
+    # get hardcoded metrics
+    pct_occ_2023 = metrics['pct_occ_2023']
+    pct_vac_2023 = metrics['pct_vac_2023']
+    pct_own_2023 = metrics['pct_own_2023']
+    pct_rent_2023 = metrics['pct_rent_2023']
 
-    avg_med_SMOC_mortaged_2023 = filtered_gdf_2023['DP04_0101E'].mean()
-    avg_med_SMOC2_non_mortgaged_2023 = filtered_gdf_2023['DP04_0109E'].mean()
-    avg_med_gross_rent_2023 = filtered_gdf_2023['DP04_0134E'].mean()
+    # Units in structure: define the label and corresponding metric keys
+    structure_labels = [
+        '1-Unit', '2-Units', '3 - 4 Units', '5 - 9 Units',
+        '10 - 19 Units', '20+ Units', 'Mobile Homes', 'Boat/RV/Van, etc.'
+    ]
+    structure_keys = [
+        'one_unit_2023', 'two_units_2023', 'three_or_four_units_2023',
+        'five_to_nine_units_2023', 'ten_to_nineteen_units_2023',
+        'twenty_or_more_units_2023', 'mobile_home_2023', 'boat_RV_van_etc_2023'
+    ]
 
-    units_paying_rent_2023 = filtered_gdf_2023['DP04_0126E'].sum()
-    rent_burden35_2023 = filtered_gdf_2023['DP04_0142E'].sum()
-    rent_burden35_pct_2023 = (rent_burden35_2023 / units_paying_rent_2023) * 100
-
-    one_unit_detached_2023 = filtered_gdf_2023['DP04_0007E'].sum()
-    one_unit_attached_2023 = filtered_gdf_2023['DP04_0008E'].sum()
-    one_unit_2023 = one_unit_detached_2023 + one_unit_attached_2023
-    two_units_2023 = filtered_gdf_2023['DP04_0009E'].sum()
-    three_or_four_units_2023 = filtered_gdf_2023['DP04_0010E'].sum()
-    five_to_nine_units_2023 = filtered_gdf_2023['DP04_0011E'].sum()
-    ten_to_nineteen_units_2023 = filtered_gdf_2023['DP04_0012E'].sum()
-    twenty_or_more_units_2023 = filtered_gdf_2023['DP04_0013E'].sum()
-    mobile_home_2023 = filtered_gdf_2023['DP04_0014E'].sum()
-    boat_RV_van_etc_2023 = filtered_gdf_2023['DP04_0015E'].sum()
-
-    # ---- Organize Metrics ----
-    metrics = {
-        "total_units": total_units_2023,
-        "vacant_units": vacant_units_2023,
-        "occupied_units": occupied_units_2023,
-        "pct_vacant": pct_vac_2023,
-        "pct_occupied": pct_occ_2023,
-        "owned_units": owned_units_2023,
-        "rented_units": rented_units_2023,
-        "pct_owner_occupied": pct_own_2023,
-        "pct_renter_occupied": pct_rent_2023,
-        "avg_med_SMOC_mortgaged": avg_med_SMOC_mortaged_2023,
-        "avg_med_SMOC_non_mortgaged": avg_med_SMOC2_non_mortgaged_2023,
-        "avg_med_gross_rent": avg_med_gross_rent_2023,
-        "units_paying_rent": units_paying_rent_2023,
-        "rent_burdened_35pct_or_more": rent_burden35_2023,
-        "pct_rent_burdened_35pct_or_more": rent_burden35_pct_2023,
-        "units_1_unit_total": one_unit_2023,
-        "units_2": two_units_2023,
-        "units_3_4": three_or_four_units_2023,
-        "units_5_9": five_to_nine_units_2023,
-        "units_10_19": ten_to_nineteen_units_2023,
-        "units_20_plus": twenty_or_more_units_2023,
-        "units_mobile_home": mobile_home_2023,
-        "units_boat_rv_van": boat_RV_van_etc_2023
-    }
-
-    # ---- DataFrames for Plotting ----
     plots = {
         "occupancy_occ_df": pd.DataFrame({
-            'Occupancy Status': ['Occupied', 'Vacant'], 
+            'Occupancy Status': ['Occupied', 'Vacant'],
             'Value': [pct_occ_2023, pct_vac_2023]
         }),
         "occupancy_vac_df": pd.DataFrame({
-            'Occupancy Status': ['Occupied', 'Vacant'], 
+            'Occupancy Status': ['Occupied', 'Vacant'],
             'Value': [pct_occ_2023, pct_vac_2023]
         }),
         "tenure_df": pd.DataFrame({
@@ -373,52 +338,34 @@ def housing_df_metric_dict(filtered_gdf_2023):
             'Value': [pct_own_2023, pct_rent_2023]
         }),
         "units_in_structure_df": pd.DataFrame({
-            'Structure Category': [
-                '1-Unit', '2-Units', '3 - 4 Units', '5 - 9 Units', 
-                '10 - 19 Units', '20+ Units', 'Mobile Homes', 'Boat/RV/Van, etc.'
-            ],
-            'Units': [
-                one_unit_2023, two_units_2023, three_or_four_units_2023, 
-                five_to_nine_units_2023, ten_to_nineteen_units_2023, 
-                twenty_or_more_units_2023, mobile_home_2023, boat_RV_van_etc_2023
-            ]
+            'Structure Category': structure_labels,
+            'Units': [metrics[k] for k in structure_keys]
         })
     }
 
     return metrics, plots
 
 
+
 def housing_snapshot(housing_dfs):
     # Display the Category Header with Data Source
     housing_snapshot_header()
     # Filter the dataframes using select boxes for "County" and "Jurisdiction"
-    filtered_housing_dfs = filter_dataframe(
-        housing_dfs, 
-        filter_columns=["County", "Jurisdiction"],
-        key_prefix="housing_snapshot", 
-        allow_all={
-            "County": True, 
-            "Jurisdiction": True
-        }
-    )
-    # Unpack each dataset from "filtered_housing_dfs" by index
-    # TODO: This unpacking process could be more reliable with a dictionary
-    filtered_gdf_2023, selected_values = filtered_housing_dfs[0]
-    filtered_med_val_df, selected_values = filtered_housing_dfs[1]
-    filtered_med_smoc_df, selected_values = filtered_housing_dfs[2]
     
+    filtered_housing_dfs, selected_values = filter_snapshot_data(housing_dfs, housing_dfs['Housing_2023'])
+    county, jurisdiction = selected_values['County'], selected_values['Jurisdiction']
+    county, jurisdiction = county[0], jurisdiction[0]
+
     # Get the title of the geography for plotting
-    county = selected_values["County"]
-    jurisdiction = selected_values["Jurisdiction"]
-    title_geo = get_geography_title(county, jurisdiction)
+    title_geo = get_geography_title(selected_values)
     
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="housing_snapshot")
     # Define two callable dictionaries: Metrics and Plot DataFrames
-    metrics, plot_dfs = housing_df_metric_dict(filtered_gdf_2023)
+    metrics, plot_dfs = housing_df_metric_dict(filtered_housing_dfs["Housing_2023"])
     
     # Display the housing / population plot at the top of the snapshot
-    housing_pop_plot(county, jurisdiction, filtered_gdf_2023)
+    housing_pop_plot(selected_values, filtered_housing_dfs["Housing_2023"])
     
     # The OCCUPANCY Section ___________________________________________________
     st.subheader("Occupancy")
@@ -485,7 +432,7 @@ def housing_snapshot(housing_dfs):
     
     st.divider()
     # Create the median home value time series plot
-    med_val_ts_plot = med_home_value_ts_plot(county, jurisdiction, filtered_med_val_df)
+    med_val_ts_plot = med_home_value_ts_plot(county, jurisdiction, filtered_housing_dfs["median_value"])
     # Display the time series plot
     st.altair_chart(med_val_ts_plot)
 
@@ -508,7 +455,7 @@ def housing_snapshot(housing_dfs):
         help="Average monthly owner costs for ***non-mortgaged*** units in the selected geography for 2023")
     
     # Define and display the median selected monthly cost time series plot (mortgaged vs non-mortgaged units)
-    median_smoc_ts_plot = med_smoc_ts_plot(county, jurisdiction, filtered_med_smoc_df)
+    median_smoc_ts_plot = med_smoc_ts_plot(county, jurisdiction, filtered_housing_dfs["median_smoc"])
     smoc_col2.markdown("\2")
     smoc_col2.altair_chart(median_smoc_ts_plot)
 
