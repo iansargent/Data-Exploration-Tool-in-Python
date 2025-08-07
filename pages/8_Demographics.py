@@ -15,10 +15,8 @@ from app_utils.streamlit_config import streamlit_config
 from app_utils.demographic import demographic_snapshot
 
 
-
 def census_demographics():
     return load_census_data_dict(
-        basename=ACS_BASENAME,
         sources={
             "demogs_2023" : "VT_DEMOGRAPHIC_ALL.fgb",
         }

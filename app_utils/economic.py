@@ -313,7 +313,6 @@ def economic_snapshot(econ_dfs):
 
 
 
-
 def render_employment(econ_dfs, metrics, filtered_dfs, title_geo):
     st.divider()
     st.subheader("Employment")
