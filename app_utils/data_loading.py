@@ -15,7 +15,8 @@ from urllib.parse import urljoin
 
 from app_utils.data_cleaning import strip_all_whitespace
 
-
+## constants for paths
+from app_utils.constants.ACS import ACS_BASENAME
 
 def load_data(
     url,
@@ -145,7 +146,7 @@ def load_census_data(url):
     )
     
 @st.cache_data
-def load_census_data_dict(basename, sources):
+def load_census_data_dict(sources, basename=ACS_BASENAME):
     return {
         label : load_census_data(urljoin(basename, url)) for 
         label, url in sources.items()
@@ -166,3 +167,24 @@ def load_combine_census(base_name, label_to_file):
 
     df_combined = pd.concat(dfs.values(), ignore_index=True, sort=False)
     return df_combined
+
+
+
+
+
+
+### load metrics we've defined 
+def load_metrics(df, metric_source):
+    """
+    Compute, rename, and scale metrics.
+    Supports:
+      - callable: custom function(df) -> value
+    """
+    metrics = {}
+    for name, source in metric_source.items():
+        try: 
+            metrics[name] = source(df)
+        except Exception as e:
+            print(f"Error {e} loading metric {name}, {source}")
+    return metrics
+

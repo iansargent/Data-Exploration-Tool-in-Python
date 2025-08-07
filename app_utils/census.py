@@ -120,12 +120,13 @@ def rename_and_merge_census_cols(census_gdf):
 
 def get_geography_title(selected_values):
     county, jurisdiction = selected_values['County'], selected_values['Jurisdiction']
+    county, jurisdiction = county[0], jurisdiction[0]
     # For the plot title, dynamically change the area of interest based on user filter selections
-    if county == ["All"] and jurisdiction == ["All"]:
+    if county == "All" and jurisdiction == "All":
         title_geo = "Vermont (Statewide)"
-    elif county != ["All"] and jurisdiction == ["All"]:
+    elif county != "All" and jurisdiction == "All":
         title_geo = f"{county} County"
-    elif jurisdiction != ["All"]:
+    elif jurisdiction != "All":
         title_geo = f"{jurisdiction}"
     return title_geo
 

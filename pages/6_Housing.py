@@ -16,18 +16,17 @@ from app_utils.housing import housing_snapshot
 from app_utils.census_sections import mapping_tab, compare_tab
 from app_utils.streamlit_config import streamlit_config
 
-from app_utils.constants.ACS import ACS_BASENAME
 
 
 def census_housing():
     return load_census_data_dict(
-        basename=ACS_BASENAME,
         sources = {
             "Housing_2023" : "VT_HOUSING_ALL.fgb",
             "Housing_2013" : "VT_HOUSING_ALL_2013.fgb",
             "median_value" : "med_home_value_by_year.csv",
             "median_smoc" : "med_smoc_by_year.csv",
-        })
+        }
+    )
 
 def main():
     # Page title and tabs

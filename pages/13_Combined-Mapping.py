@@ -54,12 +54,11 @@ def main ():
         "Zoning": zoning_gdf,
         "Flooding": flooding_gdf,
         "Wastewater": soil_gdf,
-
     }
     selected_layers = st.multiselect("Select data sources to display", list(layer_options.keys()), default=list(layer_options.keys())[:2])
 
     ## get filters and then apply them
-    filter_selections = collect_filter_selections(
+    filter_state = filter_wrapper(
         zoning_gdf,
         filter_columns=filter_cols,
         allow_all={
@@ -69,10 +68,12 @@ def main ():
         passed_cols = cols
     )
 
-    dfs = [
-        apply_filter_selections(layer_options[name], filter_selections)
+    dfs = {
+        name : filter_state.apply_filters(
+            layer_options[name]
+            )
         for name in selected_layers
-    ]
+    }
     combo_map(dfs)
 
 if __name__ == "__main__":

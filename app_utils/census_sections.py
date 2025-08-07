@@ -4,12 +4,14 @@ from  matplotlib import colormaps
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import pydeck as pdk
-from app_utils.df_filtering import filter_dataframe, ensure_list
+from app_utils.df_filtering import filter_wrapper, ensure_list
 from collections import defaultdict
 import altair as alt
 import pandas as pd
 from app_utils.plot import plot_container
 from app_utils.mapping import map_gdf_single_layer, add_tooltip_from_dict
+from app_utils.df_filtering import filter_wrapper
+
     
 
 def fill_census_colors(gdf, map_color):
@@ -67,11 +69,14 @@ def mapping_tab(data, map_color="Reds"):
     st.subheader("Mapping")
     
     ## filter down to column to map
-    filtered_2023, selected_values = filter_dataframe(
-        data, 
+    filter_state = filter_wrapper(
+        df=data,
         filter_columns=["Category", "Subcategory", "Variable", "Measure"], 
-        key_prefix="mapping_filter_2023")
-    filtered_2023 = process_census_data(filtered_2023, selected_values, map_color)
+        key_prefix="mapping_filter_2023",
+        style="selectbox"
+        )
+    
+    filtered_2023 = process_census_data(filter_state.apply_filters(data), filter_state.selections, map_color)
  
     # Normalize the housing variable for monochromatic chloropleth coloring
     vmin, vmax, cutoff  = get_colornorm_stats(filtered_2023, 5)
@@ -144,48 +149,53 @@ def select_dataset(col, data_dict, label_prefix):
     return df
 
 
-def get_sets_and_filter(data_dict, label_prefixs, drop_cols=["GEOID", "geometry"], filter_columns=["Category", "Subcategory", "Variable", "Measure"]):
-    """
-    Function to let the user:
-        - select datasets, county, and towns to compare
-        - click buttons to add or remove variables
-    Returns a dictionary where keys are complicated format strings and values are filtered dataframes (2 for each var)
-    """
+def get_datasets(data_dict, drop_cols, label_prefixes):
     st.subheader("Select Datasets to Compare")
 
     # Dataset selection (left = base, right = comparison)u
     with st.expander("**Filter Datasets**", expanded=True):
-        dfs = [
+        dfs = {
+            label : 
             select_dataset(col, data_dict, label_prefix=label).drop(columns=drop_cols)
-            for col, label in zip(st.columns(2), label_prefixs)
-        ]
+            for col, label in zip(st.columns(2), label_prefixes)
+        }
+    return dfs
 
-    # Initialize a session state
+
+def render_variable_selectors(dfs, filter_columns):
+    # Render variable selectors
+    results_dict = {}
+    for var_i in range(st.session_state.comparison_var_count):
+        filter_state = filter_wrapper(
+            df=dfs["Base"],
+            filter_columns=filter_columns,
+            key_prefix=f"results{var_i + 1}",
+            header=f"#### Variable {var_i + 1}",
+            style='selectbox'
+        )
+        filtered = {name: filter_state.apply_filters(df) for name,df in dfs.items()}
+        selected = filter_state.selections
+        flattened_values = [
+            ', '.join(v) if isinstance(v, list) else str(v)
+            for v in selected.values()
+        ]
+        for (name, df) in filtered.items():
+            key = f"**Variable {var_i + 1}**: {' | '.join(flattened_values)} : **{name} Dataset**"
+            results_dict[key] = df
+    return results_dict
+
+
+def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Category", "Subcategory", "Variable", "Measure"]):
+    label_prefixes = ["Base", "Comparison"]
+    df_dict = get_datasets(data_dict, drop_cols=drop_cols, label_prefixes=label_prefixes)
+
     if "comparison_var_count" not in st.session_state:
         st.session_state.comparison_var_count = 1
     
     st.subheader("Variables to Investigate")
     st.session_state.comparison_var_count = add_remove_compare_variables(st.session_state.comparison_var_count)
 
-    # Render variable selectors
-    results_dict = {}
-    for var_i in range(st.session_state.comparison_var_count):
-        filtered = ensure_list(filter_dataframe(
-            dfs,
-            filter_columns=filter_columns,
-            key_prefix=f"results{var_i + 1}",
-            header=f"#### Variable {var_i + 1}"
-        ))
-        for df_idx, (df, selected) in enumerate(filtered):
-            key=f"**Variable {var_i + 1}**: {' | '.join(selected.values())} : **{label_prefixs[df_idx]} Dataset**"
-            results_dict[key] = df
-
-    return results_dict
-
-
-def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Category", "Subcategory", "Variable", "Measure"]):
-    label_prefixs = ["Base", "Comparison"]
-    results_dict = get_sets_and_filter(data_dict, label_prefixs, drop_cols=drop_cols, filter_columns=filter_columns)
+    results_dict = render_variable_selectors(df_dict, filter_columns)
 
     grouped = defaultdict(dict)
     for key, df in results_dict.items():
@@ -204,7 +214,7 @@ def compare_tab(data_dict, drop_cols=["GEOID", "geometry"], filter_columns=["Cat
     st.subheader("Results")
     plots = st.multiselect("Select which plots to show", options=plotting_dict.keys())
     for plot in plots:
-        plotting_dict[plot](grouped, label_prefixs)
+        plotting_dict[plot](grouped, label_prefixes)
 
 
 def barplot_by_county(grouped, label_prefixs):
