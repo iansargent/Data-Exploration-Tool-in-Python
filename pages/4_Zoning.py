@@ -13,7 +13,7 @@ import geopandas as gpd
 import json
 from streamlit_extras.metric_cards import style_metric_cards 
 from app_utils.zoning import *
-from app_utils.df_filtering import filter_dataframe_multiselect
+from app_utils.df_filtering import filter_wrapper
 from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
 from app_utils.color import rgba_to_hex, tab20_rgba, add_fill_colors
 from app_utils.data_loading import load_zoning_data
@@ -29,14 +29,15 @@ def main():
     zoning_gdf = process_zoning_data(zoning_gdf)
 
     ## user selections
-    filtered_gdf, _ = filter_dataframe_multiselect(
-        dfs=zoning_gdf, filter_columns=['County', 'Jurisdiction', 'District Name'], 
-        presented_cols=['County', 'Municipality', 'District'],
+    filter_state = filter_wrapper(
+        zoning_gdf,
+        filter_columns=['County', 'Jurisdiction', 'District Name'], 
         allow_all = {
             "County": False,
             "Jurisdiction": True,
             "District Name": True
         })
+    filtered_gdf = filter_state.apply_filters(zoning_gdf)
 
     mapping, report, compare = st.tabs(["Map", "Report", "Compare"])
     color_map = dict(zip(zoning_gdf['District Type'], zoning_gdf['rgba_color']))

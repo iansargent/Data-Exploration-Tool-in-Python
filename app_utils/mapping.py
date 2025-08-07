@@ -75,7 +75,7 @@ def add_tooltip_from_dict(gdf, label_to_col, gdf_name=None):
 
 
 def multi_layer_map(gdfs):
-    geojsons = [json.loads(gdf.to_json()) for gdf in gdfs]
+    geojsons = [json.loads(gdf.to_json()) for gdf in gdfs.values()]
     layers = [build_layer(jsn) for jsn in geojsons]
     view_state=pdk.ViewState(latitude=44.26, longitude=-72.57, min_zoom=6.5, zoom=7)
     tooltip = {"html" : "{tooltip}"}

@@ -70,7 +70,7 @@ def main ():
             st.sidebar.radio(label=f"{option} filter 3", options=["", "", ""])
 
     ## get filters and then apply them
-    filter_selections = collect_filter_selections(
+    filter_state = filter_wrapper(
         zoning_gdf,
         filter_columns=filter_cols,
         allow_all={
@@ -79,11 +79,13 @@ def main ():
         },
         passed_cols = cols
     )
-
-    dfs = [
-        apply_filter_selections(layer_options[name], filter_selections)
-        for name in selected_layers_toggle
-    ]
+    
+    dfs = {
+        name : filter_state.apply_filters(
+            layer_options[name]
+            )
+        for name in selected_layers
+    }
     combo_map(dfs)
 
 if __name__ == "__main__":

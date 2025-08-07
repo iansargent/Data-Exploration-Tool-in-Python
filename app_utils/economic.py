@@ -11,33 +11,15 @@ import altair as alt
 import requests
 import io
 from app_utils.census import get_geography_title, split_name_col
-from app_utils.df_filtering import filter_dataframe
 from app_utils.color import get_text_color
 from app_utils.plot import donut_chart, bar_chart
+from app_utils.df_filtering import filter_snapshot_data
+from app_utils.plot import safe_altair_plot
+from app_utils.data_loading import load_metrics
 
 
-@st.cache_data
-def load_unemployment_df():
-    unemployment_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/unemployment_rate_by_year.csv"
-    response = requests.get(unemployment_url, verify=False)
-    unemployment_df = pd.read_csv(io.StringIO(response.text))
-    unemployment_df = split_name_col(unemployment_df)
-    # Convert the 'year' column to an object type for proper plotting
-    unemployment_df['year'] = unemployment_df['year'].astype(str)
-
-    return unemployment_df
-
-
-@st.cache_data
-def load_commute_time_df():
-    commute_time_url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/refs/heads/main/Data/Census/commute_time_by_year.csv"
-    response = requests.get(commute_time_url, verify=False)
-    commute_time_df = pd.read_csv(io.StringIO(response.text))
-    commute_time_df = split_name_col(commute_time_df)
-    # Convert the 'year' column to an object type for proper plotting
-    commute_time_df['year'] = commute_time_df['year'].astype(str)
-
-    return commute_time_df
+# import constants
+from app_utils.constants.ACS import ACS_ECON_METRICS, FAMILY_INCOME_COLUMNS, FAMILY_INCOME_LABELS
 
 
 def economic_snapshot_header():
@@ -46,8 +28,48 @@ def economic_snapshot_header():
         "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
         "Retrieved from https://data.census.gov/")
 
+def make_time_series_plot(
+    df,
+    x_col,
+    y_col,
+    color_col,
+    tooltip_cols,
+    title,
+    color_domain,
+    color_range,
+    y_axis_format=".0f",
+    y_scale_domain=None,
+    legend=None,
+    height=500,
+    title_config=dict(fontSize=19, anchor="middle")
+):
+    y_scale = alt.Scale(domain=y_scale_domain) if y_scale_domain is not None else alt.Undefined
 
-def unemployment_rate_ts_plot(filtered_unemployment_df, title_geo):
+    return alt.Chart(df).mark_line(point=True).encode(
+        x=alt.X(x_col, title="Year",
+                axis=alt.Axis(
+                    labelAngle=0,
+                    labelFontSize=15,
+                    labelFont="Helvetica Neue",
+                    labelFontWeight='normal',
+                    titleFont="Helvetica Neue")),
+        y=alt.Y(y_col, title=title.split('|')[0].strip(),
+                axis=alt.Axis(
+                    format=y_axis_format,
+                    labelFont="Helvetica Neue",
+                    labelFontWeight='normal',
+                    titleFont="Helvetica Neue"),
+                scale=y_scale),
+        color=alt.Color(color_col, title=None,
+                        scale=alt.Scale(
+                            domain=color_domain,
+                            range=color_range),
+                        legend=legend),
+        tooltip=[alt.Tooltip(c) for c in tooltip_cols]
+    ).properties(height=height, title=alt.Title(title)
+    ).configure_title(**title_config).interactive()
+
+def unemployment_rate_ts_plot(filtered_unemployment_df, unemployment_df, title_geo):
     """
     Create a time series plot of the unemployment rate for the selected geography.
     """
@@ -57,8 +79,6 @@ def unemployment_rate_ts_plot(filtered_unemployment_df, title_geo):
     plot_df["Unemployment_Rate"] = plot_df["Unemployment_Rate"] / 100
     plot_df["Geography"] = title_geo
     
-    # Load the unemployment rate over time csv file
-    unemployment_df = load_unemployment_df()
     # Calculate the statewide avg dataframe for plotting at the statewide level
     statewide_avg_df = unemployment_df.groupby("year").agg(Unemployment_Rate=("Unemployment_Rate", "mean")).reset_index().assign(Geography="Statewide Average")
     statewide_avg_df["Unemployment_Rate"] = statewide_avg_df["Unemployment_Rate"] / 100
@@ -80,33 +100,20 @@ def unemployment_rate_ts_plot(filtered_unemployment_df, title_geo):
     ymin = plot_df["Unemployment_Rate"].min() - 0.01
 
     # Create a time series plot of the unemployment rate
-    unemployment_ts = alt.Chart(plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", 
-                axis=alt.Axis(
-                    labelAngle=0, 
-                    labelFontSize=15, 
-                    labelFont="Helvetica Neue", 
-                    labelFontWeight='normal', 
-                    titleFont="Helvetica Neue")),
-        y=alt.Y("Unemployment_Rate:Q", title="Unemployment Rate", 
-                axis=alt.Axis(
-                    format="%", 
-                    labelFont="Helvetica Neue", 
-                    labelFontWeight='normal', 
-                    titleFont="Helvetica Neue"),
-                scale=alt.Scale(domain=(ymin, ymax))),
-        color=alt.Color("Geography:O", title=None, 
-                        scale=alt.Scale(
-                            domain=["Statewide Average", title_geo],
-                            range=["#83C299", "darkgreen"]),
-                        legend=legend),
-        tooltip=[alt.Tooltip("year", title="Year"), 
-                 alt.Tooltip("Unemployment_Rate", title="Unemployment Rate", format=".1%"),
-                 alt.Tooltip("Geography")]
-    ).properties(height=500, title=f"Unemployment Rate Over Time | {title_geo}"
-    ).configure_title(fontSize=19, anchor="middle").interactive()
-    
-    return unemployment_ts
+    return make_time_series_plot(
+        df=plot_df,
+        x_col="year:O",
+        y_col="Unemployment_Rate:Q",
+        color_col="Geography:O",
+        tooltip_cols=["year", "Unemployment_Rate", "Geography"],
+        title=f"Unemployment Rate Over Time | {title_geo}",
+        y_axis_format="%",
+        y_scale_domain=(ymin, ymax),
+        color_domain=["Statewide Average", title_geo],
+        color_range=["#83C299", "darkgreen"],
+        legend=legend,
+        height=500
+    )
 
 
 def median_earnings_ts_plot(filtered_earnings_df, title_geo):
@@ -129,37 +136,24 @@ def median_earnings_ts_plot(filtered_earnings_df, title_geo):
         return None
     
     # Create a time series plot of the median earnings for three groups over time rate
-    median_earnings_ts = alt.Chart(plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", 
-                axis=alt.Axis(
-                    labelAngle=0, 
-                    labelFontSize=15, 
-                    labelFont="Helvetica Neue", 
-                    labelFontWeight='normal', 
-                    titleFont="Helvetica Neue")),
-        y=alt.Y("Median_Earnings:Q", title="Median Earnings", 
-                axis=alt.Axis(
-                    format="$,.0f", 
-                    labelFont="Helvetica Neue", 
-                    labelFontWeight='normal', 
-                    titleFont="Helvetica Neue"),
-                scale=alt.Scale(domain=[ymin, ymax])),
-        color=alt.Color("Population:N", title=None, 
-                        scale=alt.Scale(
-                            domain=["All Workers", "Male (FTYR)", "Female (FTYR)"],
-                            range=["forestgreen", "dodgerblue", "deeppink"]),
-                        legend=alt.Legend(
-                            orient="bottom-left", 
-                            direction="horizontal", 
-                            offset=20,
-                            labelFont="Helvetica Neue"))
-    ).properties(height=475, title=alt.Title(f"Median Earnings | {title_geo}")
-    ).configure_title(fontSize=19, anchor="middle").interactive()
-    
-    return median_earnings_ts
+    return make_time_series_plot(
+        df=plot_df,
+        x_col="year:O",
+        y_col="Median_Earnings:Q",
+        color_col="Population:N",
+        tooltip_cols=["year", "Median_Earnings", "Population"],
+        title=f"Median Earnings | {title_geo}",
+        y_axis_format="$,.0f",
+        y_scale_domain=[ymin, ymax],
+        color_domain=["All Workers", "Male (FTYR)", "Female (FTYR)"],
+        color_range=["forestgreen", "dodgerblue", "deeppink"],
+        legend=alt.Legend(orient="bottom-left", direction="horizontal", offset=20, labelFont="Helvetica Neue"),
+        height=475
+    )
 
 
-def avg_commute_time_ts_plot(filtered_commute_time_df, title_geo):
+
+def avg_commute_time_ts_plot(filtered_commute_time_df, commute_time_df, title_geo):
     """
     Create a time series plot of the unemployment rate for the selected geography.
     """
@@ -169,7 +163,6 @@ def avg_commute_time_ts_plot(filtered_commute_time_df, title_geo):
     plot_df["Geography"] = title_geo
     
     # Load the full unfiltered dataset for the statewide line
-    commute_time_df = load_commute_time_df()
     statewide_avg_df = commute_time_df.groupby("year").agg(Average_Commute=("estimate", "mean")).reset_index().assign(Geography="Statewide Average")
 
     # If not statewide scope, concatanate the filtered line DataFrame with the statewide avg DataFrame
@@ -189,22 +182,21 @@ def avg_commute_time_ts_plot(filtered_commute_time_df, title_geo):
     ymin = plot_df["Average_Commute"].min() - 5
 
     # Create a time series plot of average commute time
-    commute_time_ts = alt.Chart(plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", axis=alt.Axis(labelAngle=0, labelFontSize=15, labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue")),
-        y=alt.Y("Average_Commute:Q", title="Average Commute (Minutes)", 
-                axis=alt.Axis(labelFont="Helvetica Neue", labelFontWeight='normal', titleFont="Helvetica Neue"),
-                scale=alt.Scale(domain=(ymin, ymax))),
-        color=alt.Color("Geography:O", title=None, scale=alt.Scale(
-            domain=["Statewide Average", title_geo],
-            range=["#83C299", "darkgreen"]),
-            legend=legend),
-        tooltip=[alt.Tooltip("year", title="Year"), 
-                 alt.Tooltip("Average_Commute:Q", title="Average Commute (Minutes)", format=".0f"),
-                 alt.Tooltip("Geography")]
-    ).properties(height=450, title=f"Average Commuting Time | {title_geo}"
-    ).configure_title(fontSize=19, anchor="start", dx=68, offset=10).interactive()
-    
-    return commute_time_ts
+    return make_time_series_plot(
+        df=plot_df,
+        x_col="year:O", 
+        y_col="Average_Commute:Q",
+        color_col="Geography:O",
+        tooltip_cols=["year", "Average_Commute", "Geography"],
+        title=f"Average Commuting Time | {title_geo}",
+        y_axis_format=".0f",
+        y_scale_domain=(ymin, ymax),
+        color_domain=["Statewide Average", title_geo],
+        color_range=["#83C299", "darkgreen"],
+        legend=legend,
+        height=450,
+        title_config=dict(fontSize=19, anchor="start", dx=68, offset=10),
+    )
 
 
 def commute_habits_ts_plot(filtered_commute_habits_df, title_geo):
@@ -233,140 +225,95 @@ def commute_habits_ts_plot(filtered_commute_habits_df, title_geo):
         return None
     
     # Create a time series plot of the modes of commute to work (% share)
-    commute_habits_ts = alt.Chart(final_plot_df).mark_line(point=True).encode(
-        x=alt.X("year:O", title="Year", 
-                axis=alt.Axis(
-                    labelAngle=0, 
-                    labelFontSize=15, 
-                    labelFont="Helvetica Neue", 
-                    labelFontWeight='normal', 
-                    titleFont="Helvetica Neue")),
-        y=alt.Y("Percentage:Q", title="Percentage of Workers (16+)", 
-                axis=alt.Axis(
-                    format=".0%", 
-                    labelFont="Helvetica Neue", 
-                    labelFontWeight='normal', 
-                    titleFont="Helvetica Neue")),
-        color=alt.Color("Commute_Type:N", title=None, 
-                        scale=alt.Scale(
-                            domain=["Drove Alone", "Other", "Work From Home", "Public Transit"],
-                            range=["tomato", "grey", "dodgerblue", "mediumseagreen"]),
-                        legend=alt.Legend(
-                            orient="top", 
-                            direction="horizontal", 
-                            offset=0,
-                            labelFont="Helvetica Neue")),
-        tooltip=[alt.Tooltip("year", title="Year"), 
-                 alt.Tooltip("Percentage", format=".1%"), 
-                 alt.Tooltip("Commute_Type", title="Commute Type")]
-    ).properties(height=450, title=alt.Title(f"How People Commute to Work | {title_geo}")
-    ).configure_title(fontSize=19, anchor="start", dx=78, offset=10).interactive()
-    
-    return commute_habits_ts
+    return make_time_series_plot(
+        df=final_plot_df,
+        x_col="year:O",
+        y_col="Percentage:Q",
+        color_col="Commute_Type:N",
+        tooltip_cols=["year", "Percentage", "Commute_Type"],
+        title=f"How People Commute to Work | {title_geo}",
+        y_axis_format=".0%",
+        color_domain=["Drove Alone", "Other", "Work From Home", "Public Transit"],
+        color_range=["tomato", "grey", "dodgerblue", "mediumseagreen"],
+        legend=alt.Legend(orient="top", direction="horizontal",offset=0,labelFont="Helvetica Neue"),
+        height=450,
+        title_config=dict(fontSize=19, anchor="start", dx=78, offset=10),
+    )
 
+def build_econ_plot_dataframes(df, metrics):
+    """
+    Calculate a dictionary of economic dataframes
+    """
+    def pov_df(value):
+        return pd.DataFrame({
+            "Category": ["Below Poverty Level", "Over Poverty Level"],
+            "Value": [value, 1 - value]
+        })
 
-def econ_df_metric_dict(filtered_gdf_2023):
-    # Define a dictionary of metrics to display in the snapshot
-    metrics = {
-        # Employment metrics
-        "unemployment_rate": filtered_gdf_2023['DP03_0009PE'].mean() / 100,
-        "pct_employed": filtered_gdf_2023['DP03_0004PE'].mean(),
-        "pct_in_labor_force": filtered_gdf_2023['DP03_0002PE'].mean(),
-        "pct_female_in_labor_force": filtered_gdf_2023['DP03_0011PE'].mean(),
+    def mean_pct(col): 
+        return df[col].mean() / 100
 
-        # Healthcare Coverage metrics
-        "pct_no_hc_coverage": filtered_gdf_2023['DP03_0099PE'].mean(),
-        "pct_no_hc_coverage_u19": filtered_gdf_2023['DP03_0101PE'].mean(),
-        "pct_public_hc_coverage": filtered_gdf_2023['DP03_0098PE'].mean() / 100,
-        "pct_employed_no_hc_coverage": filtered_gdf_2023['DP03_0108PE'].mean(),
-
-        # Income metrics
-        "income_per_capita": filtered_gdf_2023["DP03_0088E"].mean(),
-        "median_family_income": filtered_gdf_2023["DP03_0086E"].mean(),
-        "median_earnings": filtered_gdf_2023['DP03_0092E'].mean(),
-        "male_earnings": filtered_gdf_2023['DP03_0093E'].mean(),
-        "female_earnings": filtered_gdf_2023['DP03_0094E'].mean(),
-        "wage_gap": filtered_gdf_2023['DP03_0093E'].mean() - filtered_gdf_2023['DP03_0094E'].mean(),
-
-        # Poverty metrics
-        "pct_people_below_pov": filtered_gdf_2023["DP03_0128PE"].mean() / 100,
-        "pct_families_below_pov": filtered_gdf_2023["DP03_0119PE"].mean() / 100
-    }
-
-    # Define a dictionary of DataFrames to plot in the snapshot
-    dfs = {
+    return {
         "public_private_coverage_df": pd.DataFrame({
             "Coverage Type": ["Private Insurance", "Public Insurance"],
             "Value": [1 - metrics["pct_public_hc_coverage"], metrics["pct_public_hc_coverage"]]
         }),
         "family_income_df": pd.DataFrame({
-            "Family Income": [
-                "Under $10,000", "$10,000 - $14,999", "$15,000 - $24,999", "$25,000 - $34,999", "$35,000 - $49,999",
-                "$50,000 - $74,999", "$75,000 - $99,999", "$100,000 - $149,999", "$150,000 - $199,999", "$200,000 +"
-            ],
-            "Estimated Families": [
-                filtered_gdf_2023["DP03_0076E"].sum(), filtered_gdf_2023["DP03_0077E"].sum(),
-                filtered_gdf_2023["DP03_0078E"].sum(), filtered_gdf_2023["DP03_0079E"].sum(),
-                filtered_gdf_2023["DP03_0080E"].sum(), filtered_gdf_2023["DP03_0081E"].sum(),
-                filtered_gdf_2023["DP03_0082E"].sum(), filtered_gdf_2023["DP03_0083E"].sum(),
-                filtered_gdf_2023["DP03_0084E"].sum(), filtered_gdf_2023["DP03_0085E"].sum()
-            ]
+            "Family Income": FAMILY_INCOME_LABELS,
+            "Estimated Families": [df[col].sum() for col in FAMILY_INCOME_COLUMNS]
         }),
-        "pov_people_df": pd.DataFrame({
-            "Category": ["Below Poverty Level", "Over Poverty Level"],
-            "Value": [metrics["pct_people_below_pov"], 1 - metrics["pct_people_below_pov"]]
-        }),
-        "pov_families_df": pd.DataFrame({
-            "Category": ["Below Poverty Level", "Over Poverty Level"],
-            "Value": [metrics["pct_families_below_pov"], 1 - metrics["pct_families_below_pov"]]
-        }),
+        "pov_people_df": pov_df(metrics["pct_people_below_pov"]),
+        "pov_families_df": pov_df(metrics["pct_families_below_pov"]),
         "poverty_by_age_df": pd.DataFrame({
             "Age": ["Under 18 years", "18 - 64 years", "65+ years"],
             "Poverty Rate": [
-                filtered_gdf_2023["DP03_0129PE"].mean() / 100,
-                filtered_gdf_2023["DP03_0134PE"].mean() / 100,
-                filtered_gdf_2023["DP03_0135PE"].mean() / 100
+                mean_pct("DP03_0129PE"),
+                mean_pct("DP03_0134PE"),
+                mean_pct("DP03_0135PE")
             ]
         })
     }
 
+def compute_econ_metrics(df):
+    metrics = load_metrics(df, ACS_ECON_METRICS)
+
+    # manual calculation
+    metrics[ "wage_gap"] = metrics['male_earnings'] - metrics['female_earnings']
+    return metrics
+
+ 
+def econ_df_metric_dict(filtered_gdf_2023):
+    metrics  = compute_econ_metrics(filtered_gdf_2023)
+    dfs = build_econ_plot_dataframes(filtered_gdf_2023, metrics)
     return metrics, dfs
-    
+
 
 # NOTE: The `st.metric` delta (^change) values are simply placeholders for now (not real data!)
 def economic_snapshot(econ_dfs):    
     # Display the category header with data source
     economic_snapshot_header()
-    # Filter the dataframes using select boxes for "County" and "Jurisdiction"
-    filtered_econ_dfs = filter_dataframe(
-        econ_dfs, 
-        filter_columns=["County", "Jurisdiction"],
-        key_prefix="econ_snapshot", 
-        allow_all={
-            "County": True, 
-            "Jurisdiction": True
-        }
-    )
-
-    # Unpack each dataset from "filtered_econ_dfs" by index
-    # TODO: This unpacking process could be more reliable with a dictionary
-    filtered_gdf_2023, selected_values = filtered_econ_dfs[0]
-    filtered_unemployment_df, _ = filtered_econ_dfs[1]
-    filtered_median_earnings_df, _ = filtered_econ_dfs[2]
-    filtered_commute_time_df, _ = filtered_econ_dfs[3]
-    filtered_commute_habits_df, _ = filtered_econ_dfs[4]
+   
+    # filter the data 
+    filtered_dfs, selected_values = filter_snapshot_data(econ_dfs, key_df=econ_dfs['econ_2023'])
 
     # Get the title of the geography for plotting
-    county = selected_values["County"]
-    jurisdiction = selected_values["Jurisdiction"]
-    title_geo = get_geography_title(county, jurisdiction)
+    title_geo = get_geography_title(selected_values)
     
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="economic_snapshot")
     # Define two callable dictionaries: Metrics and Plot DataFrames
-    metrics, plot_dfs = econ_df_metric_dict(filtered_gdf_2023)
+    metrics, plot_dfs = econ_df_metric_dict(filtered_dfs["econ_2023"])
 
-    # The EMPLOYMENT Section ___________________________________________________________
+    ## TODO: maybe better to run all of these with **kwargs, or just all take the same args, idk
+    render_employment(econ_dfs, metrics, filtered_dfs, title_geo)
+    render_health_insurance(metrics, title_geo, plot_dfs, text_color)
+    render_income(metrics, filtered_dfs, title_geo, plot_dfs)
+    render_poverty(metrics, title_geo, plot_dfs, text_color)
+    render_work(econ_dfs, filtered_dfs, title_geo)
+
+
+
+def render_employment(econ_dfs, metrics, filtered_dfs, title_geo):
     st.divider()
     st.subheader("Employment")
     # Set two columns (Left for metrics, right for line plot)
@@ -392,16 +339,16 @@ def economic_snapshot(econ_dfs):
         value=f"{metrics['pct_female_in_labor_force']:.1f}%", 
         delta=f"{10}%")
     
-    # Define and display unemployment time series plot
-    try:
-        unemployment_chart = unemployment_rate_ts_plot(filtered_unemployment_df, title_geo)
-        chart_col.altair_chart(unemployment_chart)
-    except:
-        chart_col.warning("Not enough unemployment data available for the selected geography.")
+    safe_altair_plot(
+        plot =  unemployment_rate_ts_plot(filtered_dfs["unemployment"], econ_dfs['unemployment'], title_geo),
+        data_type= "unemplotment",
+        chart_col=chart_col
+    )
     metric_col.markdown("\2")
 
 
-    # The HEALTH INSURANCE COVERAGE Section ___________________________________________________________
+
+def render_health_insurance(metrics, title_geo, plot_dfs, text_color):
     st.divider()
     st.subheader("Health Insurance Coverage")
     st.markdown("\2")
@@ -436,7 +383,7 @@ def economic_snapshot(econ_dfs):
         delta_color='inverse')
 
 
-    # The INCOME Section ___________________________________________________________
+def render_income(metrics, filtered_dfs, title_geo, plot_dfs):
     st.divider()
     st.subheader("Income")
     
@@ -462,10 +409,10 @@ def economic_snapshot(econ_dfs):
     st.markdown("\2")
     
     # Display the median earnings time series plot directly below the metrics
-    try:
-        st.altair_chart(median_earnings_ts_plot(filtered_median_earnings_df, title_geo))
-    except:
-        st.warning("Not enough median earnings data available for the selected geography.")
+    safe_altair_plot(
+        plot=median_earnings_ts_plot(filtered_dfs['median_earnings'], title_geo),
+        data_type="median earnings"
+    )
     
     # Define two columns for metrics on the left and a bar plot on the right
     income_col1, income_col2 = st.columns([2, 11])
@@ -490,7 +437,7 @@ def economic_snapshot(econ_dfs):
     income_col2.altair_chart(family_income_dist_chart, use_container_width=True)
 
 
-    # The POVERTY Section ___________________________________________________________
+def render_poverty(metrics, title_geo, plot_dfs, text_color):
     st.divider()
     st.subheader("Poverty")
 
@@ -525,21 +472,18 @@ def economic_snapshot(econ_dfs):
     pov_col2.altair_chart(pov_by_age_chart)
     
 
-    # The WORK Section ___________________________________________________________
+def render_work(econ_dfs, filtered_dfs, title_geo):
     st.divider()
     st.subheader("Work")
     st.markdown("\2")
     
     # Define and display a time series plot of average commute time
-    try:
-        commute_time_ts = avg_commute_time_ts_plot(filtered_commute_time_df, title_geo)
-        st.altair_chart(commute_time_ts)
-    except:
-        st.warning("Not enough commute time data available for the selected geography.")
+    safe_altair_plot(
+        avg_commute_time_ts_plot(filtered_dfs['commute_time'], econ_dfs['commute_time'], title_geo),
+        "commute time"
+    )
 
-    # Define and display a time series plot of commute methods
-    try:
-        commute_habits_ts = commute_habits_ts_plot(filtered_commute_habits_df, title_geo)
-        st.altair_chart(commute_habits_ts)
-    except:
-        st.warning("Not enough commute habit data available for the selected geography.")
+    safe_altair_plot(
+        commute_habits_ts_plot(filtered_dfs['commute_habits'], title_geo),
+        "commute habit "
+    )
