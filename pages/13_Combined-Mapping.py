@@ -66,8 +66,8 @@ def main ():
         if layer:
             selected_layers_toggle.append(option)
             st.sidebar.checkbox(label=f"{option} filter 1")
-            st.sidebar.checkbox(label=f"{option} filter 2")
-            st.sidebar.checkbox(label=f"{option} filter 3")
+            st.sidebar.slider(label=f"{option} filter 2")
+            st.sidebar.radio(label=f"{option} filter 3", options=["", "", ""])
 
     ## get filters and then apply them
     filter_selections = collect_filter_selections(
