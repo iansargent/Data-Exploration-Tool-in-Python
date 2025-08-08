@@ -19,7 +19,7 @@ from app_utils.plot import donut_chart, bar_chart
 from app_utils.data_loading import load_metrics
 from app_utils.constants.ACS import ACS_HOUSING_METRICS
 
-## TODO: Ian,  please integrate this into the main dictionary load at the top of housing .py and fix logic throughout to refer to it there. 
+## TODO: Ian,  please integrate this into the main dictionary load at the top of Housing.py and fix logic throughout to refer to it there. 
 @st.cache_data
 def load_population_df():
     # Read in VT historical population data on the census tract level
@@ -211,6 +211,7 @@ def med_smoc_ts_plot(county, jurisdiction, filtered_med_smoc_df):
 
     return line_chart
 
+
 def housing_pop_plot(selected_values, filtered_gdf):
     pop_df = load_population_df()
     # Define a set of year ranges corresponding to new unit construction data
@@ -301,6 +302,7 @@ def housing_pop_plot(selected_values, filtered_gdf):
         height=600).configure_title(fontSize=19,offset=45).interactive()
 
     # Display the plot on the page
+    st.divider()
     st.altair_chart(chart, use_container_width=True)
 
 
@@ -308,10 +310,10 @@ def housing_df_metric_dict(filtered_gdf_2023):
     metrics = load_metrics(filtered_gdf_2023, metric_source=ACS_HOUSING_METRICS)
 
     # get hardcoded metrics
-    pct_occ_2023 = metrics['pct_occ_2023']
-    pct_vac_2023 = metrics['pct_vac_2023']
-    pct_own_2023 = metrics['pct_own_2023']
-    pct_rent_2023 = metrics['pct_rent_2023']
+    pct_occ_2023 = metrics['pct_occupied']
+    pct_vac_2023 = metrics['pct_vacant']
+    pct_own_2023 = metrics['pct_owned']
+    pct_rent_2023 = metrics['pct_rented']
 
     # Units in structure: define the label and corresponding metric keys
     structure_labels = [
@@ -319,9 +321,9 @@ def housing_df_metric_dict(filtered_gdf_2023):
         '10 - 19 Units', '20+ Units', 'Mobile Homes', 'Boat/RV/Van, etc.'
     ]
     structure_keys = [
-        'one_unit_2023', 'two_units_2023', 'three_or_four_units_2023',
-        'five_to_nine_units_2023', 'ten_to_nineteen_units_2023',
-        'twenty_or_more_units_2023', 'mobile_home_2023', 'boat_RV_van_etc_2023'
+        'one_unit_total', 'two_units', 'three_or_four_units',
+        'five_to_nine_units', 'ten_to_nineteen_units',
+        'twenty_or_more_units', 'mobile_home', 'boat_rv_van_etc'
     ]
 
     plots = {
@@ -346,12 +348,11 @@ def housing_df_metric_dict(filtered_gdf_2023):
     return metrics, plots
 
 
-
 def housing_snapshot(housing_dfs):
     # Display the Category Header with Data Source
     housing_snapshot_header()
-    # Filter the dataframes using select boxes for "County" and "Jurisdiction"
     
+    # Filter the dataframes using select boxes for "County" and "Jurisdiction"
     filtered_housing_dfs, selected_values = filter_snapshot_data(housing_dfs, housing_dfs['Housing_2023'])
     county, jurisdiction = selected_values['County'], selected_values['Jurisdiction']
     county, jurisdiction = county[0], jurisdiction[0]
@@ -364,10 +365,21 @@ def housing_snapshot(housing_dfs):
     # Define two callable dictionaries: Metrics and Plot DataFrames
     metrics, plot_dfs = housing_df_metric_dict(filtered_housing_dfs["Housing_2023"])
     
+    
+    st.write(filtered_housing_dfs)
+    
     # Display the housing / population plot at the top of the snapshot
     housing_pop_plot(selected_values, filtered_housing_dfs["Housing_2023"])
-    
+
+    render_occupancy(metrics, plot_dfs, text_color, title_geo)
+    render_tenure(metrics, plot_dfs, text_color, title_geo)
+    render_owner_occupied(metrics, plot_dfs, title_geo)
+    render_renter_occupied(metrics, plot_dfs, title_geo)
+
+
+def render_occupancy(metrics, plot_dfs, text_color, title_geo): 
     # The OCCUPANCY Section ___________________________________________________
+    st.divider()
     st.subheader("Occupancy")
     # Split section into three colunms: Metrics on the left followed by two donut charts
     _, occ_col1, occ_col2, occ_col3 = st.columns([0.5, 1, 2, 2])
@@ -400,8 +412,20 @@ def housing_snapshot(housing_dfs):
     # Display the two donut charts
     occ_col2.altair_chart(occupancy_occ_chart, use_container_width=True)
     occ_col3.altair_chart(occupancy_vac_chart, use_container_width=True)
-    st.divider()
     
+    
+    st.divider()
+    # Define a bar chart distribution of structure types (1 unit, 2 unit, etc.)
+    units_in_structure_bar_chart = bar_chart(
+        plot_dfs['units_in_structure_df'], title_geo=title_geo, XcolumnName="Structure Category", YcolumnName="Units",
+        distribution=True, height=600, fillColor="tomato", title="2023 Housing Unit Type Distribution",
+        barWidth=90, XlabelAngle=0, labelFontSize=12)
+    # Display the bar chart
+    st.subheader("Unit Type")
+    st.altair_chart(units_in_structure_bar_chart, use_container_width=True)
+    
+    
+def render_tenure(metrics, plot_dfs, text_color, title_geo):
     # The HOUSING TENURE Section ___________________________________________________
     st.subheader("Housing Tenure")
     # Split into three columns: Two donut charts on the left and metrics on the right
@@ -420,11 +444,11 @@ def housing_snapshot(housing_dfs):
     # Create the owner-occupied donut chart
     tenure_own_donut = donut_chart(
         plot_dfs['tenure_df'], colorColumnName="Occupied Tenure", fillColor="tomato", 
-        title="Owner Occupied", stat=metrics['pct_owner_occupied'], text_color=text_color)
+        title="Owner Occupied", stat=metrics['pct_owned'], text_color=text_color)
     # Create the renter-occupied donut chart
     tenure_rent_donut = donut_chart(
         source=plot_dfs['tenure_df'], colorColumnName="Occupied Tenure", fillColor="tomato", 
-        title="Renter Occupied", stat=metrics['pct_renter_occupied'], text_color=text_color, inverse=True)
+        title="Renter Occupied", stat=metrics['pct_rented'], text_color=text_color, inverse=True)
     
     # Display the two donut charts
     ten_col2.altair_chart(tenure_own_donut)
@@ -432,10 +456,13 @@ def housing_snapshot(housing_dfs):
     
     st.divider()
     # Create the median home value time series plot
-    med_val_ts_plot = med_home_value_ts_plot(county, jurisdiction, filtered_housing_dfs["median_value"])
+    #TODO: Make generalized TS plot
+    # med_val_ts_plot = med_home_value_ts_plot(county, jurisdiction, filtered_housing_dfs["median_value"])
     # Display the time series plot
-    st.altair_chart(med_val_ts_plot)
+    # st.altair_chart(med_val_ts_plot)
 
+
+def render_owner_occupied(metrics, plot_dfs, title_geo):
     # The OWNER-OCCUPIED Section ___________________________________________________
     st.subheader("Selected Monthly Owner Costs (SMOC)")
     # Split into two columns: Metrics on the left and time series plot on the right
@@ -446,19 +473,22 @@ def housing_snapshot(housing_dfs):
     smoc_col1.markdown("\2")
     smoc_col1.metric(
         label="**Mortgaged** Units", 
-        value=f"${metrics['avg_med_SMOC_mortgaged']:,.2f}",
+        value=f"${metrics['avg_SMOC_mortgaged']:,.2f}",
         help="Average monthly owner costs for ***mortgaged*** units in the selected geography for 2023")    
     smoc_col1.divider()
     smoc_col1.metric(
         label="**Non-Mortgaged** Units", 
-        value=f"${metrics['avg_med_SMOC_non_mortgaged']:,.2f}",
+        value=f"${metrics['avg_SMOC_non_mortgaged']:,.2f}",
         help="Average monthly owner costs for ***non-mortgaged*** units in the selected geography for 2023")
     
     # Define and display the median selected monthly cost time series plot (mortgaged vs non-mortgaged units)
-    median_smoc_ts_plot = med_smoc_ts_plot(county, jurisdiction, filtered_housing_dfs["median_smoc"])
+    # TODO: Generalize to one TS plot function
+    # median_smoc_ts_plot = med_smoc_ts_plot(county, jurisdiction, filtered_housing_dfs["median_smoc"])
     smoc_col2.markdown("\2")
-    smoc_col2.altair_chart(median_smoc_ts_plot)
+    # smoc_col2.altair_chart(median_smoc_ts_plot)
 
+    
+def render_renter_occupied(metrics, plot_dfs, title_geo):
     # The RENTER-OCCUPIED Section ___________________________________________________
     st.divider()
     st.subheader("Renter-Occupied Units")
@@ -467,24 +497,14 @@ def housing_snapshot(housing_dfs):
     # Metrics
     rent_col1.metric(
         label="Median **Gross Rent**", 
-        value=f"${metrics['avg_med_gross_rent']:,.2f}",
+        value=f"${metrics['avg_gross_rent']:,.2f}",
         help="Average median gross rent in the selected geography for 2023.")
     rent_col2.metric(
         label="Occupied Units paying 35%+ of Income on Rent", 
-        value=f"{metrics['rent_burdened_35pct_or_more']:,.0f}",
+        value=f"{metrics['rent_burden35']:,.0f}",
         help="Count of households where rent takes up 35% or more of their household income in the selected geography for 2023")
     rent_col3.metric(
         label="% Occupied Units paying 35%+ of Income on Rent", 
-        value=f"{metrics['pct_rent_burdened_35pct_or_more']:.1f}%",
+        value=f"{metrics['pct_rent_burden35']:.1f}%",
         help="Percentage of households where rent takes up 35% or more of their household income in the selected geography for 2023.")
     
-    # Define a bar chart distribution of structure types (1 unit, 2 unit, etc.)
-    units_in_structure_bar_chart = bar_chart(
-        plot_dfs['units_in_structure_df'], title_geo=title_geo, XcolumnName="Structure Category", YcolumnName="Units",
-        distribution=True, height=600, fillColor="tomato", title="2023 Housing Unit Type Distribution",
-        barWidth=90, XlabelAngle=0, labelFontSize=12)
-
-    st.divider()
-    # Display the bar chart
-    st.altair_chart(units_in_structure_bar_chart, use_container_width=True)
-

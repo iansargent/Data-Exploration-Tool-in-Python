@@ -11,7 +11,7 @@ Housing Page (Census)
 import streamlit as st
 import pandas as pd
 from app_utils.census import rename_and_merge_census_cols
-from app_utils.data_loading import load_census_data_dict
+from app_utils.data_loading import load_census_data_dict, load_data
 from app_utils.housing import housing_snapshot
 from app_utils.census_sections import mapping_tab, compare_tab
 from app_utils.streamlit_config import streamlit_config
@@ -19,14 +19,17 @@ from app_utils.streamlit_config import streamlit_config
 
 
 def census_housing():
-    return load_census_data_dict(
+    census_data_dict = load_census_data_dict(
         sources = {
             "Housing_2023" : "VT_HOUSING_ALL.fgb",
             "Housing_2013" : "VT_HOUSING_ALL_2013.fgb",
             "median_value" : "med_home_value_by_year.csv",
             "median_smoc" : "med_smoc_by_year.csv",
+            "vt_historic_population": "VT_Historic_Population_TEST.csv"
         }
     )
+
+    return census_data_dict
 
 def main():
     # Page title and tabs
@@ -35,6 +38,8 @@ def main():
 
     # Define a list of loaded datasets
     housing_dfs = census_housing()
+
+    st.dataframe(housing_dfs['vt_historic_population'])
 
     # Define the tidy dataset for map filtering
     tidy_2023 = rename_and_merge_census_cols(housing_dfs["Housing_2023"])
