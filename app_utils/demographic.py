@@ -108,25 +108,23 @@ def demog_df_metric_dict(filtered_gdf_2023):
 def demographic_snapshot(demog_dfs):
     # Display the Category Header with Data Source
     demographic_snapshot_header()
+    
     # Filter the dataframes using select boxes for "County" and "Jurisdiction"
-
-    filtered_dfs, selected_values = filter_snapshot_data(
-        dfs = demog_dfs,
-        key_df=demog_dfs['demogs_2023']
-    )
-
-    # Unpack each dataset from "filtered_demog_dfs" by index
-    # TODO: This unpacking process could be more reliable with a dictionary
-    filtered_gdf_2023 = filtered_dfs[0]
-    selected_values = filtered_dfs[1]
+    filtered_dfs, selected_values = filter_snapshot_data(demog_dfs, key_df=demog_dfs['demogs_2023'])
 
     # Get the title of the geography for plotting
     title_geo = get_geography_title(selected_values)
     
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="demographic_snapshot")
+    metrics, plot_dfs = demog_df_metric_dict(filtered_dfs["demogs_2023"])
 
-    metrics, plot_dfs = demog_df_metric_dict(filtered_gdf_2023)
+    # Snapshot sections
+    ## TODO: maybe better to run all of these with **kwargs, or just all take the same args, idk
+    # render_sex(demog_dfs, metrics, filtered_dfs, title_geo)
+    # render_age(metrics, title_geo, plot_dfs, text_color)
+    # render_race(metrics, filtered_dfs, title_geo, plot_dfs)
+    # render_voting_age(metrics, title_geo, plot_dfs, text_color)
 
     # The SEX and AGE Section
     st.subheader("Sex and Age")
