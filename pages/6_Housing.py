@@ -34,12 +34,11 @@ def census_housing():
 def main():
     # Page title and tabs
     st.header("Housing", divider="grey")
+    
     mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
 
     # Define a list of loaded datasets
     housing_dfs = census_housing()
-
-    st.dataframe(housing_dfs['vt_historic_population'])
 
     # Define the tidy dataset for map filtering
     tidy_2023 = rename_and_merge_census_cols(housing_dfs["Housing_2023"])

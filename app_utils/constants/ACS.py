@@ -1,6 +1,6 @@
 
 ### Paths 
-ACS_BASENAME = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/"
+ACS_BASENAME = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/refs/heads/main/Data/Census/"
 
 
 ### Variable Titles 
@@ -78,6 +78,23 @@ ACS_HOUSING_METRICS = {
     "mobile_home": lambda df: df["DP04_0014E"].sum(),
     "boat_rv_van_etc": lambda df: df["DP04_0015E"].sum(),
 }
+
+HOUSING_YEAR_LABELS = [
+    "1939 and Prior", "1940 - 1949", "1950 - 1959", "1960 - 1969",
+    "1970 - 1979", "1980 - 1989", "1990 - 1999", "2000 - 2009",
+    "2010 - 2019", "2020 - Present"
+]
+
+NEW_HOUSING_UNIT_COLUMNS = [
+    "DP04_0026E", "DP04_0025E", "DP04_0024E", "DP04_0023E", "DP04_0022E",
+    "DP04_0021E", "DP04_0020E", "DP04_0019E", "DP04_0018E", "DP04_0017E"
+]
+
+POPULATION_YEAR_LABELS = [
+    1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020
+]
+
+
 
 
 ACS_DEMOGRAPHIC_METRICS = {

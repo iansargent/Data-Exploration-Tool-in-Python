@@ -37,6 +37,7 @@ def make_time_series_plot(
     y_scale_domain=None,
     legend=None,
     height=500,
+    x_label_config=dict(labelAngle=0, labelFontSize=15),
     title_config=dict(fontSize=19, anchor="middle")
 ):
     y_scale = alt.Scale(domain=y_scale_domain) if y_scale_domain is not None else alt.Undefined
@@ -44,8 +45,7 @@ def make_time_series_plot(
     return alt.Chart(df).mark_line(point=True).encode(
         x=alt.X(x_col, title="Year",
                 axis=alt.Axis(
-                    labelAngle=0,
-                    labelFontSize=15,
+                    **x_label_config,
                     labelFont="Helvetica Neue",
                     labelFontWeight='normal',
                     titleFont="Helvetica Neue")),
