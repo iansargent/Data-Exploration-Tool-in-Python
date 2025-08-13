@@ -9,8 +9,9 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import numpy as np
-from app_utils.analysis import get_column_type, get_skew
 from streamlit_extras.metric_cards import style_metric_cards 
+
+from app_utils.analysis import get_column_type, get_skew
 
 
 def safe_altair_plot(plot, data_type,chart_col=False):

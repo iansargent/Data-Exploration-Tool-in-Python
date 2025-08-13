@@ -29,25 +29,12 @@ def main ():
     rpc = get_soil_rpc(col1)
 
     ## load data
-    zoning_gdf = process_zoning_data(load_zoning_data())
-    flooding_gdf = process_flood_gdf(load_flood_data())
-    soil_gdf = process_soil_data(load_soil_septic_single(rpc))
+    zoning_gdf = masterload("zoning")
+    flooding_gdf = masterload("flooding_with_zoning")
+    soil_gdf = masterload("soil_septic", rpc=rpc)
 
     ## filter the zoning_gdf 
     zoning_gdf = zoning_gdf[zoning_gdf['RPC'] == rpc]
-
-    ## add filtering columns to the flooding and soil_gdfs
-    flooding_gdf = add_cols_of_biggest_intersection(
-        donor_gdf=zoning_gdf,
-        altered_gdf=flooding_gdf,
-        add_columns=["County", "Jurisdiction"]
-    )
-
-    soil_gdf = add_cols_of_biggest_intersection(
-        donor_gdf=zoning_gdf,
-        altered_gdf=soil_gdf,
-        add_columns=['County']
-    )
 
     # Layer selection
     layer_options = {
@@ -84,7 +71,7 @@ def main ():
         name : filter_state.apply_filters(
             layer_options[name]
             )
-        for name in selected_layers
+        for name in selected_layers_toggle
     }
     combo_map(dfs)
 
