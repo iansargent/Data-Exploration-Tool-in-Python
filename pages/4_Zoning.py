@@ -56,7 +56,6 @@ def main():
         acre_chart = plot_acreage(filtered_gdf)
         st.altair_chart(acre_chart, use_container_width=True)
 
-        style_metric_cards(background_color="whitesmoke", border_left_color="mediumseagreen")
         st.write("Bar Graph of Family Allowance (1F - 5F Dropdown)")
         st.write("Affordable Housing Allowance")
 
