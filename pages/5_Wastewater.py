@@ -9,10 +9,11 @@ Wastewater Page
 # Necessary imports
 import streamlit as st
 import geopandas as gpd
+
 from app_utils.data_cleaning import convert_all_timestamps_to_str
 from app_utils.wastewater import *
 from app_utils.df_filtering import filter_wrapper
-from app_utils.data_loading import load_soil_septic_single
+from app_utils.data_loading import masterload
 from app_utils.streamlit_config import streamlit_config
 
 
@@ -20,7 +21,7 @@ def main():
     st.header("Wastewater Infrastructure", divider="grey")
     column1, *cols = st.columns(3)
     rpc = get_soil_rpc(column1)
-    suit_gdf = load_soil_septic_single(rpc)
+    suit_gdf = masterload("soil_septic", rpc)
 
     filter_state = filter_wrapper(
         df = suit_gdf,

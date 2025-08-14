@@ -8,12 +8,12 @@ Social Page (Census)
 
 # Necessary imports
 import streamlit as st
-from app_utils.census import rename_and_merge_census_cols
+
 from app_utils.census_sections import mapping_tab, compare_tab
 from app_utils.data_loading import load_census_data_dict
-
 from app_utils.streamlit_config import streamlit_config
 from app_utils.social import social_snapshot
+from app_utils.data_loading import masterload
 
 from app_utils.constants.ACS import ACS_BASENAME
 
@@ -24,21 +24,21 @@ def census_social():
             "social_2023" : "VT_SOCIAL_ALL.fgb",
         },
     )
+# from app_utils.social import social_snapshot ##TODO: fix to use std filering (see others for example)
 
 def main():
     # Page title and tabs
     st.header("Social", divider="grey")
     mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
 
-    social_dfs = census_social()
-    social_gdf_2023 = social_dfs['social_2023']
-    tidy_2023 = rename_and_merge_census_cols(social_gdf_2023)
+    social_dfs = masterload("census_social")
+    tidy_2023 = social_dfs["social_2023_tidy"]
 
     with mapping:
         mapping_tab(data=tidy_2023, map_color="Purples")
         
-    with snapshot:
-        social_snapshot(social_dfs)
+    # with snapshot:
+    #     social_snapshot(social_dfs)
 
     with compare:
         data_dict = {"Social 2023" : tidy_2023}

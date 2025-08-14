@@ -12,6 +12,7 @@ import geopandas as gpd
 import io
 import pydeck as pdk
 import altair as alt 
+
 from app_utils.color import add_fill_colors
 
 from app_utils.mapping import map_gdf_single_layer, add_tooltip_from_dict
@@ -142,3 +143,11 @@ def plot_acreage(gdf):
     ).properties(height=500, title="Zoning Acreage by District Type")
 
     return bar_chart
+
+
+
+### API STUFF
+from app_utils.data_loading import load_zoning_data
+from app_utils.api_utils import create_data_router
+
+zoning_router = create_data_router("/zoning", load_zoning_data, process_zoning_data)

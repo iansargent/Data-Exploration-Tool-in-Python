@@ -10,6 +10,7 @@ import pandas as pd
 import altair as alt
 import io
 import requests
+
 from app_utils.census import get_geography_title
 from app_utils.df_filtering import filter_snapshot_data
 from app_utils.color import get_text_color
