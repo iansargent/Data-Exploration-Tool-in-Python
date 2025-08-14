@@ -12,6 +12,7 @@ import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
 from sklearn.preprocessing import MinMaxScaler
+
 from app_utils.data_cleaning import convert_all_timestamps_to_str
 from app_utils.file_handling import (get_user_files, is_latitude_longitude, 
                                      process_uploaded_files, get_lat_lon_cols)

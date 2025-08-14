@@ -3,6 +3,7 @@ import pandas as pd
 import altair as alt
 import requests
 import io
+
 from app_utils.census import get_geography_title, split_name_col
 from app_utils.color import get_text_color
 from app_utils.df_filtering import filter_dataframe

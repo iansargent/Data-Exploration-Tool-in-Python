@@ -532,7 +532,7 @@ def merge_census_cols(name_df, data_gdf):
     ).drop(columns=["Code", "Name", "Label"])
 
 
-def rename_and_merge_census_cols(census_gdf):
+def tidy_census(census_gdf):
     # wrapper func to rename codes in func
     # TODO: consider saving renamed census codes permanently
     name_df = get_census_cols()

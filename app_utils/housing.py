@@ -10,12 +10,12 @@ import pandas as pd
 import altair as alt
 import io
 import requests
+
 from app_utils.census import get_geography_title
 from app_utils.df_filtering import filter_snapshot_data
 from app_utils.color import get_text_color
 from app_utils.data_loading import load_census_data
 from app_utils.plot import donut_chart, bar_chart
-
 from app_utils.data_loading import load_metrics
 from app_utils.constants.ACS import ACS_HOUSING_METRICS
 
@@ -352,7 +352,7 @@ def housing_snapshot(housing_dfs):
     housing_snapshot_header()
     # Filter the dataframes using select boxes for "County" and "Jurisdiction"
     
-    filtered_housing_dfs, selected_values = filter_snapshot_data(housing_dfs, housing_dfs['Housing_2023'])
+    filtered_housing_dfs, selected_values = filter_snapshot_data(housing_dfs, housing_dfs['housing_2023'])
     county, jurisdiction = selected_values['County'], selected_values['Jurisdiction']
     county, jurisdiction = county[0], jurisdiction[0]
 
@@ -362,10 +362,10 @@ def housing_snapshot(housing_dfs):
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="housing_snapshot")
     # Define two callable dictionaries: Metrics and Plot DataFrames
-    metrics, plot_dfs = housing_df_metric_dict(filtered_housing_dfs["Housing_2023"])
+    metrics, plot_dfs = housing_df_metric_dict(filtered_housing_dfs["housing_2023"])
     
     # Display the housing / population plot at the top of the snapshot
-    housing_pop_plot(selected_values, filtered_housing_dfs["Housing_2023"])
+    housing_pop_plot(selected_values, filtered_housing_dfs["housing_2023"])
     
     # The OCCUPANCY Section ___________________________________________________
     st.subheader("Occupancy")

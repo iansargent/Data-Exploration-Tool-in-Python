@@ -8,12 +8,12 @@ Table Preview Page
 
 # Necessary imports
 import streamlit as st
-from app_utils.file_handling import get_user_files, process_uploaded_files
-from app_utils.analysis import descriptive_metrics, get_columns
 import geopandas as gpd
 from streamlit_extras.dataframe_explorer import dataframe_explorer 
-from app_utils.streamlit_config import streamlit_config
 
+from app_utils.streamlit_config import streamlit_config
+from app_utils.file_handling import get_user_files, process_uploaded_files
+from app_utils.analysis import descriptive_metrics, get_columns
 
 def main():
     # Set the page title

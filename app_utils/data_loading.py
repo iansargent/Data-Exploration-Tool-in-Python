@@ -4,7 +4,6 @@ Created: 2025-07-29
 Description: centralized page for data loading
 """
 
-import streamlit as st
 import geopandas as gpd 
 import pandas as pd 
 import requests
@@ -12,8 +11,12 @@ import io
 import pyogrio 
 from pathlib import Path
 from urllib.parse import urljoin
+import threading
+
 
 from app_utils.data_cleaning import strip_all_whitespace
+from app_utils.census import tidy_census, split_name_col
+
 
 ## constants for paths
 from app_utils.constants.ACS import ACS_BASENAME
@@ -68,7 +71,7 @@ def load_data(
         df = postprocess_fn(df)
 
     df = strip_all_whitespace(df)
-    return df
+    return df.copy()
 
 def crs_set(df):
     if df.crs:
@@ -79,16 +82,14 @@ def crs_set(df):
 
 ### hard-coded wrappers for particular URLs ### 
 
-@st.cache_data
 def load_zoning_data(county=None):
     gdf = load_data(
         url='https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/data/vt-zoning-update.fgb',
         simplify_tolerance=0.0001,
         drop_cols=["Bylaw Date"]
     )
-    return gdf if not county else gdf[gdf["County"] == county].copy()
+    return gdf.copy() if not county else gdf[gdf["County"] == county].copy()
 
-@st.cache_data
 def load_soil_septic_single(rpc):
     return load_data(
         url = f"https://github.com/VERSO-UVM/Vermont-Livability-Map/raw/main/data/{rpc}_Soil_Septic.fgb",
@@ -100,78 +101,49 @@ def load_soil_septic_multi(rpcs):
     return pd.concat(dfs, ignore_index=True, sort=False)
 
 
-# @st.cache_data
-# def load_soil_septic_full():
-#     # try:
-#     #     return gpd.read_file("Data/large-data/combined-wastewater.fgb", driver="Parquet")
-#     # except:
-#     rpcs = {
-#         "Addison County": "ACRPC",
-#         "Bennington County": "BCRC",
-#         "Chittenden County": "CCRPC",
-#         "Central Vermont": "CVRPC",
-#         "Lamoille County": "LCPC",
-#         "Mount Ascutney": "MARC",
-#         "Northeastern Vermont": "NVDA",
-#         "Northwest Regional": "NWRPC",
-#         "Rutland Regional": "RRPC",
-#         "Two Rivers-Ottauquechee": "TRORC",
-#         "Windham": "WRC",
-#     }
-
-#     gdfs = []
-#     for label, rpc in rpcs.items():
-#         gdf = load_soil_septic_partial(rpc)
-#         gdf['Source'] = label
-#         gdfs.append(gdf)
-    
-#     gdf_combined = pd.concat(gdfs, ignore_index=True, sort=False)
-#     gdf_combined.to_file("Data/large-data/combined-wastewater.fgb", driver="Parquet")
-#     return gdf_combined 
-
 ## TODO: update with actual URL. once in stored place.
-@st.cache_data
 def load_flood_data():
     return load_data(
         url = "Data/large-data/Flood_Hazard_Areas_(Only_FEMA_-_digitized_data).geojson",
         simplify_tolerance=0.0001
     )
 
-@st.cache_data
 def load_census_data(url):
-    from app_utils.census import split_name_col
     return load_data(
         url = url,
         postprocess_fn=split_name_col
     )
-    
-@st.cache_data
-def load_census_data_dict(sources, basename=ACS_BASENAME):
-    return {
-        label : load_census_data(urljoin(basename, url)) for 
-        label, url in sources.items()
-    }
 
-@st.cache_data
-def load_combine_census(base_name, label_to_file):
-    from app_utils.census import rename_and_merge_census_cols
+def load_census_data_dict(sources, basename=ACS_BASENAME):
+    """
+    Caching a census dictionary.
+    If dictionary includes derived, this caches them from the original raw. 
+    """
+    data = {}
+    for label, src in sources.items():
+        if isinstance(src, tuple):
+            filename, func = src
+            if filename not in data:
+                data[filename] = load_census_data(urljoin(basename, filename)) # cache raw
+            data[label] = func(data[filename])  # derive and cache from cached raw via func
+        else:
+            data[label] = load_census_data(urljoin(basename, src)) # cache raw sans func
+    return data
+
+def load_combine_census(label_to_file):
     """
     Function to load many census files given a dictionary. 
     """
-    dfs = {}
-    for label, fname in label_to_file.items():
-        gdf = load_census_data(urljoin(base_name, fname))
-        df = rename_and_merge_census_cols(gdf).drop(columns=gdf.geometry.name)
+    dfs = []
+    for label, (cache, selection) in label_to_file.items():
+        df_dict = masterload(cache)
+        if selection not in df_dict:
+            raise KeyError(f"{selection} not found in cache {cache}")
+        df = df_dict[selection].copy()
         df["Source"] = label
-        dfs[label] = df
-
-    df_combined = pd.concat(dfs.values(), ignore_index=True, sort=False)
+        dfs.append(df)
+    df_combined = pd.concat(dfs, ignore_index=True, sort=False)
     return df_combined
-
-
-
-
-
 
 ### load metrics we've defined 
 def load_metrics(df, metric_source):
@@ -188,3 +160,72 @@ def load_metrics(df, metric_source):
             print(f"Error {e} loading metric {name}, {source}")
     return metrics
 
+
+### Caching ### 
+from app_utils.zoning import process_zoning_data
+from app_utils.wastewater import process_soil_data
+from app_utils.flooding import process_flood_gdf
+from app_utils.mapping import add_cols_of_biggest_intersection
+from app_utils.constants.dataset_sources import *
+
+def load_and_process_soil_septic(rpc):
+    raw_data = load_soil_septic_single(rpc)  # load raw data for that rpc
+    processed = process_soil_data(raw_data)  # then process it
+    return processed
+
+LOADERS = {}
+_DATA_CACHE = {}
+_LOCK = threading.RLock()
+
+
+def masterload(name, rpc=None):
+    """
+    function to lazy load / clean data into a cache.
+    LOADERS tells how to load the data if not already cached. 
+    If already present in cache, we just access.
+
+    Note that even if rpc is not used, it's part of the key, so don't pass unless needed
+    to avoid duplicate storage!
+
+    The plan is to eventually replace this with other logic from a more sophisticated caching logic.
+    """
+    key = (name, rpc)
+    with _LOCK:
+        if key not in _DATA_CACHE:
+            if name not in LOADERS:
+                raise KeyError(f"No loader registered under '{name}'")
+            if rpc is not None:
+                _DATA_CACHE[key] = LOADERS[name](rpc)
+            else:
+                _DATA_CACHE[key] = LOADERS[name]()
+        return _DATA_CACHE[key]
+
+# Map dataset names to loader functions
+LOADERS = {
+    "zoning": lambda: process_zoning_data(load_zoning_data()),
+    "soil_septic" : load_and_process_soil_septic,
+    "flood_legal" : lambda: process_flood_gdf(load_flood_data()),
+
+    # Census
+    "census_housing" : lambda: load_census_data_dict(HOUSING_SOURCES),
+    "census_economics" : lambda: load_census_data_dict(ECON_SOURCES),
+    "census_demographics" : lambda: load_census_data_dict(DEMO_SOURCES),
+    "census_social" : lambda: load_census_data_dict(SOCIAL_SOURCES),
+    "census_combined" : lambda: load_combine_census(COMBINED_CENSUS),
+
+    #Joins
+    "flooding_with_zoning": lambda: add_cols_of_biggest_intersection(
+        donor_gdf=masterload("zoning"),
+        altered_gdf=masterload("flood_legal"),
+        add_columns=["County", "Jurisdiction"]
+    ),
+
+    "soil_septic_with_zoning": lambda rpc=None: add_cols_of_biggest_intersection(
+        donor_gdf=masterload("zoning"),
+        altered_gdf=masterload("flood_legal", rpc),
+        add_columns=["County"]
+    )
+} 
+
+def register_loader(name, func):
+    LOADERS[name] = func

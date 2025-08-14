@@ -12,11 +12,12 @@ import altair as alt
 import geopandas as gpd
 import json
 from streamlit_extras.metric_cards import style_metric_cards 
+
 from app_utils.zoning import *
 from app_utils.df_filtering import filter_wrapper
 from app_utils.color import geojson_add_fill_colors, render_rgba_colormap_legend
 from app_utils.color import rgba_to_hex, tab20_rgba, add_fill_colors
-from app_utils.data_loading import load_zoning_data
+from app_utils.data_loading import masterload
 from app_utils.streamlit_config import streamlit_config
 
 
@@ -25,8 +26,7 @@ def main():
     st.header("Zoning", divider="grey")
 
     # Load the zoning data from GitHub, clean it, add colors,
-    zoning_gdf = load_zoning_data()
-    zoning_gdf = process_zoning_data(zoning_gdf)
+    zoning_gdf = masterload("zoning")
 
     ## user selections
     filter_state = filter_wrapper(
@@ -60,7 +60,7 @@ def main():
         st.write("Bar Graph of Family Allowance (1F - 5F Dropdown)")
         st.write("Affordable Housing Allowance")
 
-    # Selectable Table for comparisons
+    # Selectable Table for comparisonsAC
     with compare:
         st.subheader("Zoning Districts Table")
 
