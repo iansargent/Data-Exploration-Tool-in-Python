@@ -124,7 +124,7 @@ def compute_housing_metrics(df):
 
 def housing_df_metric_dict(filtered_housing_2023):
     # Unpack necessary datasets
-    filtered_gdf_2023 = filtered_housing_2023["Housing_2023"]    
+    filtered_gdf_2023 = filtered_housing_2023["housing_2023"]    
     metrics = compute_housing_metrics(filtered_gdf_2023)
     dfs = build_housing_plot_dataframes(filtered_housing_2023, metrics)
 
@@ -136,7 +136,8 @@ def build_housing_plot_dataframes(dfs, metrics):
     Calculate a dictionary of housing dataframes
     """
 
-    filtered_gdf_2023 = dfs["Housing_2023"]
+    filtered_gdf_2023 = dfs["housing_2023"]
+        
     filtered_pop_df = dfs["vt_historic_population"]
     
     population_counts = [filtered_pop_df.loc[filtered_pop_df["Year"] == year, "Population"].sum() for year in POPULATION_YEAR_LABELS]
@@ -199,8 +200,8 @@ def housing_snapshot(housing_dfs):
     # Display the Category Header with Data Source
     housing_snapshot_header()
     
-    # Filter the dataframes using select boxes for "County" and "Jurisdiction"
-    filtered_housing_dfs, selected_values = filter_snapshot_data(housing_dfs, housing_dfs['Housing_2023'])
+    # Filter the dataframes using select boxes for "County" and "Jurisdiction"    
+    filtered_housing_dfs, selected_values = filter_snapshot_data(housing_dfs, housing_dfs['housing_2023'])
     st.divider()
 
     # Get the title of the geography for plotting

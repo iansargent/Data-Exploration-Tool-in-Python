@@ -21,12 +21,10 @@ from app_utils.streamlit_config import streamlit_config
 def main():
     # Page title and tabs
     st.header("Housing", divider="grey")
-    
     mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
 
     # Define a list of loaded datasets
     housing_dfs = masterload("census_housing")
-
     # Define the tidy dataset for map filtering
     tidy_2023 = housing_dfs['housing_2023_tidy']
 
