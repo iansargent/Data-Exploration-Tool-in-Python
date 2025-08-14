@@ -17,7 +17,6 @@ from app_utils.census_sections import mapping_tab, compare_tab
 from app_utils.streamlit_config import streamlit_config
 
 
-
 def main():
     # Page title and tabs
     st.header("Housing", divider="grey")

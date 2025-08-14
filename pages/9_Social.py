@@ -10,20 +10,10 @@ Social Page (Census)
 import streamlit as st
 
 from app_utils.census_sections import mapping_tab, compare_tab
-from app_utils.data_loading import load_census_data_dict
 from app_utils.streamlit_config import streamlit_config
 from app_utils.social import social_snapshot
 from app_utils.data_loading import masterload
 
-from app_utils.constants.ACS import ACS_BASENAME
-
-def census_social():
-    return load_census_data_dict(
-        basename=ACS_BASENAME,
-        sources={
-            "social_2023" : "VT_SOCIAL_ALL.fgb",
-        },
-    )
 
 def main():
     # Page title and tabs
