@@ -10,17 +10,20 @@ Social Page (Census)
 import streamlit as st
 from app_utils.census import rename_and_merge_census_cols
 from app_utils.census_sections import mapping_tab, compare_tab
-from app_utils.data_loading import load_census_data
+from app_utils.data_loading import load_census_data_dict
+
 from app_utils.streamlit_config import streamlit_config
 from app_utils.social import social_snapshot
 
+from app_utils.constants.ACS import ACS_BASENAME
 
 def census_social():
-    social_gdf_2023 = load_census_data(
-        'https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/Data/Census/VT_SOCIAL_ALL.fgb',
+    return load_census_data_dict(
+        basename=ACS_BASENAME,
+        sources={
+            "social_2023" : "VT_SOCIAL_ALL.fgb",
+        },
     )
-    social_dfs = [social_gdf_2023]
-    return social_dfs
 
 def main():
     # Page title and tabs
@@ -28,7 +31,7 @@ def main():
     mapping, snapshot, compare = st.tabs(tabs=["Mapping", "Snapshot", "Compare"])
 
     social_dfs = census_social()
-    social_gdf_2023 = social_dfs[0]
+    social_gdf_2023 = social_dfs['social_2023']
     tidy_2023 = rename_and_merge_census_cols(social_gdf_2023)
 
     with mapping:

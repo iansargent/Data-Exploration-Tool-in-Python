@@ -10,7 +10,7 @@ import pandas as pd
 import altair as alt
 from app_utils.census import get_geography_title, split_name_col
 from app_utils.color import get_text_color
-from app_utils.plot import donut_chart, bar_chart, safe_altair_plot
+from app_utils.plot import donut_chart, bar_chart, safe_altair_plot, make_time_series_plot
 from app_utils.df_filtering import filter_snapshot_data
 from app_utils.data_loading import load_metrics
 
@@ -23,47 +23,6 @@ def economic_snapshot_header():
     st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP03: Selected Economic Characteristics - " \
         "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
         "Retrieved from https://data.census.gov/")
-
-def make_time_series_plot(
-    df,
-    x_col,
-    y_col,
-    color_col,
-    tooltip_cols,
-    title,
-    color_domain,
-    color_range,
-    y_axis_format=".0f",
-    y_scale_domain=None,
-    legend=None,
-    height=500,
-    x_label_config=dict(labelAngle=0, labelFontSize=15),
-    title_config=dict(fontSize=19, anchor="middle")
-):
-    y_scale = alt.Scale(domain=y_scale_domain) if y_scale_domain is not None else alt.Undefined
-
-    return alt.Chart(df).mark_line(point=True).encode(
-        x=alt.X(x_col, title="Year",
-                axis=alt.Axis(
-                    **x_label_config,
-                    labelFont="Helvetica Neue",
-                    labelFontWeight='normal',
-                    titleFont="Helvetica Neue")),
-        y=alt.Y(y_col, title=title.split('|')[0].strip(),
-                axis=alt.Axis(
-                    format=y_axis_format,
-                    labelFont="Helvetica Neue",
-                    labelFontWeight='normal',
-                    titleFont="Helvetica Neue"),
-                scale=y_scale),
-        color=alt.Color(color_col, title=None,
-                        scale=alt.Scale(
-                            domain=color_domain,
-                            range=color_range),
-                        legend=legend),
-        tooltip=[alt.Tooltip(c) for c in tooltip_cols]
-    ).properties(height=height, title=alt.Title(title)
-    ).configure_title(**title_config).interactive()
 
 
 def unemployment_rate_ts_plot(filtered_unemployment_df, unemployment_df, title_geo):
@@ -296,7 +255,6 @@ def economic_snapshot(econ_dfs):
 
     # Get the title of the geography for plotting
     title_geo = get_geography_title(selected_values)
-    
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="economic_snapshot")
     # Define two callable dictionaries: Metrics and Plot DataFrames
@@ -308,7 +266,6 @@ def economic_snapshot(econ_dfs):
     render_income(metrics, filtered_dfs, title_geo, plot_dfs)
     render_poverty(metrics, title_geo, plot_dfs, text_color)
     render_work(econ_dfs, filtered_dfs, title_geo)
-
 
 
 def render_employment(econ_dfs, metrics, filtered_dfs, title_geo):
@@ -338,12 +295,11 @@ def render_employment(econ_dfs, metrics, filtered_dfs, title_geo):
         delta=f"{10}%")
     
     safe_altair_plot(
-        plot =  unemployment_rate_ts_plot(filtered_dfs["unemployment"], econ_dfs['unemployment'], title_geo),
-        data_type= "unemplotment",
+        plot=unemployment_rate_ts_plot(filtered_dfs["unemployment"], econ_dfs['unemployment'], title_geo),
+        data_type="unemployment",
         chart_col=chart_col
     )
     metric_col.markdown("\2")
-
 
 
 def render_health_insurance(metrics, title_geo, plot_dfs, text_color):

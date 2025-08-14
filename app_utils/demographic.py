@@ -4,7 +4,7 @@ import altair as alt
 from app_utils.census import get_geography_title, split_name_col
 from app_utils.df_filtering import filter_snapshot_data
 from app_utils.color import get_text_color
-from app_utils.plot import donut_chart, bar_chart, safe_altair_plot
+from app_utils.plot import donut_chart, bar_chart, make_time_series_plot
 from app_utils.data_loading import load_metrics
 
 from app_utils.constants.ACS import (ACS_DEMOGRAPHIC_METRICS, AGE_GROUP_LABELS, AGE_GROUP_COLUMNS,
@@ -25,7 +25,7 @@ def compute_demog_metrics(df):
 
 def build_demog_plot_dataframes(df, metrics):
     """
-    Calculate a dictionary of economic dataframes
+    Calculate a dictionary of demographic dataframes
     """
 
     return {
@@ -47,7 +47,7 @@ def build_demog_plot_dataframes(df, metrics):
 
 
 def demog_df_metric_dict(filtered_gdf_2023):
-    metrics = load_metrics(filtered_gdf_2023, ACS_DEMOGRAPHIC_METRICS)
+    metrics = compute_demog_metrics(filtered_gdf_2023)
     dfs = build_demog_plot_dataframes(filtered_gdf_2023, metrics)
     return metrics, dfs
 

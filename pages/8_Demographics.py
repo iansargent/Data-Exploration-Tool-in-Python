@@ -35,7 +35,6 @@ def main():
     with mapping:
         mapping_tab(data=tidy_2023, map_color="Blues")
 
-    ## Census Snapshot section (Housing) ##
     with snapshot:
         demographic_snapshot(demog_dfs)
 

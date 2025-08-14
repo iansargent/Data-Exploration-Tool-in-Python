@@ -95,8 +95,6 @@ POPULATION_YEAR_LABELS = [
 ]
 
 
-
-
 ACS_DEMOGRAPHIC_METRICS = {
     # Basic counts
     "total_population": lambda df: df['DP05_0001E'].sum(),
@@ -140,7 +138,6 @@ ACS_DEMOGRAPHIC_METRICS = {
     "citizen_voting_age_pct_female": lambda df: df["DP05_0089PE"].mean(),
 }
 
-
 AGE_GROUP_LABELS = [
     "Under 5", "5 to 9", "10 to 14", "15 to 19", "20 to 24",
     "25 to 34", "35 to 44", "45 to 54", "55 to 59", "60 to 64",
@@ -160,3 +157,8 @@ RACE_LABELS = [
 RACE_COLUMNS = [
     "DP05_0037E", "DP05_0038E", "DP05_0071E", "DP05_0039E", "DP05_0044E", "DP05_0052E", "DP05_0057E"
 ]
+
+
+ACS_SOCIAL_METRICS = {
+    "example": lambda df: df['DP02_0001E'].sum(),
+}
