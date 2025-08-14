@@ -14,10 +14,6 @@ from app_utils.census_sections import mapping_tab, compare_tab
 from app_utils.data_loading import masterload
 from app_utils.streamlit_config import streamlit_config
 
-from app_utils.constants.ACS import ACS_BASENAME
-
-
-
 
 def main():
     # Page title and tabs

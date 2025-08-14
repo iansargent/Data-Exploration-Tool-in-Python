@@ -8,15 +8,11 @@ Economic Utility Functions
 import streamlit as st
 import pandas as pd
 import altair as alt
-import requests
-import io
 from app_utils.census import get_geography_title, split_name_col
 from app_utils.color import get_text_color
-from app_utils.plot import donut_chart, bar_chart
+from app_utils.plot import donut_chart, bar_chart, safe_altair_plot, make_time_series_plot
 from app_utils.df_filtering import filter_snapshot_data
-from app_utils.plot import safe_altair_plot
 from app_utils.data_loading import load_metrics
-
 
 # import constants
 from app_utils.constants.ACS import ACS_ECON_METRICS, FAMILY_INCOME_COLUMNS, FAMILY_INCOME_LABELS
@@ -28,46 +24,6 @@ def economic_snapshot_header():
         "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
         "Retrieved from https://data.census.gov/")
 
-def make_time_series_plot(
-    df,
-    x_col,
-    y_col,
-    color_col,
-    tooltip_cols,
-    title,
-    color_domain,
-    color_range,
-    y_axis_format=".0f",
-    y_scale_domain=None,
-    legend=None,
-    height=500,
-    title_config=dict(fontSize=19, anchor="middle")
-):
-    y_scale = alt.Scale(domain=y_scale_domain) if y_scale_domain is not None else alt.Undefined
-
-    return alt.Chart(df).mark_line(point=True).encode(
-        x=alt.X(x_col, title="Year",
-                axis=alt.Axis(
-                    labelAngle=0,
-                    labelFontSize=15,
-                    labelFont="Helvetica Neue",
-                    labelFontWeight='normal',
-                    titleFont="Helvetica Neue")),
-        y=alt.Y(y_col, title=title.split('|')[0].strip(),
-                axis=alt.Axis(
-                    format=y_axis_format,
-                    labelFont="Helvetica Neue",
-                    labelFontWeight='normal',
-                    titleFont="Helvetica Neue"),
-                scale=y_scale),
-        color=alt.Color(color_col, title=None,
-                        scale=alt.Scale(
-                            domain=color_domain,
-                            range=color_range),
-                        legend=legend),
-        tooltip=[alt.Tooltip(c) for c in tooltip_cols]
-    ).properties(height=height, title=alt.Title(title)
-    ).configure_title(**title_config).interactive()
 
 def unemployment_rate_ts_plot(filtered_unemployment_df, unemployment_df, title_geo):
     """
@@ -150,7 +106,6 @@ def median_earnings_ts_plot(filtered_earnings_df, title_geo):
         legend=alt.Legend(orient="bottom-left", direction="horizontal", offset=20, labelFont="Helvetica Neue"),
         height=475
     )
-
 
 
 def avg_commute_time_ts_plot(filtered_commute_time_df, commute_time_df, title_geo):
@@ -240,6 +195,7 @@ def commute_habits_ts_plot(filtered_commute_habits_df, title_geo):
         title_config=dict(fontSize=19, anchor="start", dx=78, offset=10),
     )
 
+
 def build_econ_plot_dataframes(df, metrics):
     """
     Calculate a dictionary of economic dataframes
@@ -274,6 +230,7 @@ def build_econ_plot_dataframes(df, metrics):
         })
     }
 
+
 def compute_econ_metrics(df):
     metrics = load_metrics(df, ACS_ECON_METRICS)
 
@@ -283,7 +240,7 @@ def compute_econ_metrics(df):
 
  
 def econ_df_metric_dict(filtered_gdf_2023):
-    metrics  = compute_econ_metrics(filtered_gdf_2023)
+    metrics = compute_econ_metrics(filtered_gdf_2023)
     dfs = build_econ_plot_dataframes(filtered_gdf_2023, metrics)
     return metrics, dfs
 
@@ -298,7 +255,6 @@ def economic_snapshot(econ_dfs):
 
     # Get the title of the geography for plotting
     title_geo = get_geography_title(selected_values)
-    
     # Based on the system color theme, update the text color (only used in donut plots)
     text_color = get_text_color(key="economic_snapshot")
     # Define two callable dictionaries: Metrics and Plot DataFrames
@@ -310,7 +266,6 @@ def economic_snapshot(econ_dfs):
     render_income(metrics, filtered_dfs, title_geo, plot_dfs)
     render_poverty(metrics, title_geo, plot_dfs, text_color)
     render_work(econ_dfs, filtered_dfs, title_geo)
-
 
 
 def render_employment(econ_dfs, metrics, filtered_dfs, title_geo):
@@ -340,12 +295,11 @@ def render_employment(econ_dfs, metrics, filtered_dfs, title_geo):
         delta=f"{10}%")
     
     safe_altair_plot(
-        plot =  unemployment_rate_ts_plot(filtered_dfs["unemployment"], econ_dfs['unemployment'], title_geo),
-        data_type= "unemplotment",
+        plot=unemployment_rate_ts_plot(filtered_dfs["unemployment"], econ_dfs['unemployment'], title_geo),
+        data_type="unemployment",
         chart_col=chart_col
     )
     metric_col.markdown("\2")
-
 
 
 def render_health_insurance(metrics, title_geo, plot_dfs, text_color):

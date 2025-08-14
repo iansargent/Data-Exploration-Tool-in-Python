@@ -1,12 +1,14 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-import requests
-import io
 from app_utils.census import get_geography_title, split_name_col
 from app_utils.df_filtering import filter_snapshot_data
 from app_utils.color import get_text_color
-from app_utils.plot import donut_chart, bar_chart
+from app_utils.plot import donut_chart, bar_chart, make_time_series_plot
+from app_utils.data_loading import load_metrics
+
+from app_utils.constants.ACS import (ACS_DEMOGRAPHIC_METRICS, AGE_GROUP_LABELS, AGE_GROUP_COLUMNS,
+                                     RACE_LABELS, RACE_COLUMNS)
 
 
 def demographic_snapshot_header():
@@ -17,91 +19,36 @@ def demographic_snapshot_header():
     "Retrieved from https://data.census.gov/")
 
 
-def demog_df_metric_dict(filtered_gdf_2023):
-# Define a dictionary of metrics to display in the snapshot
-    metrics = {
-        # SEX and AGE Metrics
-        "total_population": filtered_gdf_2023['DP05_0001E'].mean(),
-        "pop_male": filtered_gdf_2023['DP05_0002E'].sum(),
-        "pct_male": filtered_gdf_2023['DP05_0002PE'].mean(),
-        "pop_female": filtered_gdf_2023['DP05_0003E'].sum(),
-        "pct_female": filtered_gdf_2023['DP05_0003PE'].mean(),
-        "pct_pop_under_18": filtered_gdf_2023['DP05_0019PE'].mean(),
-        "pct_pop_65_and_over": filtered_gdf_2023['DP05_0024PE'].mean(),
-        "median_age": filtered_gdf_2023['DP05_0018E'].mean(),
+def compute_demog_metrics(df):
+    return load_metrics(df, ACS_DEMOGRAPHIC_METRICS)
 
-        # For every 100 working-age people, there are X dependents
-        # A dependency ratio of 50 means that each working-age person must support about half a dependent (on average)
-        "dependency_ratio": (
-            # Dependents
-            (
-                filtered_gdf_2023['DP05_0005E'].sum() +  # Under 5 years
-                filtered_gdf_2023['DP05_0006E'].sum() +  # 5 to 9 years
-                filtered_gdf_2023['DP05_0007E'].sum() +  # 10 to 14 years
-                filtered_gdf_2023['DP05_0015E'].sum() +  # 65 to 74 years
-                filtered_gdf_2023['DP05_0016E'].sum() +  # 75 to 84 years
-                filtered_gdf_2023['DP05_0017E'].sum()    # 85+ years
-            ) / 
-            # Working Age
-            (
-                filtered_gdf_2023['DP05_0008E'].sum() +  # 15 to 19 years
-                filtered_gdf_2023['DP05_0009E'].sum() +  # 20 to 24 years
-                filtered_gdf_2023['DP05_0010E'].sum() +  # 25 to 34 years
-                filtered_gdf_2023['DP05_0011E'].sum() +  # 35 to 44 years
-                filtered_gdf_2023['DP05_0012E'].sum() +  # 45 to 54 years
-                filtered_gdf_2023['DP05_0013E'].sum() +  # 55 to 59 years
-                filtered_gdf_2023['DP05_0014E'].sum()    # 60 to 64 years
-            )
-        ) * 100,
 
-        # CITIZEN/VOTING AGE metrics
-        "pop_voting_age_citizen": filtered_gdf_2023["DP05_0087E"].sum(),
-        "citizen_voting_age_pct_male": filtered_gdf_2023["DP05_0088PE"].mean(),
-        "citizen_voting_age_pct_female": filtered_gdf_2023["DP05_0089PE"].mean(),
-    }
+def build_demog_plot_dataframes(df, metrics):
+    """
+    Calculate a dictionary of demographic dataframes
+    """
 
-    # Define a dictionary of DataFrames to plot in the snapshot
-    dfs = {
+    return {
         "age_dist": pd.DataFrame({
-            "Age Group": [
-                "Under 5", "5 to 9", "10 to 14", "15 to 19", "20 to 24",
-                "25 to 34", "35 to 44", "45 to 54", "55 to 59", "60 to 64",
-                "65 to 74", "75 to 84", "85 and over"], 
-            "Population": [
-                filtered_gdf_2023['DP05_0005E'].sum(),
-                filtered_gdf_2023['DP05_0006E'].sum(),
-                filtered_gdf_2023['DP05_0007E'].sum(),
-                filtered_gdf_2023['DP05_0008E'].sum(),
-                filtered_gdf_2023['DP05_0009E'].sum(),
-                filtered_gdf_2023['DP05_0010E'].sum(),
-                filtered_gdf_2023['DP05_0011E'].sum(),
-                filtered_gdf_2023['DP05_0012E'].sum(),
-                filtered_gdf_2023['DP05_0013E'].sum(),
-                filtered_gdf_2023['DP05_0014E'].sum(),
-                filtered_gdf_2023['DP05_0015E'].sum(),
-                filtered_gdf_2023['DP05_0016E'].sum(),
-                filtered_gdf_2023['DP05_0017E'].sum()]}),
+            "Age Group": AGE_GROUP_LABELS, 
+            "Population": [df[col].sum() for col in AGE_GROUP_COLUMNS]
+        }),
         
         "race_dist": pd.DataFrame({
-            "Race/Ethnicity": [
-                "White",
-                "Black",
-                "Hispanic",
-                "AI/AN",
-                "Asian",
-                "NH/PI",
-                "Other"
-            ],
-            "Population": [
-                filtered_gdf_2023['DP05_0037E'].sum(), 
-                filtered_gdf_2023['DP05_0038E'].sum(),
-                filtered_gdf_2023['DP05_0071E'].sum(),
-                filtered_gdf_2023['DP05_0039E'].sum(),
-                filtered_gdf_2023['DP05_0044E'].sum(),
-                filtered_gdf_2023['DP05_0052E'].sum(),
-                filtered_gdf_2023['DP05_0057E'].sum()]})
-        }
+            "Race/Ethnicity": RACE_LABELS,
+            "Population": [df[col].sum() for col in RACE_COLUMNS]
+        }),
+        
+        "sex_dist": pd.DataFrame({
+            "Sex": ["Male", "Female"],
+            "Population": [metrics["pop_male"], metrics['pop_female']]
+        })
+     }
 
+
+def demog_df_metric_dict(filtered_gdf_2023):
+    metrics = compute_demog_metrics(filtered_gdf_2023)
+    dfs = build_demog_plot_dataframes(filtered_gdf_2023, metrics)
     return metrics, dfs
 
 
@@ -121,36 +68,59 @@ def demographic_snapshot(demog_dfs):
 
     # Snapshot sections
     ## TODO: maybe better to run all of these with **kwargs, or just all take the same args, idk
-    # render_sex(demog_dfs, metrics, filtered_dfs, title_geo)
-    # render_age(metrics, title_geo, plot_dfs, text_color)
-    # render_race(metrics, filtered_dfs, title_geo, plot_dfs)
-    # render_voting_age(metrics, title_geo, plot_dfs, text_color)
+    render_sex(metrics, plot_dfs, title_geo)
+    render_age(metrics, plot_dfs, title_geo)
+    render_race(plot_dfs, title_geo)
+    render_voting_age_citizens(metrics)
 
-    # The SEX and AGE Section
-    st.subheader("Sex and Age")
+    
+def render_sex(metrics, plot_dfs, title_geo):
+    # The SEX Section
+    st.divider()
+    st.subheader("Sex")
+    
+    _, sex_col1, sex_col2 = st.columns([0.5, 3, 6])
+    
+    sex_col1.markdown("\2")
+    sex_col1.metric(label="Total Population", value=f"{metrics['total_population']:,.0f}")
+    sex_col1.metric(label="Sex Ratio (Males for every 100 Females)", value=f"{metrics['sex_ratio']:.1f}")
+    sex_col1.metric(label="Percent Male", value=f"{metrics['pct_male']:.1f}%")
+    sex_col1.metric(label="Percent Female", value=f"{metrics['pct_female']:.1f}%")
+
+    sex_dist_bar_chart = bar_chart(
+        source=plot_dfs['sex_dist'], title_geo=title_geo, XcolumnName="Sex", YcolumnName="Population",
+        distribution=True, labelFontSize=15, fillColor="steelblue", XlabelAngle=0, height=450, 
+        barWidth=250, title="Sex Distribution", titleFontSize=19,
+    )
+    
+    sex_col2.altair_chart(sex_dist_bar_chart, use_container_width=True)
+    
+
+def render_age(metrics, plot_dfs, title_geo):
+    # The AGE Section
+    st.divider()
+    st.subheader("Age")
     
     age_col1, _, age_col2 = st.columns([6, 0.5, 2])
-
+    
     age_dist_bar_chart = bar_chart(
         source=plot_dfs["age_dist"], title_geo=title_geo, XcolumnName="Age Group", YcolumnName="Population",
         XlabelAngle=0, fillColor="steelblue", height=500, barWidth=45, distribution=True, labelFontSize=12,
-        title="Age Distribution")
+        title="Age Distribution"
+    )
     age_col1.altair_chart(age_dist_bar_chart, use_container_width=True)
 
     age_col2.markdown("\2")
-    age_col2.metric(
-        label="% Under 18 years", 
-        value=f"{metrics['pct_pop_under_18']:.0f}%")
+    age_col2.metric(label="% Under 18 years", value=f"{metrics['pct_pop_under_18']:.0f}%")
     age_col2.divider()
-    age_col2.metric(
-        label="Median Age", 
-        value=f"{metrics['median_age']:.1f} years")
+    age_col2.metric(label="Median Age", value=f"{metrics['median_age']:.1f} years")
     age_col2.divider()
-    age_col2.metric(
-        label="% 65 years+", 
-        value=f"{metrics['pct_pop_65_and_over']:.0f}%")
+    age_col2.metric(label="% 65 years+", value=f"{metrics['pct_pop_65_and_over']:.0f}%")
+    
 
+def render_race(plot_dfs, title_geo):
     # The RACE Section
+    st.divider()
     st.subheader("Race")
 
     race_dist_chart = bar_chart(
@@ -160,7 +130,19 @@ def demographic_snapshot(demog_dfs):
     )
     st.altair_chart(race_dist_chart)
 
+
+def render_voting_age_citizens(metrics):
+    st.divider()
     # The CITIZEN VOTING AGE Section
     st.subheader("Citizen Voting Age")
+
+    st.warning("Citizen Voting-Age data issues being worked out.")
+    vote_col1, vote_col2, vote_col3 = st.columns(3)
+
+    vote_col1.metric(label="Voting-Age Citizens", value=f"{metrics['pop_voting_age_citizen']:.0f}")
+    vote_col2.metric(label="Male Voting-Age Citizens", value=f"{metrics['citizen_voting_age_pct_male']:.0f}%")
+    vote_col3.metric(label="Female Voting-Age Citizens", value=f"{metrics['citizen_voting_age_pct_female']:.0f}%")
+
+
 
 
