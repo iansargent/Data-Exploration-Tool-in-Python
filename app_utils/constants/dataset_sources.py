@@ -19,6 +19,7 @@ HOUSING_SOURCES =  {
 
     "median_value" : "med_home_value_by_year.csv",
     "median_smoc" : "med_smoc_by_year.csv",
+    "vt_historic_population": "VT_Historic_Population.csv"
 }
 
 DEMO_SOURCES = {

@@ -14,12 +14,67 @@ from streamlit_extras.metric_cards import style_metric_cards
 from app_utils.analysis import get_column_type, get_skew
 
 
+
+def make_time_series_plot(
+    df,
+    x_col,
+    y_col,
+    color_col,
+    tooltip_cols,
+    title,
+    color_domain,
+    color_range,
+    y_axis_format=".0f",
+    y_scale_domain=None,
+    legend=None,
+    height=500,
+    x_label_config=dict(labelAngle=0, labelFontSize=15),
+    title_config=dict(fontSize=19, anchor="middle"),
+    stroke_dash_col=None,
+    add_points=True
+):
+    y_scale = alt.Scale(domain=y_scale_domain) if y_scale_domain is not None else alt.Undefined
+
+    chart = alt.Chart(df).mark_line(point=add_points).encode(
+        x=alt.X(x_col, title="Year",
+                axis=alt.Axis(
+                    **x_label_config,
+                    labelFont="Helvetica Neue",
+                    labelFontWeight='normal',
+                    titleFont="Helvetica Neue")),
+        y=alt.Y(y_col, title=None,
+                axis=alt.Axis(
+                    format=y_axis_format,
+                    labelFont="Helvetica Neue",
+                    labelFontWeight='normal',
+                    titleFont="Helvetica Neue"),
+                scale=y_scale),
+        color=alt.Color(color_col, title=None,
+                        scale=alt.Scale(
+                            domain=color_domain,
+                            range=color_range),
+                        legend=legend),
+        tooltip=[alt.Tooltip(c) for c in tooltip_cols]
+    ).properties(height=height, title=alt.Title(title)
+    ).configure_title(**title_config).interactive()
+
+    if stroke_dash_col:
+        chart = chart.encode(strokeDash=alt.StrokeDash(
+            stroke_dash_col, 
+            legend=alt.Legend(
+                title=None,
+                orient="bottom-right"
+            )))
+    
+    return chart
+
+
 def safe_altair_plot(plot, data_type,chart_col=False):
     if chart_col:
         try:
             chart_col.altair_chart(plot)
         except:
-            chart_col.warning(f"Not enough {data_type} available for the selected geography.")
+            chart_col.warning(f"Not enough {data_type} data available for the selected geography.")
 
     else:
         try:
@@ -927,40 +982,73 @@ def sort_select():
     return sort 
 
 
-def plot_container(df, altiar_chart):
+def plot_container(df, altair_chart, chart_col=None):
     """
     Display a tabbed container housing a chart and a table with an Excel/csv download option.
     """
     import io
     from datetime import datetime
-    # Create a tabbed container 
-    with st.container():
-        tab1, tab2 = st.tabs(["Visualize", "Table"])
+    
+    if chart_col == None:
+        # Create a tabbed container 
+        with st.container():
+            tab1, tab2 = st.tabs(["Visualize", "Table"])
 
-        with tab1:
-            # Display the Altair chart
-            st.altair_chart(altiar_chart, use_container_width=True)
-        with tab2:
-            # Display the DataFrame table
-            st.dataframe(df, hide_index=True, use_container_width=True)
+            with tab1:
+                # Display the Altair chart
+                st.altair_chart(altair_chart, use_container_width=True)
+            with tab2:
+                # Display the DataFrame table
+                st.dataframe(df, hide_index=True, use_container_width=True)
 
-            # Excel download option
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
-            
-            c1, c2, _ = st.columns([1, 1, 12])
-            
-            # Download Buttons
-            c1.download_button(
-                label="Excel",
-                data=(lambda buf=io.BytesIO(): (df.to_excel(buf, index=False, engine="openpyxl"), buf.seek(0), buf)[2])(),
-                file_name=f"table_{timestamp}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                key=f"download_excel_{timestamp}")
-            
-            c2.download_button(
-                label="CSV",
-                data=df.to_csv(index=False).encode('utf-8'),
-                file_name=f"table_{timestamp}.csv",
-                key=f"download_csv_{timestamp}"
-            )
+                # Excel download option
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
                 
+                c1, c2, _ = st.columns([1, 1, 12])
+                
+                # Download Buttons
+                c1.download_button(
+                    label="Excel",
+                    data=(lambda buf=io.BytesIO(): (df.to_excel(buf, index=False, engine="openpyxl"), buf.seek(0), buf)[2])(),
+                    file_name=f"table_{timestamp}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key=f"download_excel_{timestamp}")
+                
+                c2.download_button(
+                    label="CSV",
+                    data=df.to_csv(index=False).encode('utf-8'),
+                    file_name=f"table_{timestamp}.csv",
+                    key=f"download_csv_{timestamp}"
+                )
+    else:
+        # Create a tabbed container 
+        with chart_col.container():
+            tab1, tab2 = st.tabs(["Visualize", "Table"])
+
+            with tab1:
+                # Display the Altair chart
+                st.altair_chart(altair_chart, use_container_width=True)
+            with tab2:
+                # Display the DataFrame table
+                st.dataframe(df, hide_index=True, use_container_width=True)
+
+                # Excel download option
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
+                
+                c1, c2, _ = st.columns([1, 1, 12])
+                
+                # Download Buttons
+                c1.download_button(
+                    label="Excel",
+                    data=(lambda buf=io.BytesIO(): (df.to_excel(buf, index=False, engine="openpyxl"), buf.seek(0), buf)[2])(),
+                    file_name=f"table_{timestamp}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    key=f"download_excel_{timestamp}")
+                
+                c2.download_button(
+                    label="CSV",
+                    data=df.to_csv(index=False).encode('utf-8'),
+                    file_name=f"table_{timestamp}.csv",
+                    key=f"download_csv_{timestamp}"
+                )
+

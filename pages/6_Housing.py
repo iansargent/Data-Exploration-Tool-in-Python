@@ -17,7 +17,6 @@ from app_utils.census_sections import mapping_tab, compare_tab
 from app_utils.streamlit_config import streamlit_config
 
 
-
 def main():
     # Page title and tabs
     st.header("Housing", divider="grey")
@@ -25,7 +24,6 @@ def main():
 
     # Define a list of loaded datasets
     housing_dfs = masterload("census_housing")
-
     # Define the tidy dataset for map filtering
     tidy_2023 = housing_dfs['housing_2023_tidy']
 
