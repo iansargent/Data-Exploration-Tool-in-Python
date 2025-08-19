@@ -1,6 +1,8 @@
+import json
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
-import json
+
 
 def create_data_router(prefix: str, load_fn, process_fn=None):
     router = APIRouter(prefix=prefix)
@@ -14,6 +16,6 @@ def create_data_router(prefix: str, load_fn, process_fn=None):
             geojson = json.loads(gdf.to_json())
             return JSONResponse(content=geojson)
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     return router

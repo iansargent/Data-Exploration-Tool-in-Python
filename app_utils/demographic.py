@@ -1,3 +1,4 @@
+import pandas as pd
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -14,9 +15,11 @@ from app_utils.constants.ACS import (ACS_DEMOGRAPHIC_METRICS, AGE_GROUP_LABELS, 
 def demographic_snapshot_header():
     st.subheader("Demographic Snapshot")
     # Include a source for the dataset (Census DP05 2023 5-year estimates)
-    st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP05: Demographic and Housing Estimates - " \
-    "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
-    "Retrieved from https://data.census.gov/")
+    st.markdown(
+        "***Data Source***: U.S. Census Bureau. (2023). DP05: Demographic and Housing Estimates - "
+        "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. "
+        "Retrieved from https://data.census.gov/"
+    )
 
 
 def compute_demog_metrics(df):
@@ -55,15 +58,16 @@ def demog_df_metric_dict(filtered_gdf_2023):
 def demographic_snapshot(demog_dfs):
     # Display the Category Header with Data Source
     demographic_snapshot_header()
-    
+
     # Filter the dataframes using select boxes for "County" and "Jurisdiction"
-    filtered_dfs, selected_values = filter_snapshot_data(demog_dfs, key_df=demog_dfs['demogs_2023'])
+    filtered_dfs, selected_values = filter_snapshot_data(
+        demog_dfs, key_df=demog_dfs["demogs_2023"]
+    )
 
     # Get the title of the geography for plotting
     title_geo = get_geography_title(selected_values)
-    
+
     # Based on the system color theme, update the text color (only used in donut plots)
-    text_color = get_text_color(key="demographic_snapshot")
     metrics, plot_dfs = demog_df_metric_dict(filtered_dfs["demogs_2023"])
 
     # Snapshot sections
@@ -104,29 +108,46 @@ def render_age(metrics, plot_dfs, title_geo):
     age_col1, _, age_col2 = st.columns([6, 0.5, 2])
     
     age_dist_bar_chart = bar_chart(
-        source=plot_dfs["age_dist"], title_geo=title_geo, XcolumnName="Age Group", YcolumnName="Population",
-        XlabelAngle=0, fillColor="steelblue", height=500, barWidth=45, distribution=True, labelFontSize=12,
-        title="Age Distribution"
+        source=plot_dfs["age_dist"],
+        title_geo=title_geo,
+        XcolumnName="Age Group",
+        YcolumnName="Population",
+        XlabelAngle=0,
+        fillColor="steelblue",
+        height=500,
+        barWidth=45,
+        distribution=True,
+        labelFontSize=12,
+        title="Age Distribution",
     )
     age_col1.altair_chart(age_dist_bar_chart, use_container_width=True)
 
     age_col2.markdown("\2")
-    age_col2.metric(label="% Under 18 years", value=f"{metrics['pct_pop_under_18']:.0f}%")
+    age_col2.metric(
+        label="% Under 18 years", value=f"{metrics['pct_pop_under_18']:.0f}%"
+    )
     age_col2.divider()
+    age_col2.metric(label="Median Age", value=f"{metrics['median_age']:.1f} years")
     age_col2.metric(label="Median Age", value=f"{metrics['median_age']:.1f} years")
     age_col2.divider()
     age_col2.metric(label="% 65 years+", value=f"{metrics['pct_pop_65_and_over']:.0f}%")
-    
 
-def render_race(plot_dfs, title_geo):
     # The RACE Section
     st.divider()
     st.subheader("Race")
 
     race_dist_chart = bar_chart(
-        source=plot_dfs['race_dist'], title_geo=title_geo, XcolumnName="Race/Ethnicity", YcolumnName="Population",
-        fillColor="steelblue", barWidth=120, distribution=True, labelFontSize=13, height=500,
-        title="Race Distribution", XlabelAngle=0
+        source=plot_dfs["race_dist"],
+        title_geo=title_geo,
+        XcolumnName="Race/Ethnicity",
+        YcolumnName="Population",
+        fillColor="steelblue",
+        barWidth=120,
+        distribution=True,
+        labelFontSize=13,
+        height=500,
+        title="Race Distribution",
+        XlabelAngle=0,
     )
     st.altair_chart(race_dist_chart)
 

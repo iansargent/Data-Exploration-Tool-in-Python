@@ -4,12 +4,13 @@ Vermont Data App
 
 Report Utility Functions
 """
+
 from ydata_profiling import ProfileReport, compare
 
 
 def exploratory_report(df):
     """
-    Generate a tailored exploratory profile report 
+    Generate a tailored exploratory profile report
     given a DataFrame using the ydata-profiling package.
 
     @param df: A pandas DataFrame object.
@@ -17,7 +18,7 @@ def exploratory_report(df):
     """
 
     # Get the number of columns in the dataframe
-    df_columns = (df.columns.tolist())
+    df_columns = df.columns.tolist()
     num_columns = len(df_columns)
 
     # If there are a large amount of columns (30)
@@ -28,23 +29,35 @@ def exploratory_report(df):
             title="Exploratory Report",
             interactions=None,
             samples=None,
-            missing_diagrams={"bar": False, "matrix": False, "dendrogram": False, "heatmap": False})
+            missing_diagrams={
+                "bar": False,
+                "matrix": False,
+                "dendrogram": False,
+                "heatmap": False,
+            },
+        )
     # If there are less than 30 columns
     else:
         report = ProfileReport(
             df,
             title="Exploratory Report",
             explorative=True,
-            missing_diagrams={"bar": False, "matrix": False, "dendrogram": False, "heatmap": False},
-            samples=None)
-    
+            missing_diagrams={
+                "bar": False,
+                "matrix": False,
+                "dendrogram": False,
+                "heatmap": False,
+            },
+            samples=None,
+        )
+
     # Return the ydata-profiling report
     return report
 
 
 def quality_report(df):
     """
-    Generate a tailored data quality profile report 
+    Generate a tailored data quality profile report
     given a DataFrame using the ydata-profiling package.
 
     @param df: A pandas DataFrame object.
@@ -52,34 +65,31 @@ def quality_report(df):
     """
 
     report = ProfileReport(
-            df,
-            title="Data Quality",
-            missing_diagrams={"bar": True,"matrix": True},
-            duplicates={"head": 10},
-            correlations=None,
-            interactions=None)
+        df,
+        title="Data Quality",
+        missing_diagrams={"bar": True, "matrix": True},
+        duplicates={"head": 10},
+        correlations=None,
+        interactions=None,
+    )
 
     return report
 
 
 def comparison_report(dfs):
     """
-    Generates a comparison report given a list of 
+    Generates a comparison report given a list of
     uploaded dataframes
 
     @param dfs: A list of pandas DataFrame objects.
     @return: A ydata-profiling comparison report.
     """
-    
+
     reports = []
     for i, df in enumerate(dfs):
-        report = ProfileReport(
-            df,
-            title = f"Report_{i}"
-        )
+        report = ProfileReport(df, title=f"Report_{i}")
         reports.append(report)
-    
+
     comparison_report = compare(reports)
 
     return comparison_report
-

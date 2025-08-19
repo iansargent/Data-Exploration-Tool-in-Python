@@ -1,10 +1,11 @@
-import streamlit as st
 import pandas as pd
-import geopandas as gpd
+import streamlit as st
 
-## helper functions 
+
+## helper functions
 def ensure_list(x):
     return x if isinstance(x, list) else [x]
+
 
 class FilterState:
     def __init__(self, df, filter_columns):
@@ -29,7 +30,7 @@ class FilterState:
         """Apply current filter selections to dataframe"""
         if df is None:
             df = self.df.copy()
-        
+
         for col, selected_values in self.selections.items():
             if selected_values is None or not selected_values:
                 continue
@@ -37,21 +38,23 @@ class FilterState:
                 continue
             df = df[df[col].isin(selected_values)]
         return df
-    
+
+
 class FilterUI:
     """
-    Class to handle **purely frontend** of cascading DF filtering. 
+    Class to handle **purely frontend** of cascading DF filtering.
     """
+
     def __init__(
-        self, 
-        filter_state, 
-        style="multi_select", 
-        key_prefix="filter_dataframe", 
+        self,
+        filter_state,
+        style="multi_select",
+        key_prefix="filter_dataframe",
         presented_cols=None,
         defaults=None,
         passed_cols=None,
         header=None,
-        allow_all=None
+        allow_all=None,
     ):
         self.filter_state = filter_state
         self.style = style
@@ -62,14 +65,13 @@ class FilterUI:
         self.header = header
         self.allow_all = allow_all or {}
         self.raw_selections = {}
-        self.selections = {} 
-
+        self.selections = {}
 
     def process_selection(self, col_name, raw_selection, options):
         """Process raw UI selection by storing it as raw list, then expanding it into everything
         that needs to be filtered on in cases ALL is in there.
 
-        Stores results in 
+        Stores results in
         """
         # Store raw selection (what user saw)
         raw_selection = ensure_list(raw_selection)
@@ -86,13 +88,13 @@ class FilterUI:
             return options[1:]  # Skip "All" option itself
         else:
             return raw_selection
-    
+
     def get_options(self, col_name, tree):
         unique = list(tree.keys())
         if self.allow_all.get(col_name, False):
             return ["All"] + unique
         return unique
-    
+
     def get_default_selection(self, col_name, options):
         default = self.defaults.get(col_name, False)
         if default:
@@ -102,7 +104,7 @@ class FilterUI:
                 return ["All"]
             else:
                 return options[0] if options else []
-            
+
     def get_options_default(self, col_name, tree):
         options = self.get_options(col_name, tree)
         default = self.get_default_selection(col_name, options)
@@ -111,14 +113,14 @@ class FilterUI:
             default = [d for d in default if d in options]
         if not default and options:
             default = [options[0]]
-        return options, default 
-    
+        return options, default
+
     def update_tree(self, tree, selected_values):
-        sub = {} 
+        sub = {}
         for k in selected_values:
             sub.update(tree[k])
-        return sub 
-    
+        return sub
+
     def update_filterstate(self):
         self.filter_state.raw_selections = self.raw_selections
         self.filter_state.selections = self.selections
@@ -139,24 +141,33 @@ class FilterUI:
             label = self.presented_cols[i]
 
             if self.style == "selectbox":
-                default_idx = options.index(default[0]) if default and default[0] in options else 0
-                raw_selection = col.selectbox(label, options, index=default_idx, key=key)
+                default_idx = (
+                    options.index(default[0])
+                    if default and default[0] in options
+                    else 0
+                )
+                raw_selection = col.selectbox(
+                    label, options, index=default_idx, key=key
+                )
             else:
-                raw_selection = col.multiselect(label, options, default=default, key=key)
+                raw_selection = col.multiselect(
+                    label, options, default=default, key=key
+                )
 
             selected_values = self.process_selection(col_name, raw_selection, options)
-            if i < len(self.passed_cols)-1:
+            if i < len(self.passed_cols) - 1:
                 tree = self.update_tree(tree, selected_values)
         self.update_filterstate()
 
-### wrappers for utility ### 
+
+### wrappers for utility ###
 def filter_wrapper(
-    df : pd.DataFrame,
-    filter_columns : list[str],
-    allow_all : dict[str, bool] = None,
-    style : str = "multi_select",
-    presented_cols : list[str] = None,
-    key_prefix : str = "filter_dataframe",
+    df: pd.DataFrame,
+    filter_columns: list[str],
+    allow_all: dict[str, bool] = None,
+    style: str = "multi_select",
+    presented_cols: list[str] = None,
+    key_prefix: str = "filter_dataframe",
     defaults=None,
     passed_cols=None,
     header=None,
@@ -175,23 +186,20 @@ def filter_wrapper(
         defaults=defaults,
         header=header,
         allow_all=allow_all,
-
     )
     filter_ui.render()
     return filter_state
 
 
-### area specific wrappers ### 
+### area specific wrappers ###
 def filter_snapshot_data(dfs, key_df):
     filter_state = filter_wrapper(
-        df=key_df, 
+        df=key_df,
         filter_columns=["County", "Jurisdiction"],
-        allow_all={
-            "County":True,
-            "Jurisdiction":True
-        },
-        style='selectbox',
-        presented_cols=['County', 'Municipality'])
+        allow_all={"County": True, "Jurisdiction": True},
+        style="selectbox",
+        presented_cols=["County", "Municipality"],
+    )
     filtered_dfs = {key: filter_state.apply_filters(df) for key, df in dfs.items()}
     selected_values = filter_state.raw_selections
     return filtered_dfs, selected_values

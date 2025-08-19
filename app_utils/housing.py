@@ -5,14 +5,14 @@ Vermont Data App
 Housing Utility Functions
 """
 
-import streamlit as st
-import pandas as pd
-import altair as alt
 import io
+
+import altair as alt
+import pandas as pd
 import requests
+import streamlit as st
 
 from app_utils.census import get_geography_title
-from app_utils.df_filtering import filter_snapshot_data
 from app_utils.color import get_text_color
 from app_utils.plot import donut_chart, bar_chart, make_time_series_plot
 from app_utils.data_loading import load_metrics
@@ -23,9 +23,11 @@ from app_utils.constants.ACS import ACS_HOUSING_METRICS, HOUSING_YEAR_LABELS, NE
 def housing_snapshot_header():
     st.subheader("Housing Snapshot")
     # Include a source for the dataset (Census DP04 2023 5-year estimates)
-    st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP04: Selected Housing Characteristics - " \
-    "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
-    "Retrieved from https://data.census.gov/")
+    st.markdown(
+        "***Data Source***: U.S. Census Bureau. (2023). DP04: Selected Housing Characteristics - "
+        "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. "
+        "Retrieved from https://data.census.gov/"
+    )
 
 
 def med_home_value_ts_plot(filtered_med_val_df, med_val_df, title_geo):   
@@ -150,8 +152,14 @@ def build_housing_plot_dataframes(dfs, metrics):
 
     # Units in structure: define the label and corresponding metric keys
     structure_labels = [
-        '1-Unit', '2-Units', '3 - 4 Units', '5 - 9 Units',
-        '10 - 19 Units', '20+ Units', 'Mobile Homes', 'Boat/RV/Van, etc.'
+        "1-Unit",
+        "2-Units",
+        "3 - 4 Units",
+        "5 - 9 Units",
+        "10 - 19 Units",
+        "20+ Units",
+        "Mobile Homes",
+        "Boat/RV/Van, etc.",
     ]
     structure_keys = [
         'one_unit_total', 'two_units', 'three_or_four_units',
@@ -230,29 +238,47 @@ def render_occupancy(metrics, plot_dfs, text_color, title_geo):
     occ_col1.markdown("\2")
     occ_col1.markdown("\2")
     occ_col1.metric(
-        label="**Total Housing Units**", 
-        value=f"{metrics['total_units']:,.0f}", 
-        help="Total number of housing units in the selected geography for 2023.")
+        label="**Total Housing Units**",
+        value=f"{metrics['total_units']:,.0f}",
+        help="Total number of housing units in the selected geography for 2023.",
+    )
     occ_col1.metric(
-        label="**Occupied** Units", 
-        value=f"{metrics['occupied_units']:,.0f}", 
-        help="Total number of occupied housing units in the selected geography.")
+        label="**Occupied** Units",
+        value=f"{metrics['occupied_units']:,.0f}",
+        help="Total number of occupied housing units in the selected geography.",
+    )
     occ_col1.metric(
-        label="**Vacant** Units", 
-        value=f"{metrics['vacant_units']:,.0f}", 
-        help="Total number of vacant housing units in the selected geography.")
-    
+        label="**Vacant** Units",
+        value=f"{metrics['vacant_units']:,.0f}",
+        help="Total number of vacant housing units in the selected geography.",
+    )
+
     # In the middle, show the donut chart of occupied units
     occupancy_occ_chart = donut_chart(
-        source=plot_dfs['occupancy_occ_df'], colorColumnName="Occupancy Status", titleFontSize=15, 
-        fillColor="tomato", title="Units Occupied", text_color=text_color, 
-        stat=metrics['pct_occupied'], innerRadius=135, height=400)
+        source=plot_dfs["occupancy_occ_df"],
+        colorColumnName="Occupancy Status",
+        titleFontSize=15,
+        fillColor="tomato",
+        title="Units Occupied",
+        text_color=text_color,
+        stat=metrics["pct_occupied"],
+        innerRadius=135,
+        height=400,
+    )
     # In the right column, show the donut chart of vacant units
     occupancy_vac_chart = donut_chart(
-        source=plot_dfs['occupancy_vac_df'], colorColumnName="Occupancy Status", titleFontSize=15, 
-        fillColor="tomato", title="Units Vacant", text_color=text_color, 
-        stat=metrics['pct_vacant'], innerRadius=135, height=400, inverse=True)
-    
+        source=plot_dfs["occupancy_vac_df"],
+        colorColumnName="Occupancy Status",
+        titleFontSize=15,
+        fillColor="tomato",
+        title="Units Vacant",
+        text_color=text_color,
+        stat=metrics["pct_vacant"],
+        innerRadius=135,
+        height=400,
+        inverse=True,
+    )
+
     # Display the two donut charts
     occ_col2.altair_chart(occupancy_occ_chart, use_container_width=True)
     occ_col3.altair_chart(occupancy_vac_chart, use_container_width=True)
@@ -275,16 +301,18 @@ def render_tenure(metrics, plot_dfs, text_color):
     st.subheader("Housing Tenure")
     # Split into three columns: Two donut charts on the left and metrics on the right
     ten_col3, ten_col2, ten_col1, _ = st.columns([10, 10, 5, 2])
-        
+
     ten_col1.markdown("\2")
     ten_col1.metric(
-        label="**Owner-Occupied** Units", 
-        value=f"{metrics['owned_units']:,.0f}", 
-        help="Total number of owner-occupied housing units in the selected geography.")    
+        label="**Owner-Occupied** Units",
+        value=f"{metrics['owned_units']:,.0f}",
+        help="Total number of owner-occupied housing units in the selected geography.",
+    )
     ten_col1.metric(
-        label="**Renter-Occupied** Units", 
-        value=f"{metrics['rented_units']:,.0f}", 
-        help="Total number of renter-occupied housing units in the selected geography.")
+        label="**Renter-Occupied** Units",
+        value=f"{metrics['rented_units']:,.0f}",
+        help="Total number of renter-occupied housing units in the selected geography.",
+    )
 
     # Create the owner-occupied donut chart
     tenure_own_donut = donut_chart(
@@ -297,8 +325,8 @@ def render_tenure(metrics, plot_dfs, text_color):
     
     # Display the two donut charts
     ten_col2.altair_chart(tenure_own_donut)
-    ten_col3.altair_chart(tenure_rent_donut) 
-    
+    ten_col3.altair_chart(tenure_rent_donut)
+
     st.divider()
 
 

@@ -15,9 +15,44 @@ from app_utils.constants.ACS import ACS_SOCIAL_METRICS
 def social_snapshot_header():
     st.subheader("Social Snapshot")
     # Include a source for the dataset (Census DP04 2023 5-year estimates)
-    st.markdown("***Data Source***: U.S. Census Bureau. (2023). DP05: Selected Social Characteristics - " \
-    "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. " \
-    "Retrieved from https://data.census.gov/")
+    st.markdown(
+        "***Data Source***: U.S. Census Bureau. (2023). DP05: Selected Social Characteristics - "
+        "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. "
+        "Retrieved from https://data.census.gov/"
+    )
+
+
+def compute_social_metrics(df):
+    return load_metrics(df, ACS_SOCIAL_METRICS)
+
+
+def build_social_plot_dataframes(df, metrics):
+    """
+    Calculate a dictionary of social dataframes
+    """
+
+    return {
+        "ex1_dist": pd.DataFrame({
+            "EX1": ["ex"], 
+            "Population": [metrics['example']]
+        }),
+        
+        "ex2_dist": pd.DataFrame({
+            "EX2": ["ex"],
+            "Population": [metrics['example']]
+        }),
+        
+        "ex3_dist": pd.DataFrame({
+            "EX3": ["ex"],
+            "Population": [metrics['example']]
+        })
+     }
+
+
+def social_df_metric_dict(filtered_gdf_2023):
+    metrics = compute_social_metrics(filtered_gdf_2023)
+    dfs = build_social_plot_dataframes(filtered_gdf_2023, metrics)
+    return metrics, dfs
 
 
 def compute_social_metrics(df):
