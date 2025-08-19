@@ -1,5 +1,4 @@
-
-### Paths 
+### Paths
 ACS_BASENAME = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/refs/heads/main/Data/Census/"
 
 
@@ -89,58 +88,70 @@ ACS_HOUSING_METRICS = {
 }
 
 HOUSING_YEAR_LABELS = [
-    "1939 and Prior", "1940 - 1949", "1950 - 1959", "1960 - 1969",
-    "1970 - 1979", "1980 - 1989", "1990 - 1999", "2000 - 2009",
-    "2010 - 2019", "2020 - Present"
+    "1939 and Prior",
+    "1940 - 1949",
+    "1950 - 1959",
+    "1960 - 1969",
+    "1970 - 1979",
+    "1980 - 1989",
+    "1990 - 1999",
+    "2000 - 2009",
+    "2010 - 2019",
+    "2020 - Present",
 ]
 
 NEW_HOUSING_UNIT_COLUMNS = [
-    "DP04_0026E", "DP04_0025E", "DP04_0024E", "DP04_0023E", "DP04_0022E",
-    "DP04_0021E", "DP04_0020E", "DP04_0019E", "DP04_0018E", "DP04_0017E"
+    "DP04_0026E",
+    "DP04_0025E",
+    "DP04_0024E",
+    "DP04_0023E",
+    "DP04_0022E",
+    "DP04_0021E",
+    "DP04_0020E",
+    "DP04_0019E",
+    "DP04_0018E",
+    "DP04_0017E",
 ]
 
-POPULATION_YEAR_LABELS = [
-    1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020
-]
+POPULATION_YEAR_LABELS = [1930, 1940, 1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]
 
 
 ACS_DEMOGRAPHIC_METRICS = {
     # Basic counts
-    "total_population": lambda df: df['DP05_0001E'].sum(),
-
+    "total_population": lambda df: df["DP05_0001E"].sum(),
     # Sex
-    "pop_male": lambda df: df['DP05_0002E'].sum(),
-    "pct_male": lambda df: df['DP05_0002PE'].mean(),
-    "pop_female": lambda df: df['DP05_0003E'].sum(),
-    "pct_female": lambda df: df['DP05_0003PE'].mean(),
-    "sex_ratio": lambda df: df['DP05_0004E'].mean(),
-
+    "pop_male": lambda df: df["DP05_0002E"].sum(),
+    "pct_male": lambda df: df["DP05_0002PE"].mean(),
+    "pop_female": lambda df: df["DP05_0003E"].sum(),
+    "pct_female": lambda df: df["DP05_0003PE"].mean(),
+    "sex_ratio": lambda df: df["DP05_0004E"].mean(),
     # Age
-    "pct_pop_under_18": lambda df: df['DP05_0019PE'].mean(),
-    "pct_pop_65_and_over": lambda df: df['DP05_0024PE'].mean(),
-    "median_age": lambda df: df['DP05_0018E'].mean(),
+    "pct_pop_under_18": lambda df: df["DP05_0019PE"].mean(),
+    "pct_pop_65_and_over": lambda df: df["DP05_0024PE"].mean(),
+    "median_age": lambda df: df["DP05_0018E"].mean(),
     "dependency_ratio": lambda df: (
         # Dependents
         (
-            df['DP05_0005E'].sum() +  # Under 5 years
-            df['DP05_0006E'].sum() +  # 5 to 9 years
-            df['DP05_0007E'].sum() +  # 10 to 14 years
-            df['DP05_0015E'].sum() +  # 65 to 74 years
-            df['DP05_0016E'].sum() +  # 75 to 84 years
-            df['DP05_0017E'].sum()    # 85+ years
-        ) / 
+            df["DP05_0005E"].sum()  # Under 5 years
+            + df["DP05_0006E"].sum()  # 5 to 9 years
+            + df["DP05_0007E"].sum()  # 10 to 14 years
+            + df["DP05_0015E"].sum()  # 65 to 74 years
+            + df["DP05_0016E"].sum()  # 75 to 84 years
+            + df["DP05_0017E"].sum()  # 85+ years
+        )
+        /
         # Working Age
         (
-            df['DP05_0008E'].sum() +  # 15 to 19 years
-            df['DP05_0009E'].sum() +  # 20 to 24 years
-            df['DP05_0010E'].sum() +  # 25 to 34 years
-            df['DP05_0011E'].sum() +  # 35 to 44 years
-            df['DP05_0012E'].sum() +  # 45 to 54 years
-            df['DP05_0013E'].sum() +  # 55 to 59 years
-            df['DP05_0014E'].sum()    # 60 to 64 years
+            df["DP05_0008E"].sum()  # 15 to 19 years
+            + df["DP05_0009E"].sum()  # 20 to 24 years
+            + df["DP05_0010E"].sum()  # 25 to 34 years
+            + df["DP05_0011E"].sum()  # 35 to 44 years
+            + df["DP05_0012E"].sum()  # 45 to 54 years
+            + df["DP05_0013E"].sum()  # 55 to 59 years
+            + df["DP05_0014E"].sum()  # 60 to 64 years
         )
-    ) * 100,
-
+    )
+    * 100,
     # Voting-age citizens
     "pop_voting_age_citizen": lambda df: df["DP05_0087E"].sum(),
     "citizen_voting_age_pct_male": lambda df: df["DP05_0088PE"].mean(),
@@ -148,26 +159,50 @@ ACS_DEMOGRAPHIC_METRICS = {
 }
 
 AGE_GROUP_LABELS = [
-    "Under 5", "5 to 9", "10 to 14", "15 to 19", "20 to 24",
-    "25 to 34", "35 to 44", "45 to 54", "55 to 59", "60 to 64",
-    "65 to 74", "75 to 84", "85 and over"
+    "Under 5",
+    "5 to 9",
+    "10 to 14",
+    "15 to 19",
+    "20 to 24",
+    "25 to 34",
+    "35 to 44",
+    "45 to 54",
+    "55 to 59",
+    "60 to 64",
+    "65 to 74",
+    "75 to 84",
+    "85 and over",
 ]
 
 AGE_GROUP_COLUMNS = [
-    'DP05_0005E', "DP05_0006E", "DP05_0007E", "DP05_0008E", "DP05_0009E",
-    "DP05_0010E", "DP05_0011E", "DP05_0012E", "DP05_0013E", "DP05_0014E",
-    "DP05_0015E", "DP05_0016E", "DP05_0017E"
+    "DP05_0005E",
+    "DP05_0006E",
+    "DP05_0007E",
+    "DP05_0008E",
+    "DP05_0009E",
+    "DP05_0010E",
+    "DP05_0011E",
+    "DP05_0012E",
+    "DP05_0013E",
+    "DP05_0014E",
+    "DP05_0015E",
+    "DP05_0016E",
+    "DP05_0017E",
 ]
 
-RACE_LABELS = [
-    "White", "Black", "Hispanic", "AI/AN", "Asian", "NH/PI", "Other"
-]
+RACE_LABELS = ["White", "Black", "Hispanic", "AI/AN", "Asian", "NH/PI", "Other"]
 
 RACE_COLUMNS = [
-    "DP05_0037E", "DP05_0038E", "DP05_0071E", "DP05_0039E", "DP05_0044E", "DP05_0052E", "DP05_0057E"
+    "DP05_0037E",
+    "DP05_0038E",
+    "DP05_0071E",
+    "DP05_0039E",
+    "DP05_0044E",
+    "DP05_0052E",
+    "DP05_0057E",
 ]
 
 
 ACS_SOCIAL_METRICS = {
-    "example": lambda df: df['DP02_0001E'].sum(),
+    "example": lambda df: df["DP02_0001E"].sum(),
 }

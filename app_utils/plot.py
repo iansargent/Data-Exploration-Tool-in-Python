@@ -14,7 +14,6 @@ from streamlit_extras.metric_cards import style_metric_cards
 from app_utils.analysis import get_column_type, get_skew
 
 
-
 def make_time_series_plot(
     df,
     x_col,
@@ -28,48 +27,69 @@ def make_time_series_plot(
     y_scale_domain=None,
     legend=None,
     height=500,
-    x_label_config=dict(labelAngle=0, labelFontSize=15),
-    title_config=dict(fontSize=19, anchor="middle"),
+    x_label_config=None,
+    title_config=None,
     stroke_dash_col=None,
-    add_points=True
+    add_points=True,
 ):
-    y_scale = alt.Scale(domain=y_scale_domain) if y_scale_domain is not None else alt.Undefined
+    y_scale = (
+        alt.Scale(domain=y_scale_domain)
+        if y_scale_domain is not None
+        else alt.Undefined
+    )
 
-    chart = alt.Chart(df).mark_line(point=add_points).encode(
-        x=alt.X(x_col, title="Year",
+    x_label_config = x_label_config or dict(labelAngle=0, labelFontSize=15)
+    title_config = (title_config or dict(fontSize=19, anchor="middle"),)
+
+    chart = (
+        alt.Chart(df)
+        .mark_line(point=add_points)
+        .encode(
+            x=alt.X(
+                x_col,
+                title="Year",
                 axis=alt.Axis(
                     **x_label_config,
                     labelFont="Helvetica Neue",
-                    labelFontWeight='normal',
-                    titleFont="Helvetica Neue")),
-        y=alt.Y(y_col, title=None,
+                    labelFontWeight="normal",
+                    titleFont="Helvetica Neue",
+                ),
+            ),
+            y=alt.Y(
+                y_col,
+                title=None,
                 axis=alt.Axis(
                     format=y_axis_format,
                     labelFont="Helvetica Neue",
-                    labelFontWeight='normal',
-                    titleFont="Helvetica Neue"),
-                scale=y_scale),
-        color=alt.Color(color_col, title=None,
-                        scale=alt.Scale(
-                            domain=color_domain,
-                            range=color_range),
-                        legend=legend),
-        tooltip=[alt.Tooltip(c) for c in tooltip_cols]
-    ).properties(height=height, title=alt.Title(title)
-    ).configure_title(**title_config).interactive()
+                    labelFontWeight="normal",
+                    titleFont="Helvetica Neue",
+                ),
+                scale=y_scale,
+            ),
+            color=alt.Color(
+                color_col,
+                title=None,
+                scale=alt.Scale(domain=color_domain, range=color_range),
+                legend=legend,
+            ),
+            tooltip=[alt.Tooltip(c) for c in tooltip_cols],
+        )
+        .properties(height=height, title=alt.Title(title))
+        .configure_title(**title_config)
+        .interactive()
+    )
 
     if stroke_dash_col:
-        chart = chart.encode(strokeDash=alt.StrokeDash(
-            stroke_dash_col, 
-            legend=alt.Legend(
-                title=None,
-                orient="bottom-right"
-            )))
-    
+        chart = chart.encode(
+            strokeDash=alt.StrokeDash(
+                stroke_dash_col, legend=alt.Legend(title=None, orient="bottom-right")
+            )
+        )
+
     return chart
 
 
-def safe_altair_plot(plot, data_type,chart_col=False):
+def safe_altair_plot(plot, data_type, chart_col=False):
     if chart_col:
         try:
             chart_col.altair_chart(plot)
@@ -77,8 +97,6 @@ def safe_altair_plot(plot, data_type,chart_col=False):
             chart_col.warning(
                 f"Not enough {data_type} available for the selected geography. See {e}"
             )
-        except:
-            chart_col.warning(f"Not enough {data_type} data available for the selected geography.")
 
     else:
         try:
@@ -1337,9 +1355,9 @@ def plot_container(df, altair_chart, chart_col=None):
     """
     import io
     from datetime import datetime
-    
-    if chart_col == None:
-        # Create a tabbed container 
+
+    if chart_col is None:
+        # Create a tabbed container
         with st.container():
             tab1, tab2 = st.tabs(["Visualize", "Table"])
 
@@ -1352,25 +1370,29 @@ def plot_container(df, altair_chart, chart_col=None):
 
                 # Excel download option
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
-                
+
                 c1, c2, _ = st.columns([1, 1, 12])
-                
+                buffer = io.BytesIO()
+                df.to_excel(buffer, index=False, engine="openpyxl")
+                buffer.seek(0)
+
                 # Download Buttons
                 c1.download_button(
                     label="Excel",
-                    data=(lambda buf=io.BytesIO(): (df.to_excel(buf, index=False, engine="openpyxl"), buf.seek(0), buf)[2])(),
+                    data=buffer,
                     file_name=f"table_{timestamp}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key=f"download_excel_{timestamp}")
-                
+                    key=f"download_excel_{timestamp}",
+                )
+
                 c2.download_button(
                     label="CSV",
-                    data=df.to_csv(index=False).encode('utf-8'),
+                    data=df.to_csv(index=False).encode("utf-8"),
                     file_name=f"table_{timestamp}.csv",
-                    key=f"download_csv_{timestamp}"
+                    key=f"download_csv_{timestamp}",
                 )
     else:
-        # Create a tabbed container 
+        # Create a tabbed container
         with chart_col.container():
             tab1, tab2 = st.tabs(["Visualize", "Table"])
 
@@ -1383,21 +1405,24 @@ def plot_container(df, altair_chart, chart_col=None):
 
                 # Excel download option
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
-                
+
                 c1, c2, _ = st.columns([1, 1, 12])
-                
+                buffer = io.BytesIO()
+                df.to_excel(buffer, index=False, engine="openpyxl")
+                buffer.seek(0)
+
                 # Download Buttons
                 c1.download_button(
                     label="Excel",
-                    data=(lambda buf=io.BytesIO(): (df.to_excel(buf, index=False, engine="openpyxl"), buf.seek(0), buf)[2])(),
+                    data=buffer,
                     file_name=f"table_{timestamp}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    key=f"download_excel_{timestamp}")
-                
-                c2.download_button(
-                    label="CSV",
-                    data=df.to_csv(index=False).encode('utf-8'),
-                    file_name=f"table_{timestamp}.csv",
-                    key=f"download_csv_{timestamp}"
+                    key=f"download_excel_{timestamp}",
                 )
 
+                c2.download_button(
+                    label="CSV",
+                    data=df.to_csv(index=False).encode("utf-8"),
+                    file_name=f"table_{timestamp}.csv",
+                    key=f"download_csv_{timestamp}",
+                )

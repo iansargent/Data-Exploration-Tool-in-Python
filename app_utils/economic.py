@@ -8,13 +8,9 @@ Economic Utility Functions
 import altair as alt
 import pandas as pd
 import streamlit as st
-import pandas as pd
-import altair as alt
-from app_utils.census import get_geography_title, split_name_col
+
+from app_utils.census import get_geography_title
 from app_utils.color import get_text_color
-from app_utils.plot import donut_chart, bar_chart, safe_altair_plot, make_time_series_plot
-from app_utils.df_filtering import filter_snapshot_data
-from app_utils.data_loading import load_metrics
 
 # import constants
 from app_utils.constants.ACS import (
@@ -24,7 +20,12 @@ from app_utils.constants.ACS import (
 )
 from app_utils.data_loading import load_metrics
 from app_utils.df_filtering import filter_snapshot_data
-from app_utils.plot import bar_chart, donut_chart, safe_altair_plot
+from app_utils.plot import (
+    bar_chart,
+    donut_chart,
+    make_time_series_plot,
+    safe_altair_plot,
+)
 
 
 def economic_snapshot_header():
@@ -34,7 +35,6 @@ def economic_snapshot_header():
         "County Subdivisions, Vermont. 2019-2023 American Community Survey 5-Year Estimates. "
         "Retrieved from https://data.census.gov/"
     )
-
 
 
 def unemployment_rate_ts_plot(filtered_unemployment_df, unemployment_df, title_geo):
@@ -309,7 +309,6 @@ def build_econ_plot_dataframes(df, metrics):
             }
         ),
     }
-
 
 
 def compute_econ_metrics(df):

@@ -9,16 +9,14 @@ ECON_SOURCES = {
     "commute_habits": "commute_habits_by_year.csv",
 }
 
-HOUSING_SOURCES =  {
-    "housing_2023" : "VT_HOUSING_ALL.fgb",
-    "housing_2023_tidy" : ("VT_HOUSING_ALL.fgb", tidy_census),
-
-    "housing_2013" : "VT_HOUSING_ALL_2013.fgb",
-    "housing_2013_tidy" : ("VT_HOUSING_ALL_2013.fgb", tidy_census),
-
-    "median_value" : "med_home_value_by_year.csv",
-    "median_smoc" : "med_smoc_by_year.csv",
-    "vt_historic_population": "VT_Historic_Population.csv"
+HOUSING_SOURCES = {
+    "housing_2023": "VT_HOUSING_ALL.fgb",
+    "housing_2023_tidy": ("VT_HOUSING_ALL.fgb", tidy_census),
+    "housing_2013": "VT_HOUSING_ALL_2013.fgb",
+    "housing_2013_tidy": ("VT_HOUSING_ALL_2013.fgb", tidy_census),
+    "median_value": "med_home_value_by_year.csv",
+    "median_smoc": "med_smoc_by_year.csv",
+    "vt_historic_population": "VT_Historic_Population.csv",
 }
 
 DEMO_SOURCES = {
