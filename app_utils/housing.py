@@ -264,6 +264,7 @@ def render_occupancy(metrics, plot_dfs, text_color, title_geo):
         plot_dfs['units_in_structure_df'], title_geo=title_geo, x_col="Structure Category", y_col="Units",
         distribution=True, height=600, fill="tomato", title="2023 Housing Unit Type Distribution",
         bar_width=90, x_label_angle=0, x_label_size=12)
+
     # Display the bar chart
     st.subheader("Unit Type")
     st.altair_chart(units_in_structure_bar_chart, use_container_width=True)

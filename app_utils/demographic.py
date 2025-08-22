@@ -91,7 +91,6 @@ def render_sex(metrics, plot_dfs, title_geo):
         source=plot_dfs['sex_dist'], title_geo=title_geo, x_col="Sex", y_col="Population",
         distribution=True, x_label_size=15, fill="steelblue", x_label_angle=0, height=450, 
         bar_width=250, title="Sex Distribution", title_size=19,
-    )
     
     sex_col2.altair_chart(sex_dist_bar_chart, use_container_width=True)
     
@@ -106,9 +105,9 @@ def render_age(metrics, plot_dfs, title_geo):
     age_dist_bar_chart = bar_chart(
         source=plot_dfs["age_dist"], title_geo=title_geo, x_col="Age Group", y_col="Population",
         x_label_angle=0, fill="steelblue", height=500, bar_width=45, distribution=True, x_label_size=12,
-        title="Age Distribution"
-    )
-    age_col1.altair_chart(age_dist_bar_chart, use_container_width=True)
+        title="Age Distribution")
+    
+      age_col1.altair_chart(age_dist_bar_chart, use_container_width=True)
 
     age_col2.markdown("\2")
     age_col2.metric(label="% Under 18 years", value=f"{metrics['pct_pop_under_18']:.0f}%")
