@@ -18,6 +18,7 @@ from app_utils.data_loading import load_zoning_data
 from app_utils.mapping import add_tooltip_from_dict, map_gdf_single_layer
 
 
+
 def process_zoning_data(gdf):
     """
     wrapper for all the cleaning, color, tooltip functions for zoning dataset
@@ -59,6 +60,7 @@ def add_zoning_tooltip(gdf):
             "Acreage": "Acres_fmt",
         },
     )
+
 
 
 def zoning_district_map(gdf):
@@ -138,11 +140,16 @@ def zoning_comparison_table(filtered_gdf, selected_districts):
     return combined_df
 
 
-def get_acerage_metrics(gdf):
-    col1, col2 = st.columns(2)
-    col1.metric(label="Districts", value=f"{len(gdf):,}")
-    total_acre = gdf["Acres"].sum()
-    col2.metric(label="**Total Acreage**", value=f"{total_acre:,.0f} acres")
+def compute_acerage_metrics(gdf):
+    df = gdf.drop(columns=["geometry"])
+    metrics = {
+        "total_acreage": df["Acres"].sum(),
+        "num_districts": len(df),
+        "num_residential_districts": len(df[df["District Type"] == "Residential"]),
+        "residential_acreage": df[df["District Type"] == "Residential"]["Acres"].sum()
+        
+    }
+    return metrics
 
 
 def plot_acreage(gdf):
@@ -154,30 +161,28 @@ def plot_acreage(gdf):
     acres_df["Percent"] = 100 * acres_df["Acres"] / total_acres
 
     bar_chart = (
-        alt.Chart(acres_df)
-        .mark_bar()
-        .encode(
-            x=alt.X(
-                "District Type:N",
-                sort="-y",
-                title="Zoning Type",
-                axis=alt.Axis(labelAngle=0),
-            ),
-            y=alt.Y("Acres:Q", title="Total Acres"),
-            color=alt.Color("hex_color:N", scale=None, legend=None),
-            tooltip=[
-                "District Type",
-                alt.Tooltip("Acres:Q", format=",.0f"),
-                alt.Tooltip("Percent:Q", format=".1f", title="% of Total"),
-            ],
-        )
-        .properties(height=500, title="Zoning Acreage by District Type")
-    )
+      alt.Chart(acres_df)
+      .mark_bar()
+      .encode(
+          x=alt.X(
+            "District Type:N", 
+            sort="-y", 
+            title="District Type", 
+            axis=alt.Axis(labelAngle=0)
+          ),
+          y=alt.Y("Acres:Q", title="Acres"),
+          color=alt.Color("hex_color:N", scale=None, legend=None),
+          tooltip=[
+              "District Type",
+              alt.Tooltip("Acres:Q", format=",.0f"),
+              alt.Tooltip("Percent:Q", format=".1f", title="% of Total")
+          ],
+      )
+      .properties(height=500, title="Zoning Acreage by District Type")
+   )
 
     return bar_chart
 
 
 ### API STUFF
-
-
 zoning_router = create_data_router("/zoning", load_zoning_data, process_zoning_data)
