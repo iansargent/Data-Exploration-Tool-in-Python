@@ -2,3 +2,4 @@ venv/
 *FJK*
 *__pycache__*
 Data/large-data
+.ruff_cache

@@ -5,18 +5,20 @@ Vermont Data App
 File Handling Utility Functions
 """
 
-import pandas as pd
 import geopandas as gpd
+import pandas as pd
+
 
 def strip_all_whitespace(df):
     # Strip column names
     df.columns = df.columns.str.strip()
-    
+
     # Strip whitespace from all string cells
-    for col in df.select_dtypes(include='object'):
+    for col in df.select_dtypes(include="object"):
         df[col] = df[col].str.strip()
-    
+
     return df
+
 
 def clean_data(df):
     """
@@ -27,7 +29,7 @@ def clean_data(df):
     @return: The cleaned pandas DataFrame.
     """
     # Replace "." name spacers with "_"
-    df.columns = df.columns.str.replace('.', '_', regex=False)
+    df.columns = df.columns.str.replace(".", "_", regex=False)
     # Replace empty values with NA
     df = df.replace("", pd.NA, regex=True)
 
@@ -37,12 +39,12 @@ def clean_data(df):
 
         # Handle datetime-like columns based on column name
         if any(x in col_name for x in ["datetime", "date", "time"]):
-            df[col] = pd.to_datetime(df[col], errors='coerce')
+            df[col] = pd.to_datetime(df[col], errors="coerce")
             continue  # Skip further checks
         # If the column is a year variable
         elif "year" in col_name:
             # Convert it into a datetime type
-            df[col] = pd.to_datetime(df[col].astype(str) + "-01-01", errors='coerce')
+            df[col] = pd.to_datetime(df[col].astype(str) + "-01-01", errors="coerce")
             continue
         # If the column is a month variable
         elif "month" in col_name:
@@ -52,27 +54,31 @@ def clean_data(df):
             df[col] = pd.to_datetime(
                 "2000-" + df[col].astype(int).astype(str).str.zfill(2) + "-01",
                 format="%Y-%m-%d",
-                errors='coerce'
+                errors="coerce",
             )
             continue
 
         # Convert binary numeric columns with values [0,1] to boolean
         if df[col].dropna().nunique() == 2:
             vals = set(str(v).strip().lower() for v in df[col].dropna().unique())
-            if vals == {"yes", "no", " "} or vals == {"0", "1"} or vals == {0, 1} or vals == {"y", "n"}:
+            if (
+                vals == {"yes", "no", " "}
+                or vals == {"0", "1"}
+                or vals == {0, 1}
+                or vals == {"y", "n"}
+            ):
                 df[col] = df[col].astype(bool)
-        
+
         if isinstance(df, gpd.GeoDataFrame):
             convert_all_timestamps_to_str(df)
-    
+
     # Return the cleaned dataframe
     return df
 
 
-
 def convert_all_timestamps_to_str(gdf):
     """
-    Converts all timestamp columns in a GeoDataFrame 
+    Converts all timestamp columns in a GeoDataFrame
     into strings for mapping purposes.
 
     @param gdf: A pandas DataFrame or GeoDataFrame object.
@@ -82,10 +88,9 @@ def convert_all_timestamps_to_str(gdf):
     for col, dtype in gdf.dtypes.items():
         if "datetime" in str(dtype):
             gdf[col] = gdf[col].astype(str)
-    
+
     # Return the GeoDataFrame
     return gdf
-
 
 
 def month_name_to_num(month_name):
@@ -112,12 +117,11 @@ def month_name_to_num(month_name):
     # Check if month name (short or full)
     month_abbrs = {m.lower(): i for i, m in enumerate(calendar.month_abbr) if m}
     month_names = {m.lower(): i for i, m in enumerate(calendar.month_name) if m}
-    
+
     if month_name in month_abbrs:
         return month_abbrs[month_name]
-    
+
     if month_name in month_names:
         return month_names[month_name]
-    
-    return None
 
+    return None

@@ -1,4 +1,3 @@
-
 """
 Ian Sargent
 ORCA
@@ -7,16 +6,19 @@ Streamlit Data Visualization App
 About Page
 """
 
-import streamlit as st
 import markdown
 import requests
+import streamlit as st
+
 from app_utils.streamlit_config import streamlit_config
+
 
 def about():
     # Set the page title
     st.markdown(
         "<h2 style='color: #4a4a4a; font-family: Helvetica; font-weight: 300;'>About the Project</h2>",
-        unsafe_allow_html=True)
+        unsafe_allow_html=True,
+    )
 
     # Open the 'about.md' file and read its content
     url = "https://raw.githubusercontent.com/iansargent/Data-Exploration-Tool-in-Python/main/pages/about.md"
@@ -26,16 +28,17 @@ def about():
     about_content = response.text
     html_content = markdown.markdown(about_content)
 
-    # Display the 'about.md' content in a container 
-    with st.container():        
+    # Display the 'about.md' content in a container
+    with st.container():
         st.markdown(
             f"""
             <div class="custom-container">
                 <p>{html_content}</p>
             </div>
             """,
-            unsafe_allow_html=True
+            unsafe_allow_html=True,
         )
+
 
 def main():
     # Set the global font settings and display a background image
@@ -74,8 +77,10 @@ def main():
             color: #333333;
         }
         </style>
-        """, unsafe_allow_html=True)
-    
+        """,
+        unsafe_allow_html=True,
+    )
+
     # Show the about page
     about()
 

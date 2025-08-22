@@ -7,15 +7,19 @@ General Mapping Page (For uploaded files)
 """
 
 # Necessary imports
-import streamlit as st
-import pandas as pd
 import geopandas as gpd
 import leafmap.foliumap as leafmap
+import pandas as pd
+import streamlit as st
 from sklearn.preprocessing import MinMaxScaler
 
 from app_utils.data_cleaning import convert_all_timestamps_to_str
-from app_utils.file_handling import (get_user_files, is_latitude_longitude, 
-                                     process_uploaded_files, get_lat_lon_cols)
+from app_utils.file_handling import (
+    get_lat_lon_cols,
+    get_user_files,
+    is_latitude_longitude,
+    process_uploaded_files,
+)
 from app_utils.streamlit_config import streamlit_config
 
 
@@ -24,7 +28,7 @@ def main():
     st.header("General Mapping")
     # Get the user files from the file uploader
     user_files = get_user_files()
-    # Read and clean the uploaded files
+    # Read and clean the uploaded fileclears
     processed_files = process_uploaded_files(user_files)
 
     # Options for different basemaps
@@ -36,7 +40,7 @@ def main():
         "Shaded Relief Map": "Esri.WorldShadedRelief",
         "Hillshade Map": "Esri.WorldHillshade",
         "National Geographic": "Esri.NatGeoWorldMap",
-        "World Street Map": "Esri.WorldStreetMap"
+        "World Street Map": "Esri.WorldStreetMap",
     }
     # Select box for user to change the basemap
     basemap_select_box = st.selectbox("**Basemap**", list(basemaps.keys()), index=0)
@@ -55,22 +59,29 @@ def main():
         # If it is a GeoDataFrame but does not have lat/lon columns
         if isinstance(df, gpd.GeoDataFrame) and not is_latitude_longitude(df):
             # Add the layer to the map
-            m.add_gdf(df, layer_name=filename, info_mode='on_click', zoom_to_layer=True)
+            m.add_gdf(df, layer_name=filename, info_mode="on_click", zoom_to_layer=True)
 
         # If there are lat/lon columns, define them respectfully
         elif is_latitude_longitude(df):
             lat_col, lon_col = get_lat_lon_cols(df)
             if not lat_col or not lon_col:
-                st.warning(f"Could not identify lat/lon columns in {filename}. Skipping heatmap.")
+                st.warning(
+                    f"Could not identify lat/lon columns in {filename}. Skipping heatmap."
+                )
                 continue
-            
+
             # Get a list of the numeric column names for user selection
             numeric_cols = df.select_dtypes(include="number").columns.tolist()
             # Selection box of which numeric variables the user wants to layer onto the map
-            circle_var = st.selectbox(f"Select a variable to plot from {filename}", numeric_cols, index=0, key=f"{filename}_circle_var")
+            circle_var = st.selectbox(
+                f"Select a variable to plot from {filename}",
+                numeric_cols,
+                index=0,
+                key=f"{filename}_circle_var",
+            )
             # Filter the dataset for only the coords and selected variable (dropping NAs)
             circle_df = df[[lat_col, lon_col, circle_var]].dropna()
-            
+
             # Scale the selected variable on a range of 0.5 to 10
             scaler = MinMaxScaler(feature_range=(0.5, 10))
             scaled_values = scaler.fit_transform(circle_df[[circle_var]])
@@ -84,7 +95,7 @@ def main():
                     y=lat_col,
                     radius=row["scaled_radius"],
                     fill_color="mediumseagreen",
-                    tooltip=[circle_var]
+                    tooltip=[circle_var],
                 )
 
             # Define the geographic boundaries for the map

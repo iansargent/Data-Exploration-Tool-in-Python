@@ -9,10 +9,10 @@ Social Page (Census)
 # Necessary imports
 import streamlit as st
 
-from app_utils.census_sections import mapping_tab, compare_tab
-from app_utils.streamlit_config import streamlit_config
-from app_utils.social import social_snapshot
+from app_utils.census_sections import compare_tab, mapping_tab
 from app_utils.data_loading import masterload
+from app_utils.social import social_snapshot
+from app_utils.streamlit_config import streamlit_config
 
 
 def main():
@@ -25,13 +25,14 @@ def main():
 
     with mapping:
         mapping_tab(data=tidy_2023, map_color="Purples")
-        
+
     with snapshot:
         social_snapshot(social_dfs)
 
     with compare:
-        data_dict = {"Social 2023" : tidy_2023}
+        data_dict = {"Social 2023": tidy_2023}
         compare_tab(data_dict)
+
 
 if __name__ == "__main__":
     streamlit_config()
