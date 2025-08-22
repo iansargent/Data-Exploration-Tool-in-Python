@@ -88,10 +88,9 @@ def render_sex(metrics, plot_dfs, title_geo):
     sex_col1.metric(label="Percent Female", value=f"{metrics['pct_female']:.1f}%")
 
     sex_dist_bar_chart = bar_chart(
-        source=plot_dfs['sex_dist'], title_geo=title_geo, XcolumnName="Sex", YcolumnName="Population",
-        distribution=True, labelFontSize=15, fillColor="steelblue", XlabelAngle=0, height=450, 
-        barWidth=250, title="Sex Distribution", titleFontSize=19,
-    )
+        source=plot_dfs['sex_dist'], title_geo=title_geo, x_col="Sex", y_col="Population",
+        distribution=True, x_label_size=15, fill="steelblue", x_label_angle=0, height=450, 
+        bar_width=250, title="Sex Distribution", title_size=19,
     
     sex_col2.altair_chart(sex_dist_bar_chart, use_container_width=True)
     
@@ -104,11 +103,11 @@ def render_age(metrics, plot_dfs, title_geo):
     age_col1, _, age_col2 = st.columns([6, 0.5, 2])
     
     age_dist_bar_chart = bar_chart(
-        source=plot_dfs["age_dist"], title_geo=title_geo, XcolumnName="Age Group", YcolumnName="Population",
-        XlabelAngle=0, fillColor="steelblue", height=500, barWidth=45, distribution=True, labelFontSize=12,
-        title="Age Distribution"
-    )
-    age_col1.altair_chart(age_dist_bar_chart, use_container_width=True)
+        source=plot_dfs["age_dist"], title_geo=title_geo, x_col="Age Group", y_col="Population",
+        x_label_angle=0, fill="steelblue", height=500, bar_width=45, distribution=True, x_label_size=12,
+        title="Age Distribution")
+    
+      age_col1.altair_chart(age_dist_bar_chart, use_container_width=True)
 
     age_col2.markdown("\2")
     age_col2.metric(label="% Under 18 years", value=f"{metrics['pct_pop_under_18']:.0f}%")
@@ -124,9 +123,9 @@ def render_race(plot_dfs, title_geo):
     st.subheader("Race")
 
     race_dist_chart = bar_chart(
-        source=plot_dfs['race_dist'], title_geo=title_geo, XcolumnName="Race/Ethnicity", YcolumnName="Population",
-        fillColor="steelblue", barWidth=120, distribution=True, labelFontSize=13, height=500,
-        title="Race Distribution", XlabelAngle=0
+        source=plot_dfs['race_dist'], title_geo=title_geo, x_col="Race/Ethnicity", y_col="Population",
+        fill="steelblue", bar_width=120, distribution=True, x_label_size=13, height=500,
+        title="Race Distribution", x_label_angle=0
     )
     st.altair_chart(race_dist_chart)
 
