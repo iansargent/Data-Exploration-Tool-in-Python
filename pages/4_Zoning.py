@@ -90,7 +90,7 @@ def render_family_housing_type(df):
     house_type_bar_chart = bar_chart(
         df, x_col=f"{house_types[house_type]} Allowance", x_label_angle=0,
         fill="mediumseagreen", title=f"{house_type} Allowance", title_size=20, distribution=True,
-        sort_order=["Permitted", "Public Hearing", "Overlay", "Prohibited"], bar_width=75
+        bar_width=75
     )
 
     zoning_family_regulation_metrics = {

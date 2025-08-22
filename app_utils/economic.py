@@ -314,7 +314,7 @@ def render_health_insurance(metrics, title_geo, plot_dfs, text_color):
     # Use the `donut_chart` function  to create a tailored chart using info from the dataframe above
     public_private_pie_chart = donut_chart(
         source=public_private_coverage_df, colorColumnName="Coverage Type", height=350, width=200, 
-        innerRadius=130, fontSize=45, titleFontSize=18, fillColor="mediumseagreen", 
+        innerRadius=130, fontSize=45, title_size=18, fill="mediumseagreen", 
         title=f"Private Health Coverage | {title_geo}", stat=(1 - metrics['pct_public_hc_coverage']), text_color=text_color)
     # Display the donut chart on the left
     h_col1.altair_chart(public_private_pie_chart)
@@ -385,8 +385,8 @@ def render_income(metrics, filtered_dfs, title_geo, plot_dfs):
     
     # Use the `census_bar_chart` function to create a highly customizable bar chart
     family_income_dist_chart = bar_chart(
-        source=plot_dfs['family_income_df'], title_geo=title_geo, XcolumnName="Family Income", xType=":N", yType=":Q",
-        YcolumnName="Estimated Families", barWidth=75, titleFontSize=19, title="Family Income Distribution")
+        source=plot_dfs['family_income_df'], title_geo=title_geo, x_col="Family Income", xType=":N", yType=":Q",
+        y_col="Estimated Families", bar_width=75, title_size=19, title="Family Income Distribution")
     # Display the bar chart on the right
     income_col2.altair_chart(family_income_dist_chart, use_container_width=True)
 
@@ -409,7 +409,7 @@ def render_poverty(metrics, title_geo, plot_dfs, text_color):
     # Create a donut chart to show the % of families below the poverty level
     pov_families_pie_chart = donut_chart(
         source=pov_families_df, colorColumnName="Category", height=250, width=175, 
-        innerRadius=85, fontSize=40, titleFontSize=14, fillColor="mediumseagreen", 
+        innerRadius=85, fontSize=40, title_size=14, fill="mediumseagreen", 
         title=f"Families Below Poverty Level | {title_geo}", stat=metrics['pct_families_below_pov'], text_color=text_color)
     # Display the two donut charts
     pov_col1.markdown("\2") 
@@ -419,9 +419,9 @@ def render_poverty(metrics, title_geo, plot_dfs, text_color):
     poverty_by_age_df = plot_dfs['poverty_by_age_df']
     # Create a highly customizable bar chart using the `census_bar_chart` function
     pov_by_age_chart = bar_chart(
-        source=poverty_by_age_df, title_geo=title_geo, XcolumnName="Age", YcolumnName="Poverty Rate",
-        xType=":O", yType=":Q", yFormat=".0%", YtooltipFormat=".1%", barWidth=130, XlabelAngle=0, height=600, titleFontSize=19, 
-        labelFontSize=13, title="Poverty Rate by Age Group", distribution=False)
+        source=poverty_by_age_df, title_geo=title_geo, x_col="Age", y_col="Poverty Rate",
+        xType=":O", yType=":Q", y_axis_format=".0%", y_tooltip_format=".1%", bar_width=130, x_label_angle=0, height=600, title_size=19, 
+        x_label_size=13, title="Poverty Rate by Age Group", distribution=False)
     # Display the bar chart on the right
     pov_col2.altair_chart(pov_by_age_chart)
     

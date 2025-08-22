@@ -14,15 +14,6 @@ from streamlit_extras.metric_cards import style_metric_cards
 from app_utils.analysis import get_column_type, get_skew
 
 
-def histogram(df, x_col, count_name="Count", bins=6):
-    chart = alt.Chart(df).mark_bar().encode(
-        x=alt.X(f"{x_col}:Q", bin=alt.Bin(maxbins=bins), title=x_col),
-            y=alt.Y('count():Q', title=count_name),
-            tooltip=[alt.Tooltip('count()', title=count_name)]
-        ).properties(height=450)
-    
-    return chart
-
 
 def make_time_series_plot(
     df,
@@ -37,7 +28,7 @@ def make_time_series_plot(
     y_scale_domain=None,
     legend=None,
     height=500,
-    x_label_config=dict(labelAngle=0, x_label_size=15),
+    x_label_config=dict(labelAngle=0, labelFontSize=15),
     title_config=dict(fontSize=19, anchor="middle"),
     stroke_dash_col=None,
     add_points=True
@@ -121,7 +112,7 @@ def donut_chart(source, colorColumnName, height=300, width=300, innerRadius=90, 
 
 
 def bar_chart(source, x_col, y_col="Count", title_geo="", xType=":N", yType=":Q", y_tooltip_format=",.0f", y_axis_format=",.0f", x_label_angle=-50, 
-                     fill="mediumseagreen", height=450, width=400, bar_width=60, title="Bar Chart", title_size=17, distribution=True,
+                     fill="mediumseagreen", height=400, width=400, bar_width=60, title="Bar Chart", title_size=17, distribution=True,
                      x_label_size=10.5, sort_order=None):
     
     tooltip_list = [x_col, alt.Tooltip(y_col, format=y_tooltip_format)]
@@ -134,7 +125,8 @@ def bar_chart(source, x_col, y_col="Count", title_geo="", xType=":N", yType=":Q"
         source = source.groupby(x_col).size().reset_index(name="Count")
     else:
         source = source.copy()
-        
+    
+    
     if distribution:
         source[f"% of {y_col}"] = source[y_col] / source[y_col].sum()
         tooltip_list.append(alt.Tooltip(f"% of {y_col}", format=".1%"))
