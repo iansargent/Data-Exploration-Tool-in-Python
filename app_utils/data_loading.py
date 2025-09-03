@@ -99,10 +99,15 @@ def load_zoning_data(county=None):
 
 
 def load_soil_septic_single(rpc):
-    return load_data(
-        path= DATADIR / "soil-suitability" / f"{rpc}_Soil_Septic.fgb",
-        simplify_tolerance=0.0001,
-    )
+    try: 
+        return load_data(
+            path= DATADIR / "soil-suitability" / f"{rpc}_Soil_Septic.fgb",
+            simplify_tolerance=0.0001,
+        )
+    except:
+        import streamlit as st
+        st.markdown("There is no wastewater soil suitability for that RPC at this time", unsafe_allow_html=True)
+        st.stop()
 
 def load_soil_septic_multi(rpcs):
     dfs = [load_soil_septic_single(rpc) for rpc in rpcs]
