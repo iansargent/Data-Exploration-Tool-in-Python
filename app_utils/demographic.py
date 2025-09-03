@@ -176,21 +176,4 @@ def render_race(plot_dfs, title_geo):
 
 
 def render_voting_age_citizens(metrics):
-    st.divider()
-    # The CITIZEN VOTING AGE Section
-    st.subheader("Citizen Voting Age")
-
-    st.warning("Citizen Voting-Age data issues being worked out.")
-    vote_col1, vote_col2, vote_col3 = st.columns(3)
-
-    vote_col1.metric(
-        label="Voting-Age Citizens", value=f"{metrics['pop_voting_age_citizen']:.0f}"
-    )
-    vote_col2.metric(
-        label="Male Voting-Age Citizens",
-        value=f"{metrics['citizen_voting_age_pct_male']:.0f}%",
-    )
-    vote_col3.metric(
-        label="Female Voting-Age Citizens",
-        value=f"{metrics['citizen_voting_age_pct_female']:.0f}%",
-    )
+    pass
