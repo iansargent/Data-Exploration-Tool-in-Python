@@ -7,7 +7,6 @@ Description: centralized page for data loading
 import io
 import threading
 from pathlib import Path
-from urllib.parse import urljoin
 
 import geopandas as gpd
 import pandas as pd
@@ -15,7 +14,6 @@ import pyogrio
 import requests
 
 from app_utils.census import split_name_col
-from app_utils.constants.ACS import ACS_BASENAME
 from app_utils.constants.dataset_sources import (
     COMBINED_CENSUS,
     DEMO_SOURCES,
@@ -30,12 +28,14 @@ from app_utils.wastewater import process_soil_data
 from app_utils.zoning import process_zoning_data
 
 
-def load_data(url, simplify_tolerance=None, drop_cols=None, postprocess_fn=None):
+DATADIR = Path(__file__).parent.parent / "Data"
+
+def load_data(path, simplify_tolerance=None, drop_cols=None, postprocess_fn=None):
     """
     General-purpose data loader for CSV or GeoDataFrame.
 
     Args:
-        url (str): Data source. Note: uses the file extension to dictate how to read it, so it better be right.
+        path (str): Data source. Note: uses the file extension to dictate how to read it, so it better be right.
         simplify_tolerance (float): Optional geometry simplification.
         drop_cols (list): Optional list of columns to drop.
         postprocess_fn (callable): Optional function to apply to the dataframe.
@@ -44,26 +44,18 @@ def load_data(url, simplify_tolerance=None, drop_cols=None, postprocess_fn=None)
         pd.DataFrame or gpd.GeoDataFrame
     """
 
-    extension = Path(url).suffix.lstrip(".")
-    if extension == "fgb":
-        try:
-            df = pyogrio.read_dataframe(url)
+
+    match path.suffix.lstrip(".").casefold():
+        case "fgb":
+            df = safe_read(lambda: pyogrio.read_dataframe(path))
             df = crs_set(df)
-        except Exception as exc:
-            raise RuntimeError(f"Failed to read geospatial data: {exc}") from exc
-    elif extension == "geojson":
-        try:
-            df = gpd.read_file(url)
+        case "geojson":
+            df = safe_read(lambda: gpd.read_file(path))
             df = crs_set(df)
-        except Exception as exc:
-            raise RuntimeError(f"Failed to read geospatial data: {exc}") from exc
-    else:
-        try:
-            response = requests.get(url, verify=True)
-            response.raise_for_status()
-            df = pd.read_csv(io.StringIO(response.text))
-        except Exception as exc:
-            raise RuntimeError(f"Failed to read tabular data: {exc}") from exc
+        case "csv": 
+            df = safe_read(lambda: pd.read_csv(path))
+        case _:
+            df = safe_read(lambda: pd.read_csv(io.StringIO(requests.get(path).text)))
 
     if drop_cols:
         df = df.drop(columns=drop_cols, errors="ignore")
@@ -79,6 +71,14 @@ def load_data(url, simplify_tolerance=None, drop_cols=None, postprocess_fn=None)
     df = strip_all_whitespace(df)
     return df.copy()
 
+def safe_read(func):
+    """
+    Helper func to catch exceptions
+    """
+    try:
+        return func()
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read data: {exc}") from exc
 
 def crs_set(df):
     if df.crs:
@@ -88,12 +88,10 @@ def crs_set(df):
     return df
 
 
-### hard-coded wrappers for particular URLs ###
-
-
+### hard-coded wrappers for particular paths ###
 def load_zoning_data(county=None):
     gdf = load_data(
-        url="https://raw.githubusercontent.com/VERSO-UVM/Vermont-Livability-Map/main/data/vt-zoning-update.fgb",
+        path=DATADIR / "zoning" / "vt-zoning-update.fgb", 
         simplify_tolerance=0.0001,
         drop_cols=["Bylaw Date"],
     )
@@ -102,29 +100,28 @@ def load_zoning_data(county=None):
 
 def load_soil_septic_single(rpc):
     return load_data(
-        url=f"https://github.com/VERSO-UVM/Vermont-Livability-Map/raw/main/data/{rpc}_Soil_Septic.fgb",
+        path= DATADIR / "soil-suitability" / f"{rpc}_Soil_Septic.fgb",
         simplify_tolerance=0.0001,
     )
-
 
 def load_soil_septic_multi(rpcs):
     dfs = [load_soil_septic_single(rpc) for rpc in rpcs]
     return pd.concat(dfs, ignore_index=True, sort=False)
 
 
-## TODO: update with actual URL. once in stored place.
+## TODO: update with actual path. once in stored place.
 def load_flood_data():
     return load_data(
-        url="Data/large-data/Flood_Hazard_Areas_(Only_FEMA_-_digitized_data).geojson",
+        path= DATADIR / "large-data" / "Flood_Hazard_Areas_(Only_FEMA_-_digitized_data).geojson",
         simplify_tolerance=0.0001,
     )
 
 
-def load_census_data(url):
-    return load_data(url=url, postprocess_fn=split_name_col)
+def load_census_data(path):
+    return load_data(path=path, postprocess_fn=split_name_col)
 
 
-def load_census_data_dict(sources, basename=ACS_BASENAME):
+def load_census_data_dict(sources, basename=DATADIR / "Census"):
     """
     Caching a census dictionary.
     If dictionary includes derived, this caches them from the original raw.
@@ -135,14 +132,14 @@ def load_census_data_dict(sources, basename=ACS_BASENAME):
             filename, func = src
             if filename not in data:
                 data[filename] = load_census_data(
-                    urljoin(basename, filename)
+                    Path(basename) / filename
                 )  # cache raw
             data[label] = func(
                 data[filename]
             )  # derive and cache from cached raw via func
         else:
             data[label] = load_census_data(
-                urljoin(basename, src)
+                Path(basename) / src
             )  # cache raw sans func
     return data
 

@@ -39,7 +39,7 @@ def make_time_series_plot(
     )
 
     x_label_config = x_label_config or dict(labelAngle=0, labelFontSize=15)
-    title_config = (title_config or dict(fontSize=19, anchor="middle"),)
+    title_config = title_config or dict(fontSize=19, anchor="middle")
 
     chart = (
         alt.Chart(df)

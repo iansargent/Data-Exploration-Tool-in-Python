@@ -1,10 +1,8 @@
 import pandas as pd
 import streamlit as st
 
-from app_utils.census import get_geography_title
 from app_utils.constants.ACS import ACS_SOCIAL_METRICS
 from app_utils.data_loading import load_metrics
-from app_utils.df_filtering import filter_snapshot_data
 
 
 def social_snapshot_header():
@@ -40,44 +38,47 @@ def social_df_metric_dict(filtered_gdf_2023):
 
 
 def social_snapshot(social_dfs):
-    # Display the Category Header with Data Source
-    social_snapshot_header()
-    # Filter the dataframes using select boxes for "County" and "Jurisdiction"
-    filtered_dfs, selected_values = filter_snapshot_data(
-        social_dfs, key_df=social_dfs["social_2023"]
+    st.markdown(
+       open("under_construction.html").read(), unsafe_allow_html=True
     )
 
-    # Get the title of the geography for plotting
-    title_geo = get_geography_title(selected_values)
-    # Based on the system color theme, update the text color (only used in donut plots)
-    # text_color = get_text_color(key="social_snapshot")
-    # Define two callable dictionaries: Metrics and Plot DataFrames
-    metrics, plot_dfs = social_df_metric_dict(filtered_dfs["social_2023"])
+    # social_snapshot_header()
+#     # Filter the dataframes using select boxes for "County" and "Jurisdiction"
+#     filtered_dfs, selected_values = filter_snapshot_data(
+#         social_dfs, key_df=social_dfs["social_2023"]
+#     )
 
-    # Render section functions
-    render_households(metrics, plot_dfs, title_geo)
-    render_education(metrics, plot_dfs, title_geo)
-    render_ancestry(metrics, plot_dfs, title_geo)
-    render_computer_access(metrics, plot_dfs, title_geo)
+#     # Get the title of the geography for plotting
+#     title_geo = get_geography_title(selected_values)
+#     # Based on the system color theme, update the text color (only used in donut plots)
+#     # text_color = get_text_color(key="social_snapshot")
+#     # Define two callable dictionaries: Metrics and Plot DataFrames
+#     metrics, plot_dfs = social_df_metric_dict(filtered_dfs["social_2023"])
 
-
-def render_households(metrics, plot_dfs, title_geo):
-    st.divider()
-    st.subheader("Households")
-
-
-def render_education(metrics, plot_dfs, title_geo):
-    st.divider()
-    st.subheader("Education")
-
-    st.markdown("##### 1. School Enrollment")
+#     # Render section functions
+#     render_households(metrics, plot_dfs, title_geo)
+#     render_education(metrics, plot_dfs, title_geo)
+#     render_ancestry(metrics, plot_dfs, title_geo)
+#     render_computer_access(metrics, plot_dfs, title_geo)
 
 
-def render_ancestry(metrics, plot_dfs, title_geo):
-    st.divider()
-    st.subheader("Ancenstry")
+# def render_households(metrics, plot_dfs, title_geo):
+#     st.divider()
+#     st.subheader("Households")
 
 
-def render_computer_access(metrics, plot_dfs, title_geo):
-    st.divider()
-    st.subheader("Computer & Internet Access")
+# def render_education(metrics, plot_dfs, title_geo):
+#     st.divider()
+#     st.subheader("Education")
+
+#     st.markdown("##### 1. School Enrollment")
+
+
+# def render_ancestry(metrics, plot_dfs, title_geo):
+#     st.divider()
+#     st.subheader("Ancenstry")
+
+
+# def render_computer_access(metrics, plot_dfs, title_geo):
+#     st.divider()
+#     st.subheader("Computer & Internet Access")

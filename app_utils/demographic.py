@@ -141,7 +141,7 @@ def render_age(metrics, plot_dfs, title_geo):
       title="Age Distribution"
     )
     
-      age_col1.altair_chart(age_dist_bar_chart, use_container_width=True)
+    age_col1.altair_chart(age_dist_bar_chart, use_container_width=True)
 
     age_col2.markdown("\2")
     age_col2.metric(

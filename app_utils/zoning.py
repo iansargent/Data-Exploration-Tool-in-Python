@@ -12,14 +12,12 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from app_utils.api_utils import create_data_router
 from app_utils.color import add_fill_colors
-from app_utils.data_loading import load_zoning_data
 from app_utils.mapping import add_tooltip_from_dict, map_gdf_single_layer
 
 
-
 def process_zoning_data(gdf):
+
     """
     wrapper for all the cleaning, color, tooltip functions for zoning dataset
     """
@@ -185,4 +183,4 @@ def plot_acreage(gdf):
 
 
 ### API STUFF
-zoning_router = create_data_router("/zoning", load_zoning_data, process_zoning_data)
+# zoning_router = create_data_router("/zoning", load_zoning_data, process_zoning_data)
