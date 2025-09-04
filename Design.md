@@ -11,6 +11,36 @@ The Vermont Data Collaborative portal is a website with three main pieces of fun
 8. Broader go live....
 9. VERSO students organize SOPs for updates and maintenance in the future.
 
+## Technical Steps
+##### Phase 1: prototyping
+1. Rough prototyping in streamlit
+2. Modularize streamlit; improve caching speed and add additional functionality
+3. Begin decoupling front-end and back-end
+---- Feedback
+
+#### Phase two: local host
+1. Construct initial setup of frontend (without data) on local host.
+2. Fully integrate fastAPI into backend, hooking up test connections to frontend as you go.
+3. Replicate all prototype functionality (with feedback improvements) on javascript local host
+4. Add additional functionality that javascript affords: multi-layer mapping, exporting
+5. Bugfixes, render stable version
+---- Feedback
+
+#### Phase three: server
+1. Containerize and test containers on local host.
+2. Acquire server, set up SSH and basic infrastructure
+3. migrate code to server and setup dockers, etc.
+4. stability and bughunt 
+---- QA and additional feedback
+5. Go live
+6. Organize SOPs for maintenance
+
+#### Phase four: extensions and maintenance
+* update caching
+* update database (see below)
+* allow for user uploads
+* add additional requested functionality
+
 # Main Architecture
 The website consists of two containerized modules--a backend for data processing and a frontend for a user interface and display. 
 ## Frontend
