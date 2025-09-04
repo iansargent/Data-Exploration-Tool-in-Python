@@ -1,45 +1,103 @@
-
-
 # Overall Vision
-The Vermont Data Collaborative portal is a website with three main pieces of functionality: data storage and access, data training, and data analysis. Designed in close partnership with stakeholders in the private sector, professional goverment, and citizen government, it aims to help Vermonters find and use the data they need to make their work easier and more effective. 
+The Vermont Data Collaborative portal is a website with three main pieces of functionality: data storage and access, data training, and data analysis. Designed in close partnership with stakeholders in the private sector, professional government, and citizen government, it aims to help Vermonters find and use the data they need to make their work easier and more effective.
+## Rollout Steps
+1. VERSO students build a prototype of the portal in streamlit (python), focusing on the core data visualization features. Ad-Hoc individual feedback sessions with community leaders (RPC heads, VLCT heads) and conversational statements of interest drive initial functionality.
+2. UVM faculty and SMEs review and update a stable version of the prototype and begin more detailed design of the eventual final version.
+3. The advisory council review the stable prototype, with an emphasis on potential indicators of interest and key functionality going forward.
+4. VERSO students collate and organize feedback and confer with UVM faculty and SMEs
+5. VERSO students begin work on second version of product, now built in javascript.
+6. Second round of feedback... 
+7. Continue iterating on product...
+8. Broader go live....
+9. VERSO students organize SOPs for updates and maintenance in the future.
 
-
-## Feedback and Outreach Strategy
-1. First, a prototype of the website is built in streamlit, focusing on the core data visualization features. Ad-Hoc individual feedback sessions with community leaders (RPC heads, VLCT heads) and conversational statements of interest drive functionality. 
-2. Next, the prototype is reviewed by UVM faculty and workers
-
-
-# Architecture
-The website consists of two containerized modules--a backend for data processing and a frontend for a user interface and display -- as well as data storage and 
-
+# Main Architecture
+The website consists of two containerized modules--a backend for data processing and a frontend for a user interface and display. 
 ## Frontend
-The frontend is a javascript website designed for easy use by a non-technical user. 
-### Stack
-`React` and `Next.js` do the majority of the work, with additional custom html and css along the edges. We may include some `D3.js` if others write it, too. 
-
-### Functionality
-* trainings and video walkthroughs for how to use it 
+The frontend is a javascript website designed for easy use by a non-technical user.
+#### Stack
+`React` and `Next.js` do the majority of the work, with additional custom html and css along the edges. We may include some `D3.js` if others write it, too.
+#### Functionality
+* trainings and video walkthroughs for how to use it
 * feedback and data requests
 * exploratory data visualization and low-level analysis, including exports
-* raw data exports 
+* raw data exports
 * customizable auto-generated reports for counties, RPCs, and municipalities, both general and by subject area.
-
-### User Interface
+* working with separate data areas in the same interface (eg, mapping).
+	* including filtering
+#### User Interface
 * Navigation
 * Dashboards
-* Interactive Maps 
+* Interactive Maps
 * Report generation and customization (ability to add user created visuals into report seamlessly)
-
+* Clear data sourcing and caveats concerning quality
 ## Backend
-The backend for the website consists largely of data manipulation in python. 
+The backend for the website consists largely of data manipulation in python.
+#### Stack
+Python: FastAPI, pandas, geopandas, pyogrio
+#### Functionality
+* Data cleaning and processing
+* Data filtering from frontend requests
+* serving JSON/GeoJSON to frontend
+* ability to cleanly include new data sources
+* allow cross-referencing between datasets based on
+	* geography: intersection, containment, etc.
+	* names: codes, full names
+####  Optimization
+If performance becomes a concern, VERSO students take the following actions:
+- improve backend caching: use the `moka.py` library.
+- upgrade the database querying: switch from csv files to a postgreSQL database (see below)
 
-### Stack
-Python: FastAPI, pandas, geopands, pyogrio
 
-### Functionality
-* Data Processing
-* Filtering
-* serving JSON/GeoJSON
+# Supporting Architecture
+
+##  Database
+#### Phase one
+- Data stored as CSV, parquet, FGB, or GeoJSON on a mounted volume accessible to the backend container
+- Automatic update scripts handle cleaning, versioning, and validation
+- Organized by data domain with accompanying metadata
+#### Phase two (optional)
+- Data stored in PostgreSQL/PostGIS for scalable, queryable storage
+- Backend queries database instead of reading files directly
+- Designed later, if required\
+## Containerization
+- The frontend and backend are containerized using Docker Compose. 
+- These containers are built on a server, probably AWS, using SSH
+
+## Security 
+- Server accessed via SSH only
+- containers isolated; no direct access to external data
+- open source data eliminated need for user authentication
 
 
-## Database
+# Miscellaneous Comments
+## Authorization and Access
+All data is intended to be open source and fully accessible. This both meets open source goals, meets public interest, and makes our jobs easier by not having to implement authorization protocols, etc. 
+
+## Maintenance and Updates
+Because there are no user roles, e.g., administrators, all maintenance and updates must be done in a coding environment. This puts an extra emphasis on making the code as modular, extensible, and clear as possible. In addition, VERSO students and SMEs will put together SOPs for maintenance and updates for future staff. 
+
+
+# Extensions
+## User uploaded data
+This the additional work and extensions required to securely allow user uploads for temporary sessions. 
+- **Backend**
+    - Create an endpoint in FastAPI to accept file uploads.
+    - Validate file type, size, and structure before processing.
+    - Isolate each user’s upload in a separate folder or temporary storage. Does not go to database.
+    - limit file size -- just goes in cache, we don't stor
+- **Database**
+    - Data is not stored in central database.
+- **Security**
+    - Sanitize file names and paths.
+    - Limit executable content to prevent code injection.
+    - Optionally run processing in a sandboxed environment or container.
+- **UI**
+    - Provide a simple “Upload Data” form.
+    - Show feedback if the upload fails or data is invalid.
+    - Allow users to interact with their data alongside portal datasets.
+- **Containerization**
+	-  HTTPS: 
+		- Run a reverse proxy in front of Docker containers (caddy)
+		- Obtain SSL certificate
+		- route all HTTP traffic to HTTPS
