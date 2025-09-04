@@ -12,7 +12,7 @@ The Vermont Data Collaborative portal is a website with three main pieces of fun
 9. VERSO students organize SOPs for updates and maintenance in the future.
 
 ## Technical Steps
-##### Phase 1: prototyping
+#### Phase 1: prototyping
 1. Rough prototyping in streamlit
 2. Modularize streamlit; improve caching speed and add additional functionality
 3. Begin decoupling front-end and back-end
