@@ -9,11 +9,7 @@ from streamlit_theme import st_theme
 
 
 def streamlit_config():
-    st.set_page_config(
-        page_title="Vermont Data App",
-        layout="wide",
-        page_icon="🍁"
-    )
+    st.set_page_config(page_title="Vermont Data App", layout="wide", page_icon="🍁")
     st.session_state.theme = get_streamlit_theme(key="theme_shade")
     st.session_state.map_style = pydeck_theme_basemap(key="mapping_basemap")
 
@@ -24,11 +20,15 @@ def get_streamlit_theme(key):
         theme = theme_dict["base"]
     else:
         theme = "light"
-    
+
     return theme
 
 
 def pydeck_theme_basemap(key):
     theme = get_streamlit_theme(key=key)
-    map_style = "dark" if theme == "dark" else "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    map_style = (
+        "dark"
+        if theme == "dark"
+        else "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
+    )
     return map_style
